@@ -334,6 +334,24 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .viewer { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgb(2 6 23 / .85); animation: fade .15s; cursor: zoom-out; }
 .viewer img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: var(--shadow-3); }
 .viewer .icon-btn { position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px; color: #fff; border-color: rgb(255 255 255 / .3); }
+.trip-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+@media (min-width: 640px) { .trip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .trip-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.trip-card { display: block; transition: background .15s, border-color .15s; }
+.trip-card:hover { border-color: color-mix(in srgb, var(--primary) 35%, transparent); }
+.trip-note { display: flex; align-items: center; gap: 12px; padding: 14px 16px; flex-wrap: wrap; }
+.back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; color: var(--secondary); font-weight: 600; }
+.back:hover { color: var(--primary); }
+.switch-card { display: flex; align-items: center; gap: 16px; cursor: pointer; padding: 16px 20px; }
+.switch { position: relative; flex: none; width: 48px; height: 28px; }
+.switch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--outline-var); transition: background .15s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 999px; background: #fff; box-shadow: var(--shadow); transition: transform .15s; }
+.switch input:checked + span { background: var(--primary); }
+.switch input:checked + span::after { transform: translateX(20px); }
+.switch input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
+.check { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid var(--hairline); border-radius: 12px; cursor: pointer; }
+.check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--primary); flex: none; }
 .sheet-nav a { display: flex; align-items: center; gap: 12px; padding: 14px 4px; border-bottom: 1px solid var(--c-low); font-weight: 600; }
 .sheet-nav a:last-child { border-bottom: 0; }
 .review { width: 100%; border-collapse: collapse; }
@@ -398,6 +416,8 @@ const ICONS = {
   logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
   camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
   paperclip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  plane: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  arrowLeft: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
   cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
   github: '<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>',
   sparkles: '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
@@ -468,7 +488,7 @@ const DEFAULT_CATEGORIES = [
   ["INCOME", "Salário", "#22c55e"], ["INCOME", "Renda extra", "#10b981"], ["INCOME", "Investimentos", "#0d9488"], ["INCOME", "Outros", "#64748b"],
 ].map(([type, name, color]) => ({ id: uid(), type, name, color }));
 
-const emptyState = () => ({ version: 1, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c, id: uid() })), transactions: [], recurrings: [], budgets: [], goals: [] });
+const emptyState = () => ({ version: 1, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c, id: uid() })), transactions: [], recurrings: [], budgets: [], goals: [], trips: [] });
 let state = load();
 let storageOk = true;
 let needsOccurrences = true;
@@ -498,13 +518,16 @@ function replaceState(next) {
   needsOccurrences = true;
 }
 const catById = (id) => state.categories.find((c) => c.id === id);
+const tripById = (id) => state.trips.find((x) => x.id === id);
+/** Trip expenses stay out of the monthly management unless that trip is set to be summed. */
+const inMain = (t) => { const trip = t.tripId && tripById(t.tripId); return !trip || trip.includeInMain; };
 // Visible transactions grouped by month; rebuilt once per render instead of rescanning per widget.
 let monthIndex = null;
 function ofMonth(month) {
   if (!monthIndex) {
     monthIndex = new Map();
     for (const t of state.transactions) {
-      if (t.status === "SKIPPED") continue;
+      if (t.status === "SKIPPED" || !inMain(t)) continue;
       const m = t.date.slice(0, 7);
       if (!monthIndex.has(m)) monthIndex.set(m, []);
       monthIndex.get(m).push(t);
@@ -853,6 +876,7 @@ const ROUTES = [
   { path: "lancamentos", label: "Lançamentos", icon: "receipt" },
   { path: "fixos", label: "Gastos fixos", icon: "calendar" },
   { path: "orcamentos", label: "Orçamentos", icon: "piggy" },
+  { path: "viagens", label: "Viagens", icon: "plane" },
   { path: "categorias", label: "Categorias", icon: "tag" },
   { path: "importar", label: "Importar extrato", icon: "upload" },
   { path: "backup", label: "Backup", icon: "save" },
@@ -880,9 +904,9 @@ function shell(r, content) {
     <div>
       <a class="brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="brand-text"><span class="brand-name">Minhas Finanças</span><br><span class="brand-sub">Fluxo de caixa pessoal</span></span></a>
       <button class="btn btn-primary btn-new" data-act="new-tx" title="Novo gasto">${icon("plus")}<span class="lbl">Novo gasto</span></button>
-      <nav class="nav" aria-label="Principal">${ROUTES.slice(0, 6).map(navLink).join("")}</nav>
+      <nav class="nav" aria-label="Principal">${ROUTES.filter((x) => x.path !== "backup").map(navLink).join("")}</nav>
     </div>
-    <div class="rail-foot nav">${navLink(ROUTES[6])}${sync
+    <div class="rail-foot nav">${navLink(ROUTES.find((x) => x.path === "backup"))}${sync
       ? `<a href="javascript:void 0" data-act="logout" title="Sair">${icon("logout")}<span class="lbl">Sair</span></a><div class="account" title="@${esc(sync.login)}"><span class="avatar">${esc(sync.login.slice(0, 2).toUpperCase())}</span><span class="lbl"><b>@${esc(sync.login)}</b><br><span class="hint">Dados salvos no GitHub</span></span></div>`
       : `<a href="${href("entrar")}" title="Entrar">${icon("github")}<span class="lbl">Entrar / criar conta</span></a>`}</div>
   </aside>
@@ -915,11 +939,12 @@ const pill = (style, ic, text) => `<span class="pill" style="${style}">${ic ? ic
 const statusBadge = (t) => t.status === "PENDING" ? `<span class="badge b-warning">Pendente</span>` : `<span class="badge b-success">${t.type === "INCOME" ? "Recebido" : "Pago"}</span>`;
 const catChip = (c) => c ? `<span class="cat"><span class="dot" style="background:${esc(c.color)};width:6px;height:6px"></span><span class="truncate">${esc(c.name)}</span></span>` : `<span class="muted">—</span>`;
 
-function ledgerRow(t, { toggle = false } = {}) {
+function ledgerRow(t, { toggle = false, inTrip = false } = {}) {
   const c = catById(t.categoryId);
   const ic = t.type === "INCOME" ? "banknote" : t.recurringId ? "calendar" : t.source === "BANK_IMPORT" ? "file" : "bag";
   const color = t.type === "INCOME" ? "var(--success)" : c?.color || "var(--secondary)";
-  const sub = t.recurringId ? "Gasto fixo" : t.source === "BANK_IMPORT" ? "Extrato bancário" : "Lançamento manual";
+  const trip = !inTrip && t.tripId && tripById(t.tripId);
+  const sub = trip ? `Viagem: ${esc(trip.name)}` : t.recurringId ? "Gasto fixo" : t.source === "BANK_IMPORT" ? "Extrato bancário" : "Lançamento manual";
   return `<li class="${t.type === "INCOME" ? "income" : ""}">
     ${toggle ? `<button class="toggle ${t.status === "PAID" ? "on" : ""}" data-act="toggle" data-id="${t.id}" aria-label="${t.status === "PAID" ? "Marcar como pendente" : t.type === "INCOME" ? "Marcar como recebido" : "Marcar como pago"}">${icon("check")}</button>` : ""}
     <button class="row-main" data-act="edit-tx" data-id="${t.id}">
@@ -987,6 +1012,7 @@ function viewPainel(r) {
         pill: s.income > 0 ? pill(s.forecast < 0 ? "background:var(--danger-c);color:var(--danger)" : "background:var(--c-low);color:var(--tertiary)", "bank", `${fmtPct(ratio(s.forecast, s.income))} livre`) : "",
         meter: { r: ratio(s.forecast, s.income), color: "var(--tertiary-c)" } })}
     </section>
+    ${tripNote(m)}
     ${alerts.length ? `<div class="alert"><span class="t-warning" style="display:flex;margin-top:1px">${icon("alert")}</span><div>${alerts.map((a) => `<p><b>${esc(a.name)}</b>: ${a.ratio > 1 ? `orçamento estourado em ${fmt(a.spent - a.amountCents)}` : `${Math.round(a.ratio * 100)}% do orçamento usado`}</p>`).join("")}</div></div>` : ""}
     <div class="grid-main">
       <section class="card">
@@ -1172,7 +1198,130 @@ function viewBackup() {
   ${storageOk ? "" : `<p class="alert" style="margin-top:16px">O navegador não está permitindo salvar (modo privado?). Exporte um backup antes de fechar.</p>`}`;
 }
 
-const VIEWS = { painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, orcamentos: viewOrcamentos, categorias: viewCategorias, importar: viewImportar, backup: viewBackup };
+// ---------- Trips ----------
+const tripTx = (id) => state.transactions.filter((t) => t.tripId === id && t.status !== "SKIPPED").sort(byDateDesc);
+function tripTotals(trip) {
+  const list = tripTx(trip.id), spent = sum(list.filter((t) => t.type === "EXPENSE")), refunds = sum(list.filter((t) => t.type === "INCOME"));
+  const days = Math.max(1, Math.round((new Date(trip.endDate) - new Date(trip.startDate)) / 86400000) + 1);
+  return { list, spent, refunds, net: spent - refunds, days, perDay: Math.round((spent - refunds) / days) };
+}
+function tripStatus(trip) {
+  const today = todayISO();
+  if (today < trip.startDate) return ["Planejada", "b-neutral"];
+  if (today > trip.endDate) return ["Concluída", "b-success"];
+  return ["Em andamento", "b-warning"];
+}
+const tripDates = (trip) => {
+  const y1 = trip.startDate.slice(0, 4), y2 = trip.endDate.slice(0, 4);
+  return `${dayMonth(trip.startDate)}${y1 !== y2 ? ` de ${y1}` : ""} a ${dayMonth(trip.endDate)} de ${y2}`;
+};
+/** Painel: how much of this month went to trips that are kept apart. */
+function tripNote(month) {
+  const out = state.transactions.filter((t) => t.tripId && !inMain(t) && t.status !== "SKIPPED" && t.type === "EXPENSE" && t.date.slice(0, 7) === month);
+  if (!out.length) return "";
+  return `<a class="card trip-note" href="${href("viagens")}"><span class="chip" style="background:var(--c-high);color:var(--primary)">${icon("plane")}</span><span style="flex:1"><b>${fmt(sum(out))}</b> em gastos de viagem neste mês ficaram <b>separados</b> desta gestão.</span><span class="t-primary" style="display:flex;align-items:center;gap:4px;font-weight:600;white-space:nowrap">Ver viagens ${icon("right", 'style="width:16px;height:16px"')}</span></a>`;
+}
+
+function viewViagens(r) {
+  const id = r.params.get("id"), trip = id && tripById(id);
+  if (trip) return viewTrip(trip);
+  const trips = [...state.trips].sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
+  return `${pageHead("Viagens", "Os gastos de viagem ficam separados da gestão do mês. Em cada viagem você escolhe se quer somá-los ou não.", `<button class="btn btn-primary btn-sm" data-act="new-trip">${icon("plus")} Nova viagem</button>`)}
+  ${trips.length ? `<div class="trip-grid">${trips.map((t) => {
+    const tot = tripTotals(t), [label, cls] = tripStatus(t), r0 = t.budgetCents ? ratio(tot.net, t.budgetCents) : 0;
+    return `<a class="card trip-card" href="${href("viagens", { id: t.id })}">
+      <div class="metric-top"><span class="chip" style="background:var(--c-high);color:var(--primary)">${icon("plane")}</span><span class="badge ${cls}">${label}</span></div>
+      <h2 class="h-card truncate" style="margin-top:12px">${esc(t.name)}</h2>
+      <p class="sub">${t.destination ? esc(t.destination) + " · " : ""}${tripDates(t)}</p>
+      <p class="metric-value" style="margin-top:12px">${fmt(tot.net)}</p>
+      ${t.budgetCents ? `<div class="meter"><div style="width:${clamp01(r0) * 100}%;background:${r0 > 1 ? "var(--danger)" : r0 >= 0.8 ? "var(--warning)" : "var(--primary)"}"></div></div><p class="hint" style="margin-top:6px">${fmtPct(r0)} do orçamento de ${fmt(t.budgetCents)}</p>` : `<p class="hint" style="margin-top:6px">${tot.list.length} ${tot.list.length === 1 ? "lançamento" : "lançamentos"}</p>`}
+      <p style="margin-top:12px"><span class="badge ${t.includeInMain ? "b-success" : "b-neutral"}">${t.includeInMain ? "Somada à gestão do mês" : "Separada da gestão"}</span></p>
+    </a>`;
+  }).join("")}</div>`
+  : `<div class="card" style="text-align:center;padding:40px 20px"><span class="chip" style="background:var(--c-high);color:var(--primary);width:48px;height:48px;margin:0 auto">${icon("plane")}</span><h2 class="h-card" style="margin-top:12px">Nenhuma viagem ainda</h2><p class="muted" style="margin:6px auto 16px;max-width:420px">Crie uma viagem e lance nela as passagens, a hospedagem e os passeios. Esses gastos não se misturam com o mês, a não ser que você queira.</p><button class="btn btn-primary" data-act="new-trip">${icon("plus")} Criar primeira viagem</button></div>`}`;
+}
+
+function viewTrip(trip) {
+  const tot = tripTotals(trip), [label, cls] = tripStatus(trip);
+  const cats = new Map();
+  for (const t of tot.list) if (t.type === "EXPENSE") cats.set(t.categoryId || "", (cats.get(t.categoryId || "") || 0) + t.amountCents);
+  const dist = [...cats.entries()].map(([cid, total]) => { const c = catById(cid); return { name: c?.name || "Sem categoria", color: c?.color || "#94a3b8", total }; }).sort((a, b) => b.total - a.total);
+  const left = trip.budgetCents ? trip.budgetCents - tot.net : 0, r0 = trip.budgetCents ? ratio(tot.net, trip.budgetCents) : 0;
+  return `<a class="back" href="${href("viagens")}">${icon("arrowLeft")} Viagens</a>
+  ${pageHead(`${esc(trip.name)} <span class="badge ${cls}" style="vertical-align:middle">${label}</span>`, `${trip.destination ? esc(trip.destination) + " · " : ""}${tripDates(trip)} · ${tot.days} ${tot.days === 1 ? "dia" : "dias"}`,
+    `<button class="btn btn-secondary btn-sm" data-act="edit-trip" data-id="${trip.id}">${icon("edit")} Editar</button><button class="btn btn-primary btn-sm" data-act="new-trip-tx" data-id="${trip.id}">${icon("plusCircle")} Novo gasto da viagem</button>`)}
+  <label class="card switch-card">
+    <span style="flex:1;min-width:0"><b>Somar os gastos desta viagem à gestão do mês</b><span class="hint" style="display:block;margin-top:2px">${trip.includeInMain ? "Ligado: os gastos aparecem também no Painel, em Lançamentos e nos Orçamentos." : "Desligado: os gastos ficam só aqui, separados da gestão do mês."}</span></span>
+    <span class="switch"><input type="checkbox" data-trip-include="${trip.id}" ${trip.includeInMain ? "checked" : ""} aria-label="Somar os gastos desta viagem à gestão do mês"><span></span></span>
+  </label>
+  <div class="grid-3" style="margin:16px 0">
+    ${metric({ label: "Total da viagem", ic: "plane", chip: "background:var(--c-high);color:var(--primary)", value: fmt(tot.net), pill: tot.refunds ? pill("background:var(--success-c);color:var(--success)", "down", `${fmt(tot.refunds)} de reembolsos`) : "" })}
+    ${trip.budgetCents
+      ? metric({ label: left >= 0 ? "Ainda pode gastar" : "Acima do orçamento", ic: "piggy", chip: "background:var(--tertiary-fixed);color:var(--on-tertiary-fixed)", value: fmt(Math.abs(left)), valueCls: left >= 0 ? "t-tertiary" : "t-danger", pill: pill("background:var(--c);color:var(--secondary)", "", `${fmtPct(r0)} de ${fmt(trip.budgetCents)}`), meter: { r: r0, color: r0 > 1 ? "var(--danger)" : r0 >= 0.8 ? "var(--warning)" : "var(--tertiary)" } })
+      : metric({ label: "Orçamento", ic: "piggy", chip: "background:var(--c);color:var(--secondary)", value: "Sem limite", pill: `<button class="pill" style="border:0;background:var(--c-high);color:var(--primary);cursor:pointer" data-act="edit-trip" data-id="${trip.id}">Definir orçamento</button>` })}
+    ${metric({ label: "Média por dia", ic: "calendar", chip: "background:var(--secondary-c);color:var(--on-secondary-c)", value: fmt(tot.perDay), cls: "span2" })}
+  </div>
+  <div class="grid-main">
+    <section class="card card-flush">
+      <div class="section-head"><div><h2 class="h-card">Gastos da viagem</h2><p class="sub">${tot.list.length} ${tot.list.length === 1 ? "lançamento" : "lançamentos"}</p></div></div>
+      ${tot.list.length ? `${listHead(true)}<ul class="ledger">${tot.list.map((t) => ledgerRow(t, { toggle: true, inTrip: true })).join("")}</ul>` : `<div style="padding:20px"><p class="empty">Nenhum gasto lançado nesta viagem.</p></div>`}
+    </section>
+    <section class="card">
+      <div class="card-head"><h2 class="h-card">Por categoria</h2></div>
+      ${dist.length ? `<ul class="dist">${dist.map((c) => `<li><div class="dist-row"><span style="display:flex;align-items:center;gap:8px;min-width:0;font-weight:500"><span class="dot" style="background:${esc(c.color)}"></span><span class="truncate">${esc(c.name)}</span></span><span class="muted num" style="flex:none">${fmt(c.total)}</span></div><div class="bar"><div style="width:${ratio(c.total, dist[0].total) * 100}%;background:${esc(c.color)}"></div></div></li>`).join("")}</ul>` : `<p class="empty">Sem gastos ainda.</p>`}
+    </section>
+  </div>`;
+}
+
+function tripForm(trip) {
+  openModal({
+    title: trip ? "Editar viagem" : "Nova viagem", sub: "Os gastos lançados nela ficam separados da gestão do mês, a não ser que você marque a opção abaixo.",
+    body: `<div class="form-grid two">
+      ${field("Nome da viagem", "name", input("name", trip?.name || "", 'placeholder="Ex.: Férias em Salvador" maxlength="60" autofocus'), "full")}
+      ${field("Destino (opcional)", "destination", input("destination", trip?.destination || "", 'placeholder="Ex.: Salvador, BA" maxlength="60"'), "full")}
+      ${field("Ida", "startDate", input("startDate", trip?.startDate || todayISO(), 'type="date"'))}
+      ${field("Volta", "endDate", input("endDate", trip?.endDate || todayISO(), 'type="date"'))}
+      ${field("Orçamento da viagem (opcional)", "budget", moneyInput("budget", trip?.budgetCents), "full")}
+      <label class="check full"><input type="checkbox" name="includeInMain" ${trip?.includeInMain ? "checked" : ""}> <span><b>Somar os gastos à gestão do mês</b><br><span class="hint">Desmarcado, eles aparecem só aqui em Viagens.</span></span></label>
+    </div>`,
+    foot: `${trip ? `<button type="button" class="btn btn-danger btn-sm left" data-act="del-trip" data-id="${trip.id}">${icon("trash")} Excluir</button>` : ""}<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm">${icon("check")} Salvar</button>`,
+    onSubmit: () => {
+      const v = formData(), errors = {}, budget = v.budget ? parseMoneyToCents(v.budget) : 0;
+      if (!v.name.trim()) errors.name = "Dê um nome para a viagem.";
+      if (!isDate(v.startDate)) errors.startDate = "Data inválida.";
+      if (!isDate(v.endDate)) errors.endDate = "Data inválida.";
+      else if (isDate(v.startDate) && v.endDate < v.startDate) errors.endDate = "A volta deve ser depois da ida.";
+      if (budget === null || budget < 0) errors.budget = "Valor inválido.";
+      if (Object.keys(errors).length) return showErrors(errors);
+      const data = { name: v.name.trim(), destination: v.destination.trim(), startDate: v.startDate, endDate: v.endDate, budgetCents: budget || 0, includeInMain: v.includeInMain === "on" };
+      let id = trip?.id;
+      if (trip) Object.assign(tripById(trip.id), data); else { id = uid(); state.trips.push({ id, createdAt: Date.now(), ...data }); }
+      save(); closeModal(); location.hash = href("viagens", { id }); render(); toast(trip ? "Viagem atualizada." : "Viagem criada. Agora lance os gastos dela.");
+    },
+  });
+}
+
+function deleteTripDialog(trip) {
+  const n = tripTx(trip.id).length;
+  openModal({
+    title: `Excluir "${esc(trip.name)}"?`,
+    body: n ? `<p class="muted">Esta viagem tem ${n} ${n === 1 ? "lançamento" : "lançamentos"}. O que fazer com ${n === 1 ? "ele" : "eles"}?</p>` : `<p class="muted">A viagem não tem lançamentos.</p>`,
+    foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button>${n ? `<button type="button" class="btn btn-secondary btn-sm" id="trip-keep">Excluir só a viagem (gastos vão para a gestão)</button>` : ""}<button type="button" class="btn btn-danger btn-sm" id="trip-all">${n ? "Excluir viagem e gastos" : "Excluir"}</button>`,
+  });
+  const finish = (keep) => {
+    for (const t of tripTx(trip.id)) {
+      if (keep) t.tripId = null;
+      else if (t.attachmentId) deletePhoto(t.attachmentId);
+    }
+    if (!keep) state.transactions = state.transactions.filter((t) => t.tripId !== trip.id);
+    state.trips = state.trips.filter((x) => x.id !== trip.id);
+    save(); closeModal(); location.hash = href("viagens"); render(); toast("Viagem excluída.");
+  };
+  document.getElementById("trip-all").onclick = () => finish(false);
+  document.getElementById("trip-keep")?.addEventListener("click", () => finish(true));
+}
+
+const VIEWS = { painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, orcamentos: viewOrcamentos, viagens: viewViagens, categorias: viewCategorias, importar: viewImportar, backup: viewBackup };
 function render() {
   // Fixed items only need materializing after a change to them, a data swap or a new month.
   if (needsOccurrences || occurrencesMonth !== currentMonth()) {
@@ -1251,20 +1400,23 @@ async function renderPhotoSlot() {
   }
 }
 
-function txForm(tx, presetType) {
+function txForm(tx, presetType, presetTrip) {
   let type = tx?.type || presetType || "EXPENSE";
+  const preTrip = presetTrip && tripById(presetTrip);
+  const defaultDate = preTrip && !(todayISO() >= preTrip.startDate && todayISO() <= preTrip.endDate) ? preTrip.startDate : todayISO();
   formPhoto = { blob: null, removed: false, existingId: tx?.attachmentId || null };
   const draw = () => {
     const d = document.getElementById("modal") ? formData() : {};
     openModal({
-      title: tx ? "Editar lançamento" : type === "INCOME" ? "Nova entrada" : "Novo gasto",
+      title: tx ? "Editar lançamento" : preTrip ? `Gasto da viagem: ${esc(preTrip.name)}` : type === "INCOME" ? "Nova entrada" : "Novo gasto",
       sub: tx?.recurringId ? "Ocorrência de um gasto fixo. Alterar aqui não muda os outros meses." : "Preencha os detalhes do lançamento.",
       body: `<div class="form-grid two">
         <div class="tabs full" role="tablist"><button type="button" class="${type === "EXPENSE" ? "on exp" : ""}" data-act="tx-type" data-type="EXPENSE">Despesa</button><button type="button" class="${type === "INCOME" ? "on inc" : ""}" data-act="tx-type" data-type="INCOME">Receita</button></div>
         ${field("Descrição", "description", input("description", d.description ?? tx?.description ?? "", 'placeholder="Ex.: Mercado, Uber, Salário" maxlength="120" autofocus'), "full")}
         ${field("Valor", "amount", moneyInput("amount", d.amount ? parseMoneyToCents(d.amount) : tx?.amountCents))}
-        ${field("Data", "date", input("date", d.date ?? tx?.date ?? todayISO(), 'type="date"'))}
+        ${field("Data", "date", input("date", d.date ?? tx?.date ?? defaultDate, 'type="date"'))}
         ${field("Categoria", "categoryId", catSelect(type, d.categoryId ?? tx?.categoryId))}
+        ${state.trips.length && !tx?.recurringId ? field("Viagem", "tripId", `<select class="input" id="f-tripId" name="tripId"><option value="">Nenhuma (gestão do mês)</option>${[...state.trips].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)).map((x) => `<option value="${x.id}" ${(d.tripId ?? tx?.tripId ?? presetTrip) === x.id ? "selected" : ""}>✈ ${esc(x.name)}</option>`).join("")}</select>`, "full") : ""}
         ${field("Situação", "status", `<select class="input" id="f-status" name="status"><option value="PAID" ${(d.status ?? tx?.status) !== "PENDING" ? "selected" : ""}>${type === "INCOME" ? "Recebido" : "Pago"}</option><option value="PENDING" ${(d.status ?? tx?.status) === "PENDING" ? "selected" : ""}>Pendente</option></select>`)}
         ${field("Observações", "notes", `<textarea class="input" id="f-notes" name="notes" maxlength="500">${esc(d.notes ?? tx?.notes ?? "")}</textarea>`, "full")}
         <div class="field full"><span class="field-label">Comprovante (opcional)</span><div id="photo-slot"></div><input type="file" id="photo-input" accept="image/*" hidden></div>
@@ -1283,7 +1435,7 @@ function txForm(tx, presetType) {
           catch { return toast("Este navegador não permitiu guardar a foto (modo privado?)."); }
         } else if (formPhoto.removed) attachmentId = null;
         if (formPhoto.existingId && attachmentId !== formPhoto.existingId) deletePhoto(formPhoto.existingId);
-        const data = { type, description: v.description.trim(), amountCents: amount, date: v.date, categoryId: v.categoryId || null, status: v.status === "PENDING" ? "PENDING" : "PAID", notes: v.notes.trim(), attachmentId };
+        const data = { type, description: v.description.trim(), amountCents: amount, date: v.date, categoryId: v.categoryId || null, status: v.status === "PENDING" ? "PENDING" : "PAID", notes: v.notes.trim(), attachmentId, tripId: v.tripId || null };
         if (tx) Object.assign(state.transactions.find((t) => t.id === tx.id), data);
         else state.transactions.push({ id: uid(), source: "MANUAL", recurringId: null, period: null, createdAt: Date.now(), ...data });
         save(); closeModal(); render(); toast(tx ? "Lançamento atualizado." : "Lançamento salvo.");
@@ -1622,6 +1774,10 @@ function loadDemo() {
   for (const t of state.transactions) if (t.recurringId && (t.period < cur || t.date <= todayISO())) t.status = "PAID";
   state.budgets = [{ id: uid(), categoryId: cat("Alimentação"), amountCents: 30000 }, { id: uid(), categoryId: cat("Transporte"), amountCents: 35000 }];
   state.goals = [{ id: uid(), name: "Reserva de emergência", targetCents: 2000000, savedCents: 640000, deadline: null }];
+  const tm = addMonths(cur, -1), tripId = uid();
+  state.trips = [{ id: tripId, name: "Férias em Florianópolis", destination: "Florianópolis, SC", startDate: `${tm}-10`, endDate: `${tm}-15`, budgetCents: 300000, includeInMain: false, createdAt: Date.now() }];
+  [["Passagens aéreas", 98000, "Transporte", 10], ["Hotel (5 noites)", 125000, "Moradia", 10], ["Restaurante na praia", 18900, "Alimentação", 12], ["Passeio de barco", 22000, "Lazer", 13], ["Uber", 6400, "Transporte", 14]]
+    .forEach(([d, a, c, day]) => state.transactions.push({ id: uid(), type: "EXPENSE", description: d, amountCents: a, date: `${tm}-${pad(day)}`, status: "PAID", categoryId: cat(c), source: "MANUAL", recurringId: null, period: null, notes: "", tripId, createdAt: Date.now() }));
   save(); location.hash = href("painel"); render(); toast("Dados de exemplo carregados.");
 }
 
@@ -1662,6 +1818,10 @@ document.addEventListener("click", (e) => {
     "new-budget": () => budgetForm(null),
     "edit-budget": () => budgetForm(state.budgets.find((b) => b.id === id)),
     "del-budget": () => { state.budgets = state.budgets.filter((b) => b.id !== id); save(); render(); toast("Limite removido."); },
+    "new-trip": () => tripForm(null),
+    "edit-trip": () => tripForm(tripById(id)),
+    "del-trip": () => deleteTripDialog(tripById(id)),
+    "new-trip-tx": () => txForm(null, "EXPENSE", id),
     "new-goal": () => goalForm(null),
     "edit-goal": () => goalForm(state.goals.find((g) => g.id === id)),
     "deposit-goal": () => depositForm(state.goals.find((g) => g.id === id)),
@@ -1692,7 +1852,10 @@ document.addEventListener("submit", (e) => {
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.querySelector(".overlay")) closeModal(); });
 document.addEventListener("change", (e) => {
   const t = e.target;
-  if (t.dataset.filter) {
+  if (t.dataset.tripInclude) {
+    const trip = tripById(t.dataset.tripInclude); trip.includeInMain = t.checked; save(); render();
+    toast(t.checked ? "Os gastos desta viagem agora entram na gestão do mês." : "Os gastos desta viagem ficam separados da gestão do mês.");
+  } else if (t.dataset.filter) {
     const r = route(), p = Object.fromEntries(r.params.entries()); p[t.dataset.filter] = t.value; p.mes = r.month;
     location.hash = href("lancamentos", p);
   } else if (t.id === "file") handleImportFile(t.files[0]);

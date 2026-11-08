@@ -74,6 +74,7 @@ Abra o link, preencha **Usuário do GitHub** e **Senha** e clique em **Entrar**.
 ### 3. No dia a dia
 
 - Lance gastos, marque contas como pagas e acompanhe o painel. Tudo é salvo sozinho: o topo mostra **"Salvo no GitHub ✓"**.
+- **Viagens:** em **✈ Viagens** (no menu lateral ou, no celular, em ☰), crie a viagem e use **Novo gasto da viagem**. O painel avisa quanto ficou separado em viagens no mês. Para que os gastos de uma viagem entrem nos totais do mês, ligue **"Somar os gastos desta viagem à gestão do mês"** na página dela.
 - **Comprovante:** no lançamento, toque em **Anexar comprovante** e tire a foto (ou escolha da galeria). O lançamento ganha um 📎 na lista e a foto abre com um toque. Valor e descrição você digita.
 - No celular, use **"Adicionar à tela inicial"** no menu do navegador para abrir como um app.
 
@@ -139,6 +140,7 @@ Pode, pelo botão **"Usar sem conta"** na tela de login. Os dados ficam só naqu
 |---|---|
 | 📊 **Painel completo** | Entradas, total gasto, fixos comprometidos, gastos variáveis e saldo livre previsto, com fluxo de caixa de 6 meses e distribuição por categoria. |
 | 🔁 **Gastos fixos automáticos** | Aluguel, contas e assinaturas geram um lançamento pendente por mês, sozinhos. Editar um fixo nunca altera o passado. |
+| ✈️ **Viagens** | Uma aba só para viagens: crie a viagem (datas e orçamento) e lance nela passagens, hotel e passeios. Esses gastos ficam **separados** da gestão do mês, e uma chave em cada viagem decide se eles devem ser **somados** ou não. |
 | 📷 **Foto do comprovante** | Tire uma foto pelo celular (ou escolha da galeria) e anexe ao lançamento. Ela é reduzida no aparelho e salva criptografada no seu GitHub. |
 | 🏦 **Extrato OFX/CSV** | Importe o extrato do banco, revise antes de salvar e sem duplicar o que já foi importado. |
 | 🎯 **Orçamentos e metas** | Limite mensal por categoria, com alerta a partir de 80%, e metas de economia. |
