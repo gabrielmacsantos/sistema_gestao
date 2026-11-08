@@ -7,7 +7,9 @@ import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-const url = process.env.DATABASE_URL ?? "";
+// TURSO_* are the names set by the Turso integration of the Vercel Marketplace.
+const url = process.env.TURSO_DATABASE_URL ?? process.env.DATABASE_URL ?? "";
+const authToken = process.env.TURSO_AUTH_TOKEN ?? process.env.DATABASE_AUTH_TOKEN;
 // DB_DEPLOY_DRIVER=libsql forces the libSQL path on a local file (used by tests/libsql.test.ts).
 const isRemote = /^(libsql|https?|wss?):\/\//.test(url) || process.env.DB_DEPLOY_DRIVER === "libsql";
 
@@ -17,7 +19,7 @@ if (!isRemote) {
 }
 
 const { createClient } = await import("@libsql/client");
-const client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN });
+const client = createClient({ url, authToken });
 
 await client.execute(
   "CREATE TABLE IF NOT EXISTS _libsql_migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)",

@@ -3,7 +3,9 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@/generated/prisma/client";
 
-const url = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+// TURSO_* are the names set by the Turso integration of the Vercel Marketplace.
+const url = process.env.TURSO_DATABASE_URL ?? process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+const authToken = process.env.TURSO_AUTH_TOKEN ?? process.env.DATABASE_AUTH_TOKEN;
 
 /** Turso (libSQL over the network) when deployed; a local SQLite file otherwise. */
 export const isRemoteDatabase = /^(libsql|https?|wss?):\/\//.test(url);
@@ -11,7 +13,7 @@ export const isRemoteDatabase = /^(libsql|https?|wss?):\/\//.test(url);
 function createClient() {
   if (isRemoteDatabase) {
     return new PrismaClient({
-      adapter: new PrismaLibSql({ url, authToken: process.env.DATABASE_AUTH_TOKEN }),
+      adapter: new PrismaLibSql({ url, authToken }),
     });
   }
 
