@@ -10,7 +10,9 @@
 Funciona no celular e no computador, sem instalar nada e sem servidor: tudo roda dentro do GitHub.
 
 ![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-online-222222?logo=github&logoColor=white)
+![Login](https://img.shields.io/badge/login-por_pessoa-0d9488)
 ![Criptografia](https://img.shields.io/badge/dados-AES--256_criptografados-00685f)
+![Sem servidor](https://img.shields.io/badge/servidor-nenhum-565e74)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
@@ -21,6 +23,10 @@ Funciona no celular e no computador, sem instalar nada e sem servidor: tudo roda
 <img src="docs/screenshots/dashboard-light.png" alt="Painel do Minhas Finanças no tema claro" width="100%"/>
 
 </div>
+
+---
+
+**Sumário:** [Como funciona](#-como-funciona-com-várias-pessoas) · [Passo a passo](#-passo-a-passo-para-quem-vai-usar) · [Perguntas frequentes](#-perguntas-frequentes) · [Recursos](#-o-que-dá-para-fazer) · [Telas](#-telas) · [Para quem mantém](#️-para-quem-mantém-o-projeto)
 
 ---
 
@@ -138,6 +144,14 @@ Pode, pelo botão **"Usar sem conta"** na tela de login. Os dados ficam só naqu
 
 <table>
   <tr>
+    <td width="68%"><img src="docs/screenshots/login.png" alt="Tela de login"/></td>
+    <td width="32%" colspan="2"><img src="docs/screenshots/mobile-cadastro.png" alt="Tela de cadastro no celular"/></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Login: usuário do GitHub + senha</sub></td>
+    <td align="center" colspan="2"><sub>Cadastro no celular</sub></td>
+  </tr>
+  <tr>
     <td width="68%"><img src="docs/screenshots/dashboard-dark.png" alt="Painel no tema escuro"/></td>
     <td width="16%"><img src="docs/screenshots/mobile-dashboard.png" alt="Painel no celular"/></td>
     <td width="16%"><img src="docs/screenshots/mobile-lancamentos-dark.png" alt="Lançamentos no celular, tema escuro"/></td>
@@ -152,7 +166,7 @@ Pode, pelo botão **"Usar sem conta"** na tela de login. Os dados ficam só naqu
 <img src="docs/screenshots/lancamentos.png" alt="Lista de lançamentos com filtros e status" width="100%"/>
 <p align="center"><sub>Lançamentos com filtros por mês, tipo, status e categoria. Um toque marca como pago.</sub></p>
 
-> As capturas usam dados fictícios.
+> As capturas são do site online, com uma conta e dados fictícios.
 
 ---
 
