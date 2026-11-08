@@ -1,0 +1,214 @@
+@import "tailwindcss";
+
+/* Sovereign Financial design system (Design-google/sovereign_financial/DESIGN.md).
+   The theme follows the system unless the user picks one (data-theme on <html>). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Surfaces */
+  --color-background: #f8f9ff;
+  --color-surface: #f8f9ff;
+  --color-surface-dim: #cbdbf5;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eff4ff;
+  --color-surface-container: #e5eeff;
+  --color-surface-container-high: #dce9ff;
+  --color-surface-container-highest: #d3e4fe;
+  --color-on-surface: #0b1c30;
+  --color-on-surface-variant: #3d4947;
+  --color-inverse-surface: #213145;
+  --color-inverse-on-surface: #eaf1ff;
+  --color-outline: #6d7a77;
+  --color-outline-variant: #bcc9c6;
+  --color-hairline: rgb(226 232 240 / 0.8);
+  --color-scrim: rgb(15 23 42 / 0.35);
+
+  /* Roles */
+  --color-primary: #00685f;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #008378;
+  --color-on-primary-container: #f4fffc;
+  --color-primary-fixed: #89f5e7;
+  --color-on-primary-fixed: #00201d;
+  --color-secondary: #565e74;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #dae2fd;
+  --color-on-secondary-container: #5c647a;
+  --color-tertiary: #006947;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #00855b;
+  --color-tertiary-fixed: #6ffbbe;
+  --color-on-tertiary-fixed: #002113;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  /* Status (badges, deltas) */
+  --color-success: #059669;
+  --color-success-container: #ecfdf5;
+  --color-warning: #d97706;
+  --color-warning-container: #fffbeb;
+  --color-danger: #e11d48;
+  --color-danger-container: #fff1f2;
+
+  /* Typography scale */
+  --text-display-hero: 40px;
+  --text-display-hero--line-height: 48px;
+  --text-display-hero--letter-spacing: -0.03em;
+  --text-display-hero--font-weight: 700;
+  --text-display-hero-mobile: 30px;
+  --text-display-hero-mobile--line-height: 36px;
+  --text-display-hero-mobile--letter-spacing: -0.02em;
+  --text-display-hero-mobile--font-weight: 700;
+  --text-headline-lg: 28px;
+  --text-headline-lg--line-height: 36px;
+  --text-headline-lg--letter-spacing: -0.02em;
+  --text-headline-lg--font-weight: 600;
+  --text-headline-md: 22px;
+  --text-headline-md--line-height: 28px;
+  --text-headline-md--letter-spacing: -0.015em;
+  --text-headline-md--font-weight: 600;
+  --text-headline-sm: 18px;
+  --text-headline-sm--line-height: 24px;
+  --text-headline-sm--letter-spacing: -0.01em;
+  --text-headline-sm--font-weight: 600;
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-body-md: 14px;
+  --text-body-md--line-height: 20px;
+  --text-body-sm: 12px;
+  --text-body-sm--line-height: 16px;
+  --text-label-lg: 14px;
+  --text-label-lg--line-height: 20px;
+  --text-label-lg--letter-spacing: 0.01em;
+  --text-label-lg--font-weight: 600;
+  --text-label-md: 12px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--letter-spacing: 0.02em;
+  --text-label-md--font-weight: 500;
+  --text-label-sm: 10px;
+  --text-label-sm--line-height: 14px;
+  --text-label-sm--letter-spacing: 0.04em;
+  --text-label-sm--font-weight: 600;
+  --text-numeric-metric: 32px;
+  --text-numeric-metric--line-height: 38px;
+  --text-numeric-metric--letter-spacing: -0.02em;
+  --text-numeric-metric--font-weight: 700;
+  --text-numeric-data: 14px;
+  --text-numeric-data--line-height: 20px;
+  --text-numeric-data--letter-spacing: -0.01em;
+  --text-numeric-data--font-weight: 600;
+
+  /* Spacing tokens */
+  --spacing-gutter: 1.25rem;
+  --spacing-gutter-desktop: 1.5rem;
+  --spacing-margin: 1rem;
+  --spacing-margin-tablet: 1.5rem;
+  --spacing-margin-desktop: 2.5rem;
+  --spacing-rail: 260px;
+
+  /* Tier 3 elevation */
+  --shadow-overlay: 0px 20px 25px -5px rgb(15 23 42 / 0.06), 0px 8px 10px -6px rgb(15 23 42 / 0.04);
+}
+
+@layer base {
+  /* Dark palette: same roles, tuned for contrast on deep slate. */
+  :root[data-theme="dark"] {
+    --color-background: #0b1220;
+    --color-surface: #0e1626;
+    --color-surface-dim: #0b1220;
+    --color-surface-container-lowest: #111a2b;
+    --color-surface-container-low: #152035;
+    --color-surface-container: #1a273d;
+    --color-surface-container-high: #203049;
+    --color-surface-container-highest: #273a56;
+    --color-on-surface: #e6edf8;
+    --color-on-surface-variant: #b4c2c0;
+    --color-inverse-surface: #e6edf8;
+    --color-inverse-on-surface: #13213a;
+    --color-outline: #8a9896;
+    --color-outline-variant: #34455e;
+    --color-hairline: rgb(52 69 94 / 0.7);
+    --color-scrim: rgb(2 6 23 / 0.6);
+
+    --color-primary: #6bd8cb;
+    --color-on-primary: #00201d;
+    --color-primary-container: #4fc3b6;
+    --color-on-primary-container: #00201d;
+    --color-primary-fixed: #005049;
+    --color-on-primary-fixed: #89f5e7;
+    --color-secondary: #a9b3cc;
+    --color-on-secondary: #131b2e;
+    --color-secondary-container: #2a3550;
+    --color-on-secondary-container: #c6cee6;
+    --color-tertiary: #4edea3;
+    --color-on-tertiary: #002113;
+    --color-tertiary-container: #3cc58e;
+    --color-tertiary-fixed: #005236;
+    --color-on-tertiary-fixed: #6ffbbe;
+    --color-error: #ffb4ab;
+    --color-on-error: #690005;
+    --color-error-container: #5c1414;
+    --color-on-error-container: #ffdad6;
+
+    --color-success: #34d399;
+    --color-success-container: rgb(16 185 129 / 0.14);
+    --color-warning: #fbbf24;
+    --color-warning-container: rgb(245 158 11 / 0.14);
+    --color-danger: #fb7185;
+    --color-danger-container: rgb(225 29 72 / 0.16);
+  }
+
+  :root {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background font-sans text-body-md text-on-surface antialiased selection:bg-primary-fixed selection:text-on-primary-fixed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+
+  /* All currency and ledger figures align on tabular numerals. */
+  .tabular-nums,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Native date/month pickers follow the theme. */
+  input[type="date"],
+  input[type="month"] {
+    min-height: 2.75rem;
+  }
+}
+
+/* Chart tokens. Income (green) and expenses (slate) differ in hue and lightness,
+   so the pair stays distinguishable with color-vision deficiency in both themes. */
+:root {
+  --chart-income: #059669;
+  --chart-expense: #94a3b8;
+  --chart-net: #00685f;
+  --chart-grid: #e2e8f0;
+  --chart-axis: #64748b;
+  --chart-surface: #ffffff;
+}
+
+:root[data-theme="dark"] {
+  --chart-income: #34d399;
+  --chart-expense: #64748b;
+  --chart-net: #6bd8cb;
+  --chart-grid: #233149;
+  --chart-axis: #94a3b8;
+  --chart-surface: #111a2b;
+}

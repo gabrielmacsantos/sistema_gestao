@@ -1,0 +1,1256 @@
+<!DOCTYPE html><html class="light" lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>AuraWealth - Gestão de Despesas &amp; Finanças</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-error": "#ffffff",
+            "on-primary-container": "#f4fffc",
+            "surface-container-low": "#eff4ff",
+            "surface-dim": "#cbdbf5",
+            "on-secondary-fixed-variant": "#3f465c",
+            "on-tertiary-fixed": "#002113",
+            "surface-variant": "#d3e4fe",
+            "on-surface": "#0b1c30",
+            "surface-container-high": "#dce9ff",
+            "primary-fixed": "#89f5e7",
+            "on-tertiary": "#ffffff",
+            "on-primary-fixed": "#00201d",
+            "inverse-on-surface": "#eaf1ff",
+            "on-surface-variant": "#3d4947",
+            "primary-container": "#008378",
+            "on-primary": "#ffffff",
+            "on-background": "#0b1c30",
+            "surface-container-lowest": "#ffffff",
+            "inverse-surface": "#213145",
+            "secondary-container": "#dae2fd",
+            "primary": "#00685f",
+            "outline": "#6d7a77",
+            "secondary-fixed-dim": "#bec6e0",
+            "surface-container": "#e5eeff",
+            "surface-tint": "#006a61",
+            "error-container": "#ffdad6",
+            "tertiary-fixed": "#6ffbbe",
+            "on-primary-fixed-variant": "#005049",
+            "on-secondary-fixed": "#131b2e",
+            "surface": "#f8f9ff",
+            "outline-variant": "#bcc9c6",
+            "secondary-fixed": "#dae2fd",
+            "on-tertiary-fixed-variant": "#005236",
+            "on-secondary-container": "#5c647a",
+            "surface-container-highest": "#d3e4fe",
+            "error": "#ba1a1a",
+            "primary-fixed-dim": "#6bd8cb",
+            "inverse-primary": "#6bd8cb",
+            "tertiary": "#006947",
+            "surface-bright": "#f8f9ff",
+            "on-error-container": "#93000a",
+            "on-secondary": "#ffffff",
+            "tertiary-fixed-dim": "#4edea3",
+            "secondary": "#565e74",
+            "on-tertiary-container": "#f5fff6",
+            "tertiary-container": "#00855b",
+            "background": "#f8f9ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter": "1.25rem",
+            "space-xs": "0.25rem",
+            "margin": "1rem",
+            "margin-desktop": "2.5rem",
+            "space-sm": "0.5rem",
+            "space-xl": "2.25rem",
+            "space-md": "1rem",
+            "space-lg": "1.5rem",
+            "margin-tablet": "1.5rem",
+            "gutter-desktop": "1.5rem"
+          },
+          "fontFamily": {
+            "body-md": ["Inter"],
+            "label-md": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "numeric-metric": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "numeric-data": ["Inter"],
+            "body-sm": ["Inter"],
+            "body-lg": ["Inter"],
+            "display-hero-mobile": ["Plus Jakarta Sans"],
+            "display-hero": ["Plus Jakarta Sans"],
+            "label-lg": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "label-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "numeric-metric": ["32px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "headline-sm": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "numeric-data": ["14px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "display-hero-mobile": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "display-hero": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "700" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #bcc9c6;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex selection:bg-primary-fixed selection:text-on-primary-fixed font-body-md text-body-md">
+<!-- Side Navigation Rail (Shared Component: SideNavBar) -->
+<aside class="h-screen w-64 fixed left-0 top-0 bottom-0 flex flex-col z-30 bg-surface-container-lowest border-r border-outline-variant/30 shadow-none hidden lg:flex transition-all duration-300 ease-in-out min-h-screen h-full" id="sideNavRail">
+<div class="flex flex-col justify-between h-full p-4 shrink-0 overflow-y-auto overflow-x-hidden custom-scroll flex-1 min-h-0">
+<!-- Rail Header -->
+<div class="flex flex-col gap-6">
+<div class="flex items-center justify-between px-1 pt-1">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-10 h-10 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center font-headline-sm text-headline-sm font-bold shadow-sm shrink-0">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet" style="font-variation-settings: &quot;FILL&quot; 1;">account_balance_wallet</span>
+</div>
+<div class="flex flex-col min-w-0 sidebar-text-item transition-opacity duration-200">
+<span class="text-headline-sm font-headline-sm font-bold text-primary tracking-tight truncate">AuraWealth</span>
+<span class="text-label-sm font-label-sm text-secondary truncate">Capital Flow • Enterprise</span>
+</div>
+</div>
+<!-- Collapse / Expand Toggle Button -->
+<button class="w-8 h-8 rounded-lg hover:bg-surface-container-low text-secondary hover:text-on-surface flex items-center justify-center transition-colors shrink-0" id="sidebarToggleBtn" onclick="toggleSidebarCollapse()" title="Recolher menu">
+<span class="material-symbols-outlined text-outline transition-transform duration-300" id="collapseIcon" style="font-size: 20px;">chevron_left</span>
+</button>
+</div>
+<!-- Quick Primary Action -->
+<button class="sidebar-action-btn w-full bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all duration-150 active:scale-[0.99] cursor-pointer" onclick="toggleModal(true)" title="New Expense">
+<span class="material-symbols-outlined shrink-0" data-icon="add">add</span>
+<span class="sidebar-text-item transition-opacity duration-200">New Expense</span>
+</button>
+<!-- Main Navigation Links -->
+<nav class="flex flex-col gap-1">
+<a class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg bg-surface-container-high text-primary font-label-md text-label-md transition-colors" href="#" title="Dashboard">
+<span class="material-symbols-outlined shrink-0" data-icon="space_dashboard" style="font-variation-settings: &quot;FILL&quot; 1;">space_dashboard</span>
+<span class="sidebar-text-item truncate transition-opacity duration-200">Dashboard</span>
+</a>
+<a class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-secondary hover:bg-surface-container-low hover:text-on-surface transition-colors font-label-md text-label-md" href="#" title="Expenses">
+<span class="material-symbols-outlined shrink-0" data-icon="receipt_long">receipt_long</span>
+<span class="sidebar-text-item truncate transition-opacity duration-200">Expenses</span>
+</a>
+<a class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-secondary hover:bg-surface-container-low hover:text-on-surface transition-colors font-label-md text-label-md" href="#" title="Fixed Costs">
+<span class="material-symbols-outlined shrink-0" data-icon="calendar_month">calendar_month</span>
+<span class="sidebar-text-item truncate transition-opacity duration-200">Fixed Costs</span>
+</a>
+<a class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-secondary hover:bg-surface-container-low hover:text-on-surface transition-colors font-label-md text-label-md" href="#" title="Receipts">
+<span class="material-symbols-outlined shrink-0" data-icon="receipt">receipt</span>
+<span class="sidebar-text-item truncate transition-opacity duration-200">Receipts</span>
+</a>
+<a class="sidebar-nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-secondary hover:bg-surface-container-low hover:text-on-surface transition-colors font-label-md text-label-md" href="#" title="Reports">
+<span class="material-symbols-outlined shrink-0" data-icon="insert_chart">insert_chart</span>
+<span class="sidebar-text-item truncate transition-opacity duration-200">Reports</span>
+</a>
+</nav>
+</div>
+<!-- Rail Footer (User Profile & Support) -->
+<div class="flex flex-col gap-4 border-t border-outline-variant/30 pt-4 mt-auto">
+<div class="flex flex-col gap-1">
+<a class="sidebar-nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-secondary hover:bg-surface-container-low hover:text-on-surface transition-colors font-label-md text-label-md" href="#" title="Settings">
+<span class="material-symbols-outlined shrink-0" data-icon="settings">settings</span>
+<span class="sidebar-text-item truncate transition-opacity duration-200">Settings</span>
+</a>
+<a class="sidebar-nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-secondary hover:bg-surface-container-low hover:text-on-surface transition-colors font-label-md text-label-md" href="#" title="Support">
+<span class="material-symbols-outlined shrink-0" data-icon="help_outline">help_outline</span>
+<span class="sidebar-text-item truncate transition-opacity duration-200">Support</span>
+</a>
+</div>
+<div class="sidebar-profile-card p-3 bg-surface rounded-xl border border-outline-variant/30 flex items-center gap-3 overflow-hidden transition-all duration-200" title="Bernardo Silva • Plano Pro Premium">
+<div class="relative w-9 h-9 rounded-full overflow-hidden bg-surface-container-high shrink-0 ring-1 ring-primary/20">
+<img class="w-full h-full object-cover" data-alt="A refined professional studio portrait photograph of a financial advisor executive with crisp warm lighting and a soft neutral light gray background in high definition clarity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBH_Hv4gr9oTB6nLe-j9ntILN6dm4HIhp7PziykMjfG5UT_coSPHEfA6btALcqtg6fzXTozRQFOn2dKL4g19rngY4T1r34Ohn5dPNgMLz7ooXAN16_AAyqxQnFQQdyQWDc9EliYj2gXt0JDLS7GqAX_AUTFNLY1sFi3xNUQ7mYLKGOCHIMH-MA9DTVwi-HPmyx8A_fP8AWIj_bo3SfnkufNla6AcDthmpKZk8DcKmve">
+</div>
+<div class="flex flex-col min-w-0 sidebar-text-item transition-opacity duration-200">
+<span class="text-label-md font-label-md font-semibold text-on-surface truncate">Bernardo Silva</span>
+<span class="text-label-sm font-label-sm text-secondary truncate">Plano Pro Premium</span>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Canvas Container -->
+<div class="flex-1 lg:pl-64 flex flex-col min-w-0 transition-all duration-300 ease-in-out" id="mainCanvas">
+<!-- Top Navigation Header (Shared Component: TopNavBar) -->
+<header class="docked full-width top-0 sticky z-40 bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm">
+<div class="flex justify-between items-center w-full px-4 lg:px-10 max-w-7xl mx-auto h-16">
+<!-- Brand on Mobile & Path Indicator on Desktop -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 lg:hidden">
+<span class="text-headline-sm font-headline-sm font-bold text-primary tracking-tight">AuraWealth</span>
+</div>
+<div class="hidden lg:flex items-center gap-2 text-label-md font-label-md text-secondary">
+<span class="">Visão Geral</span>
+<span class="material-symbols-outlined text-outline-variant" data-icon="chevron_right" style="font-size: 16px;">chevron_right</span>
+<span class="text-primary font-semibold">Painel Mensal • Outubro 2024</span>
+</div>
+</div>
+<!-- Global Search and Right Actions -->
+<div class="flex items-center gap-3"><!-- Search Bar -->
+<div class="relative hidden sm:block w-64 lg:w-72">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary" data-icon="search" style="font-size: 18px;">search</span>
+<input class="w-full pl-9 pr-3 py-1.5 bg-surface rounded-lg border border-outline-variant/50 text-body-sm font-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-secondary/70 transition-all" placeholder="Buscar despesa, fixo ou tag..." type="text">
+</div>
+
+<!-- Language Selector Dropdown -->
+<div class="relative">
+  <button id="langSelectorBtn" onclick="toggleLangMenu()" class="h-9 px-2.5 rounded-lg border border-outline-variant/30 flex items-center gap-1.5 text-secondary hover:bg-surface-container-low hover:text-on-surface transition-colors cursor-pointer text-label-sm font-label-sm" title="Selecionar idioma">
+    <span class="material-symbols-outlined text-outline" style="font-size: 17px;">language</span>
+    <span id="currentLangText" class="font-semibold text-on-surface">PT-BR</span>
+    <span class="material-symbols-outlined text-outline" style="font-size: 16px;">arrow_drop_down</span>
+  </button>
+  <div id="langDropdownMenu" class="hidden absolute right-0 mt-1 w-36 bg-surface-container-lowest rounded-xl border border-outline-variant/40 shadow-lg py-1 z-50 text-body-sm font-body-sm">
+    <button onclick="selectLanguage('PT-BR', 'Português (BR)')" class="w-full text-left px-3 py-1.5 flex items-center justify-between hover:bg-surface-container-low transition-colors text-primary font-semibold">
+      <span class="flex items-center gap-2"><span class="">🇧🇷</span> PT-BR</span>
+      <span class="material-symbols-outlined text-primary" style="font-size: 16px;">check</span>
+    </button>
+    <button onclick="selectLanguage('EN', 'English')" class="w-full text-left px-3 py-1.5 flex items-center justify-between hover:bg-surface-container-low text-on-surface transition-colors">
+      <span class="flex items-center gap-2"><span class="">🇺🇸</span> EN</span>
+    </button>
+    <button onclick="selectLanguage('ES', 'Español')" class="w-full text-left px-3 py-1.5 flex items-center justify-between hover:bg-surface-container-low text-on-surface transition-colors">
+      <span class="flex items-center gap-2"><span class="">🇪🇸</span> ES</span>
+    </button>
+  </div>
+</div>
+
+<!-- Dark / Light Theme Toggle -->
+<button id="themeToggleBtn" onclick="toggleThemeMode()" class="w-9 h-9 rounded-lg border border-outline-variant/30 flex items-center justify-center text-secondary hover:bg-surface-container-low hover:text-on-surface transition-colors relative cursor-pointer" title="Alternar Tema Claro/Escuro">
+  <span class="material-symbols-outlined" id="themeIcon" style="font-size: 19px;">dark_mode</span>
+</button>
+
+<!-- Quick Action Buttons -->
+<button class="w-9 h-9 rounded-lg border border-outline-variant/30 flex items-center justify-center text-secondary hover:bg-surface-container-low transition-colors relative" title="Notificações">
+<span class="material-symbols-outlined" data-icon="notifications" style="font-size: 20px;">notifications</span>
+<span class="w-2 h-2 rounded-full bg-error absolute top-2 right-2"></span>
+</button>
+<button class="w-9 h-9 rounded-lg border border-outline-variant/30 flex items-center justify-center text-secondary hover:bg-surface-container-low transition-colors" title="Exportar Extrato">
+<span class="material-symbols-outlined" data-icon="receipt_long" style="font-size: 20px;">receipt_long</span>
+</button>
+<!-- Primary CTA -->
+<button class="bg-primary hover:bg-primary-container text-on-primary px-3.5 py-1.5 rounded-lg font-label-md text-label-md flex items-center gap-1.5 transition-transform duration-150 active:scale-[0.99] shadow-sm cursor-pointer" onclick="toggleModal(true)">
+<span class="material-symbols-outlined" data-icon="add" style="font-size: 18px;">add</span>
+<span class="hidden sm:inline">Add Expense</span>
+</button></div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 px-4 lg:px-10 py-6 max-w-7xl w-full mx-auto space-y-6">
+<!-- Page Title & Date Range Indicator -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 flex-wrap">
+<div>
+<h1 class="text-headline-lg font-headline-lg text-on-surface tracking-tight">Gestão Financeira &amp; Despesas</h1>
+<p class="text-body-md font-body-md text-secondary mt-0.5">Acompanhe seu fluxo de caixa, compromissos fixos e comprovantes em tempo real.</p>
+</div>
+<div class="flex items-center gap-2 flex-wrap sm:justify-end">
+<button class="bg-tertiary hover:bg-tertiary-container text-on-tertiary px-3.5 py-2 rounded-lg font-label-md text-label-md flex items-center gap-2 transition-transform duration-150 active:scale-[0.99] shadow-sm cursor-pointer whitespace-nowrap" onclick="toggleIncomeModal(true)">
+<span class="material-symbols-outlined" style="font-size: 18px;">arrow_downward</span>
+<span class="">Nova Entrada</span>
+</button>
+<button class="bg-surface-container-lowest border border-outline-variant/50 text-on-surface hover:bg-surface-container-low px-3.5 py-2 rounded-lg font-label-md text-label-md flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap" onclick="quickActionFixos()">
+<span class="material-symbols-outlined text-primary" data-icon="event_repeat" style="font-size: 18px;">event_repeat</span>
+<span class="">Cadastrar Fixo</span>
+</button>
+<button class="bg-primary hover:bg-primary-container text-on-primary px-4 py-2 rounded-lg font-label-md text-label-md flex items-center gap-2 transition-transform duration-150 active:scale-[0.99] shadow-sm cursor-pointer whitespace-nowrap" onclick="toggleModal(true)">
+<span class="material-symbols-outlined" data-icon="add_circle" style="font-size: 18px;">add_circle</span>
+<span class="">Novo Gasto</span>
+</button>
+</div>
+</div>
+<!-- 1. Bento KPI Metrics Grid -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+<div class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/40 shadow-sm flex flex-col justify-between relative overflow-hidden min-w-0">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-secondary">Entradas no Mês</span>
+<div class="w-8 h-8 rounded-lg bg-[#ECFDF5] text-[#059669] flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size: 18px;">arrow_downward</span>
+</div>
+</div>
+<div class="mt-3">
+<div class="text-headline-md font-numeric-metric font-bold text-[#059669] tracking-tight whitespace-nowrap truncate">R$ 8.500,00</div>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="inline-flex items-center gap-0.5 text-label-sm font-label-sm px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#059669] font-semibold">
+<span class="material-symbols-outlined" style="font-size: 13px;">trending_up</span>+12% vs. anterior
+</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-3 overflow-hidden">
+<div class="bg-[#059669] h-full rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/40 shadow-sm flex flex-col justify-between relative overflow-hidden min-w-0">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-secondary">Total Gasto no Mês</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-size: 18px;">payments</span>
+</div>
+</div>
+<div class="mt-3">
+<div class="text-headline-md font-numeric-metric font-bold text-on-surface tracking-tight whitespace-nowrap truncate">R$ 4.820,50</div>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="inline-flex items-center gap-0.5 text-label-sm font-label-sm px-2 py-0.5 rounded-full bg-error-container/60 text-error">
+<span class="material-symbols-outlined" style="font-size: 13px;">trending_up</span>56,7% da receita
+</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-3 overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 56.7%;"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/40 shadow-sm flex flex-col justify-between min-w-0">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-secondary">Fixos Comprometidos</span>
+<div class="w-8 h-8 rounded-lg bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined" style="font-size: 18px;">lock_clock</span>
+</div>
+</div>
+<div class="mt-3">
+<div class="text-headline-md font-numeric-metric font-bold text-on-surface tracking-tight whitespace-nowrap truncate">R$ 3.150,00</div>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="inline-flex items-center gap-0.5 text-label-sm font-label-sm px-2 py-0.5 rounded-full bg-surface-container-high text-primary font-semibold">
+<span class="material-symbols-outlined" style="font-size: 13px;">check_circle</span>2 de 3 pagos
+</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-3 overflow-hidden">
+<div class="bg-on-secondary-container h-full rounded-full" style="width: 80%;"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/40 shadow-sm flex flex-col justify-between min-w-0">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-secondary">Gastos Variáveis</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" style="font-size: 18px;">shopping_bag</span>
+</div>
+</div>
+<div class="mt-3">
+<div class="text-headline-md font-numeric-metric font-bold text-on-surface tracking-tight whitespace-nowrap truncate">R$ 1.670,50</div>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="inline-flex items-center gap-0.5 text-label-sm font-label-sm px-2 py-0.5 rounded-full bg-surface-container text-secondary">
+<span class="material-symbols-outlined" style="font-size: 13px;">sync_alt</span>18 lançamentos
+</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-3 overflow-hidden">
+<div class="bg-tertiary h-full rounded-full" style="width: 48%;"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/40 shadow-sm flex flex-col justify-between min-w-0 sm:col-span-2 lg:col-span-1">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-secondary">Saldo Livre / Restante</span>
+<div class="w-8 h-8 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size: 18px; font-variation-settings: &quot;FILL&quot; 1;">savings</span>
+</div>
+</div>
+<div class="mt-3">
+<div class="text-headline-md font-numeric-metric font-bold text-tertiary tracking-tight whitespace-nowrap truncate">R$ 3.679,50</div>
+<div class="flex items-center gap-1.5 mt-2">
+<span class="inline-flex items-center gap-0.5 text-label-sm font-label-sm px-2 py-0.5 rounded-full bg-surface-container-low text-tertiary font-semibold">
+<span class="material-symbols-outlined" style="font-size: 13px;">account_balance</span>43,3% livre
+</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-3 overflow-hidden">
+<div class="bg-tertiary-container h-full rounded-full" style="width: 68%;"></div>
+</div>
+</div>
+</section><div class="grid grid-cols-1 lg:grid-cols-12 gap-6"><section class="lg:col-span-8 bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-5 shadow-sm flex flex-col justify-between"><div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-outline-variant/20 gap-3"><div><div class="flex items-center gap-2.5 flex-wrap"><h2 class="text-headline-sm font-headline-sm text-on-surface">Fluxo de Caixa Mensal</h2><span class="px-2.5 py-0.5 text-label-sm font-label-sm rounded-full bg-[#ECFDF5] text-[#059669] font-semibold border border-[#059669]/20 flex items-center gap-1"><span class="material-symbols-outlined" style="font-size: 13px;">compare_arrows</span>Comparativo Entradas vs. Saídas</span></div><p class="text-body-sm font-body-sm text-secondary mt-0.5">Evolução do volume de receitas arrecadadas contra o total de despesas nos últimos meses.</p></div><div class="flex items-center gap-3 flex-wrap"><div class="flex items-center gap-3 text-label-sm font-label-sm"><span class="flex items-center gap-1.5 text-on-surface font-medium"><span class="w-3 h-3 rounded-sm bg-[#059669]"></span> Entradas (Receitas)</span><span class="flex items-center gap-1.5 text-on-surface font-medium"><span class="w-3 h-3 rounded-sm bg-primary"></span> Saídas (Despesas)</span></div><div class="flex items-center bg-surface rounded-lg p-0.5 border border-outline-variant/30 text-label-sm font-label-sm"><button class="px-2 py-0.5 rounded bg-surface-container-lowest text-primary font-semibold shadow-xs">Mensal</button><button class="px-2 py-0.5 rounded text-secondary hover:text-on-surface transition-colors">Semanal</button></div></div></div><div class="grid grid-cols-1 sm:grid-cols-3 gap-3 py-3 border-b border-outline-variant/15 text-body-sm font-body-sm"><div class="flex items-center justify-between p-2.5 rounded-lg bg-[#ECFDF5]/30 border border-[#ECFDF5]"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-md bg-[#ECFDF5] text-[#059669] flex items-center justify-center"><span class="material-symbols-outlined" style="font-size: 16px;">arrow_downward</span></div><span class="text-label-sm font-label-sm text-secondary">Total Entradas</span></div><span class="font-numeric-data text-[#059669] font-bold">+ R$ 8.500,00</span></div><div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low/50 border border-outline-variant/20"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-md bg-surface-container-high text-primary flex items-center justify-center"><span class="material-symbols-outlined" style="font-size: 16px;">arrow_upward</span></div><span class="text-label-sm font-label-sm text-secondary">Total Saídas</span></div><span class="font-numeric-data text-on-surface font-bold">R$ 4.820,50</span></div><div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low border border-outline-variant/30"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-md bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center"><span class="material-symbols-outlined" style="font-size: 16px;">savings</span></div><span class="text-label-sm font-label-sm text-secondary">Saldo Líquido</span></div><span class="font-numeric-data text-tertiary font-bold">+ R$ 3.679,50</span></div></div><div class="pt-4"><div class="overflow-x-auto custom-scroll w-full"><div class="grid grid-cols-5 gap-2 sm:gap-6 items-end h-48 px-2 sm:px-6 relative pb-6 border-b border-outline-variant/20 min-w-0"><div class="absolute inset-x-0 top-1/4 border-b border-outline-variant/15 pointer-events-none"></div><div class="absolute inset-x-0 top-2/4 border-b border-outline-variant/15 pointer-events-none"></div><div class="absolute inset-x-0 top-3/4 border-b border-outline-variant/15 pointer-events-none"></div><div class="flex flex-col items-center gap-2 h-full justify-end z-10"><div class="flex items-end gap-1.5 h-full w-full justify-center"><div class="w-3.5 sm:w-5 bg-[#059669] rounded-t-sm transition-all duration-300 hover:brightness-110 relative group" style="height: 72%;" title="Jun: Entradas R$ 6.800,00"><div class="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-1.5 py-0.5 rounded shadow pointer-events-none whitespace-nowrap transition-opacity">R$ 6.8k</div></div><div class="w-3.5 sm:w-5 bg-primary/70 rounded-t-sm transition-all duration-300 hover:brightness-110 relative group" style="height: 48%;" title="Jun: Saídas R$ 4.200,00"><div class="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-1.5 py-0.5 rounded shadow pointer-events-none whitespace-nowrap transition-opacity">R$ 4.2k</div></div></div><div class="text-center"><div class="text-label-sm font-label-sm text-secondary font-medium">Jun</div><div class="text-label-sm font-label-sm text-[#059669] font-semibold hidden sm:block">+R$ 2.6k</div></div></div><div class="flex flex-col items-center gap-2 h-full justify-end z-10"><div class="flex items-end gap-1.5 h-full w-full justify-center"><div class="w-3.5 sm:w-5 bg-[#059669] rounded-t-sm transition-all duration-300 hover:brightness-110 relative group" style="height: 78%;" title="Jul: Entradas R$ 7.200,00"><div class="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-1.5 py-0.5 rounded shadow pointer-events-none whitespace-nowrap transition-opacity">R$ 7.2k</div></div><div class="w-3.5 sm:w-5 bg-primary/70 rounded-t-sm transition-all duration-300 hover:brightness-110 relative group" style="height: 52%;" title="Jul: Saídas R$ 4.600,00"><div class="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-1.5 py-0.5 rounded shadow pointer-events-none whitespace-nowrap transition-opacity">R$ 4.6k</div></div></div><div class="text-center"><div class="text-label-sm font-label-sm text-secondary font-medium">Jul</div><div class="text-label-sm font-label-sm text-[#059669] font-semibold hidden sm:block">+R$ 2.6k</div></div></div><div class="flex flex-col items-center gap-2 h-full justify-end z-10"><div class="flex items-end gap-1.5 h-full w-full justify-center"><div class="w-3.5 sm:w-5 bg-[#059669] rounded-t-sm transition-all duration-300 hover:brightness-110 relative group" style="height: 76%;" title="Ago: Entradas R$ 7.050,00"><div class="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-1.5 py-0.5 rounded shadow pointer-events-none whitespace-nowrap transition-opacity">R$ 7.0k</div></div><div class="w-3.5 sm:w-5 bg-primary/70 rounded-t-sm transition-all duration-300 hover:brightness-110 relative group" style="height: 58%;" title="Ago: Saídas R$ 5.100,00"><div class="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-1.5 py-0.5 rounded shadow pointer-events-none whitespace-nowrap transition-opacity">R$ 5.1k</div></div></div><div class="text-center"><div class="text-label-sm font-label-sm text-secondary font-medium">Ago</div><div class="text-label-sm font-label-sm text-[#059669] font-semibold hidden sm:block">+R$ 1.9k</div></div></div><div class="flex flex-col items-center gap-2 h-full justify-end z-10"><div class="flex items-end gap-1.5 h-full w-full justify-center"><div class="w-3.5 sm:w-5 bg-[#059669] rounded-t-sm transition-all duration-300 hover:brightness-110 relative group" style="height: 82%;" title="Set: Entradas R$ 7.600,00"><div class="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-1.5 py-0.5 rounded shadow pointer-events-none whitespace-nowrap transition-opacity">R$ 7.6k</div></div><div class="w-3.5 sm:w-5 bg-primary/70 rounded-t-sm transition-all duration-300 hover:brightness-110 relative group" style="height: 50%;" title="Set: Saídas R$ 4.450,00"><div class="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-1.5 py-0.5 rounded shadow pointer-events-none whitespace-nowrap transition-opacity">R$ 4.4k</div></div></div><div class="text-center"><div class="text-label-sm font-label-sm text-secondary font-medium">Set</div><div class="text-label-sm font-label-sm text-[#059669] font-semibold hidden sm:block">+R$ 3.1k</div></div></div><div class="flex flex-col items-center gap-2 h-full justify-end z-10 bg-surface-container-low/40 rounded-lg p-1"><div class="flex items-end gap-1.5 h-full w-full justify-center"><div class="w-3.5 sm:w-5 bg-[#059669] rounded-t-sm shadow-xs transition-all duration-300 hover:brightness-110 relative group ring-1 ring-[#059669]/40" style="height: 94%;" title="Out: Entradas R$ 8.500,00"><div class="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-1.5 py-0.5 rounded shadow pointer-events-none whitespace-nowrap transition-opacity font-bold">R$ 8.5k</div></div><div class="w-3.5 sm:w-5 bg-primary rounded-t-sm shadow-xs transition-all duration-300 hover:brightness-110 relative group ring-1 ring-primary/40" style="height: 54%;" title="Out: Saídas R$ 4.820,50"><div class="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-1.5 py-0.5 rounded shadow pointer-events-none whitespace-nowrap transition-opacity font-bold">R$ 4.8k</div></div></div><div class="text-center"><div class="text-label-sm font-label-sm text-primary font-bold">Out (Atual)</div><div class="text-label-sm font-label-sm text-[#059669] font-bold">+R$ 3.68k</div></div></div></div></div><div class="pt-3 flex flex-col sm:flex-row items-center justify-between text-body-sm font-body-sm text-secondary gap-2"><span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[#059669]" style="font-size: 16px;">trending_up</span>Taxa de poupança líquida de <strong class="text-[#059669] font-semibold">43,3%</strong> no mês.</span><span class="text-label-sm font-label-sm text-primary font-medium hover:underline cursor-pointer flex items-center gap-1">Relatório detalhado<span class="material-symbols-outlined" style="font-size: 14px;">chevron_right</span></span></div></div></section><aside class="lg:col-span-4 flex flex-col gap-4"><div class="bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-5 shadow-sm flex flex-col justify-between h-full"><div class="flex items-center justify-between mb-4"><h3 class="text-headline-sm font-headline-sm text-on-surface">Distribuição de Gastos</h3><span class="text-label-sm font-label-sm text-secondary">Outubro</span></div><div class="space-y-3"><div><div class="flex justify-between text-body-sm font-body-sm mb-1"><span class="text-on-surface font-medium flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-primary"></span> Moradia &amp; Utilidades</span><span class="text-secondary font-numeric-data">R$ 3.150,00 (65%)</span></div><div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden"><div class="bg-primary h-full rounded-full" style="width: 65%;"></div></div></div><div><div class="flex justify-between text-body-sm font-body-sm mb-1"><span class="text-on-surface font-medium flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span> Alimentação &amp; Mercado</span><span class="text-secondary font-numeric-data">R$ 840,20 (17%)</span></div><div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden"><div class="bg-tertiary h-full rounded-full" style="width: 17%;"></div></div></div><div><div class="flex justify-between text-body-sm font-body-sm mb-1"><span class="text-on-surface font-medium flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-secondary"></span> Transporte &amp; Mobilidade</span><span class="text-secondary font-numeric-data">R$ 510,30 (11%)</span></div><div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden"><div class="bg-secondary h-full rounded-full" style="width: 11%;"></div></div></div><div><div class="flex justify-between text-body-sm font-body-sm mb-1"><span class="text-on-surface font-medium flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-outline"></span> Lazer &amp; Assinaturas</span><span class="text-secondary font-numeric-data">R$ 320,00 (7%)</span></div><div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden"><div class="bg-outline h-full rounded-full" style="width: 7%;"></div></div></div></div><div class="mt-4 p-3 bg-surface-container-low rounded-lg border border-outline-variant/30 flex items-start gap-2.5"><span class="material-symbols-outlined text-primary shrink-0 mt-0.5" style="font-size: 18px;">lightbulb</span><p class="text-body-sm font-body-sm text-on-surface-variant">Seus custos fixos representam <span class="font-semibold text-primary">65%</span> das saídas. Você ainda pode gastar até <span class="font-semibold text-primary">R$ 1.009,00</span> sem afetar sua reserva.</p></div></div></aside></div>
+<!-- 2-Column Split: Gastos Fixos + Alertas & Composição -->
+
+<!-- 5. Tabela de Últimos Gastos / Extrato Recente -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant/40 shadow-sm overflow-hidden">
+<!-- Table Header & Controls -->
+<div class="p-5 border-b border-outline-variant/20 flex flex-col gap-4"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div><h2 class="text-headline-sm font-headline-sm text-on-surface">Últimos Gastos / Extrato Recente</h2><p class="text-body-sm font-body-sm text-secondary mt-0.5">Lançamentos de gastos com download, conferência e filtros avançados de comprovantes.</p></div><div class="flex items-center gap-2 flex-wrap"><div class="flex items-center bg-surface rounded-lg p-1 border border-outline-variant/30 text-label-md font-label-md"><button id="tab-btn-all" onclick="filtrarPorAba('todos', this)" class="px-2.5 py-1 rounded bg-surface-container-lowest text-primary font-semibold shadow-xs transition-colors">Todas</button><button id="tab-btn-in" onclick="filtrarPorAba('entradas', this)" class="px-2.5 py-1 rounded text-[#059669] hover:bg-surface-container-low transition-colors font-medium flex items-center gap-1"><span class="material-symbols-outlined" style="font-size: 14px;">arrow_downward</span>Entradas</button><button id="tab-btn-out" onclick="filtrarPorAba('saidas', this)" class="px-2.5 py-1 rounded text-secondary hover:text-on-surface transition-colors flex items-center gap-1"><span class="material-symbols-outlined" style="font-size: 14px;">arrow_upward</span>Saídas</button><button id="tab-btn-pend" onclick="filtrarPorAba('pendentes', this)" class="px-2.5 py-1 rounded text-secondary hover:text-on-surface transition-colors">Pendentes</button></div><button class="bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer" onclick="toggleModal(true)"><span class="material-symbols-outlined" data-icon="add" style="font-size: 16px;">add</span><span class="">Lançar Gasto</span></button></div></div><div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1"><div class="relative flex-1 max-w-lg"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary" style="font-size: 18px;">search</span><input id="transactionSearchInput" oninput="executarBuscaRapida(this.value)" class="w-full pl-9 pr-8 py-2 bg-surface rounded-lg border border-outline-variant/40 text-body-sm font-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-secondary/60 transition-all" placeholder="Buscar descrição, fornecedor, banco ou tag..." type="text"><button id="clearSearchBtn" onclick="limparInputBusca()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-on-surface" title="Limpar pesquisa"><span class="material-symbols-outlined" style="font-size: 16px;">close</span></button></div><div class="flex items-center gap-2 flex-wrap"><div class="relative flex items-center"><label for="tableSortSelect" class="sr-only">Ordenar por</label><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-2.5 pointer-events-none text-secondary" style="font-size: 16px;">swap_vert</span><select id="tableSortSelect" onchange="alterarOrdenacaoTabela(this.value)" class="h-9 pl-8 pr-7 bg-surface rounded-lg border border-outline-variant/40 text-label-sm font-label-sm text-on-surface hover:bg-surface-container-low focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-colors appearance-none font-medium"><option value="date_desc" selected="">Data mais recente</option><option value="date_asc">Data mais antiga</option><option value="val_desc">Maior valor</option><option value="val_asc">Menor valor</option></select><span class="material-symbols-outlined absolute right-2 pointer-events-none text-secondary" style="font-size: 16px;">arrow_drop_down</span></div></div><button id="toggleFilterBtn" onclick="toggleAdvancedFilterPanel()" class="h-9 px-3 rounded-lg border border-outline-variant/40 bg-surface hover:bg-surface-container-low text-secondary hover:text-on-surface font-label-sm text-label-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer"><span class="material-symbols-outlined text-outline" style="font-size: 17px;">tune</span><span class="">Filtros Avançados</span><span id="activeFilterCountBadge" class="hidden px-1.5 py-0.2 rounded-full bg-primary text-on-primary text-label-sm font-bold" style="font-size: 10px;">0</span><span class="material-symbols-outlined text-outline transition-transform duration-200" id="filterArrowIcon" style="font-size: 16px;">expand_more</span></button><button onclick="exportarExtratoCSV()" class="h-9 px-3 rounded-lg border border-outline-variant/40 bg-surface hover:bg-surface-container-low text-secondary hover:text-on-surface font-label-sm text-label-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer" title="Exportar tabela para CSV"><span class="material-symbols-outlined" style="font-size: 17px;">download</span><span class="hidden sm:inline">Exportar CSV</span></button><button onclick="resetarTodosFiltros()" id="resetFilterBtn" class="hidden h-9 px-2.5 rounded-lg border border-outline-variant/30 text-error hover:bg-error-container/40 text-label-sm font-label-sm transition-colors cursor-pointer flex items-center gap-1" title="Limpar todos os filtros"><span class="material-symbols-outlined" style="font-size: 15px;">filter_alt_off</span><span class="">Limpar</span></button></div></div><div id="advancedFilterPanel" class="hidden border-t border-outline-variant/20 pt-4 mt-1 transition-all duration-200"><div class="p-4 rounded-xl bg-surface-container-low/50 border border-outline-variant/30 space-y-4"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary" style="font-size: 18px;">filter_list</span><span class="text-label-md font-label-md font-semibold text-on-surface">Filtros Paramétricos de Lançamentos</span></div><span class="text-label-sm font-label-sm text-secondary">Refine por data, categoria, faixa de preço e comprovante</span></div><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"><div><label class="block text-label-sm font-label-sm text-secondary font-semibold mb-1">Período</label><select id="filterPeriodSelect" onchange="atualizarAtalhoPeriodo(this.value)" class="w-full py-1.5 px-2.5 bg-surface-container-lowest rounded-lg border border-outline-variant/40 text-body-sm font-body-sm text-on-surface focus:outline-none focus:border-primary mb-2"><option value="todos">Todo o Histórico</option><option value="este_mes" selected="">Este Mês (Outubro 2024)</option><option value="7dias">Últimos 7 dias</option><option value="mes_anterior">Mês Anterior (Setembro)</option><option value="personalizado">Personalizado</option></select><div class="grid grid-cols-2 gap-2"><div><span class="text-label-sm font-label-sm text-secondary block">De:</span><input id="filterDateFrom" class="w-full py-1 px-2 bg-surface-container-lowest rounded border border-outline-variant/30 text-body-sm text-on-surface" type="date" value="2024-10-01"></div><div><span class="text-label-sm font-label-sm text-secondary block">Até:</span><input id="filterDateTo" class="w-full py-1 px-2 bg-surface-container-lowest rounded border border-outline-variant/30 text-body-sm text-on-surface" type="date" value="2024-10-31"></div></div></div><div><label class="block text-label-sm font-label-sm text-secondary font-semibold mb-1">Categoria</label><select id="filterCategorySelect" class="w-full py-1.5 px-2.5 bg-surface-container-lowest rounded-lg border border-outline-variant/40 text-body-sm font-body-sm text-on-surface focus:outline-none focus:border-primary"><option value="todas">Todas as Categorias</option><option value="Salário">Salário / Proventos</option><option value="Rendimentos">Rendimentos</option><option value="Alimentação">Alimentação / Mercado</option><option value="Transporte">Transporte / Mobilidade</option><option value="Tecnologia">Tecnologia / Hospedagem</option><option value="Saúde / Lazer">Saúde / Lazer</option><option value="Moradia">Moradia / Fixos</option></select><div class="mt-2 flex flex-wrap gap-1"><button type="button" onclick="selecionarChipCategoria('Alimentação')" class="px-2 py-0.5 rounded-full text-label-sm bg-surface-container text-secondary hover:bg-primary-container hover:text-on-primary-container transition-colors">Alimentação</button><button type="button" onclick="selecionarChipCategoria('Transporte')" class="px-2 py-0.5 rounded-full text-label-sm bg-surface-container text-secondary hover:bg-primary-container hover:text-on-primary-container transition-colors">Transporte</button><button type="button" onclick="selecionarChipCategoria('Salário')" class="px-2 py-0.5 rounded-full text-label-sm bg-surface-container text-secondary hover:bg-primary-container hover:text-on-primary-container transition-colors">Salário</button></div></div><div><label class="block text-label-sm font-label-sm text-secondary font-semibold mb-1">Faixa de Valor (R$)</label><div class="grid grid-cols-2 gap-2 mt-1"><div><span class="text-label-sm font-label-sm text-secondary block">Mínimo:</span><input id="filterValMin" placeholder="R$ 0,00" class="w-full py-1.5 px-2 bg-surface-container-lowest rounded-lg border border-outline-variant/40 text-body-sm text-on-surface font-numeric-data" type="number" step="10"></div><div><span class="text-label-sm font-label-sm text-secondary block">Máximo:</span><input id="filterValMax" placeholder="R$ 10.000" class="w-full py-1.5 px-2 bg-surface-container-lowest rounded-lg border border-outline-variant/40 text-body-sm text-on-surface font-numeric-data" type="number" step="10"></div></div></div><div><label class="block text-label-sm font-label-sm text-secondary font-semibold mb-1">Status &amp; Comprovante</label><div class="space-y-1.5 mt-1 text-label-sm font-label-sm text-on-surface"><label class="flex items-center gap-2 cursor-pointer"><input id="filterCheckLiquidado" type="checkbox" checked="" class="w-3.5 h-3.5 rounded text-primary focus:ring-primary border-outline-variant"><span class="">Liquidado / Recebido</span></label><label class="flex items-center gap-2 cursor-pointer"><input id="filterCheckPendente" type="checkbox" checked="" class="w-3.5 h-3.5 rounded text-primary focus:ring-primary border-outline-variant"><span class="">Pendente</span></label><label class="flex items-center gap-2 cursor-pointer text-secondary"><input id="filterCheckComAnexo" type="checkbox" class="w-3.5 h-3.5 rounded text-primary focus:ring-primary border-outline-variant"><span class="">Apenas com anexo</span></label></div></div></div><div class="pt-3 border-t border-outline-variant/20 flex items-center justify-between"><span id="filterResultsCountText" class="text-label-sm font-label-sm text-secondary">6 lançamentos correspondentes</span><div class="flex items-center gap-2"><button type="button" onclick="resetarTodosFiltros()" class="px-3 py-1.5 rounded-lg border border-outline-variant/40 text-secondary hover:bg-surface text-label-sm font-label-sm transition-colors">Limpar Filtros</button><button type="button" onclick="aplicarFiltrosAvancados()" class="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-label-sm font-label-sm font-semibold transition-colors flex items-center gap-1.5 shadow-xs"><span class="material-symbols-outlined" style="font-size: 16px;">check</span><span class="">Aplicar Filtros</span></button></div></div></div></div></div>
+<!-- Table Container -->
+<div class="overflow-x-auto custom-scroll w-full"><table class="w-full text-left border-collapse min-w-0"><thead><tr class="bg-surface border-b border-outline-variant/20 text-label-sm font-label-sm text-secondary"><th class="py-3 px-4 font-semibold whitespace-nowrap">DESCRIÇÃO &amp; FORNECEDOR</th><th class="py-3 px-4 font-semibold whitespace-nowrap">CATEGORIA</th><th class="py-3 px-4 font-semibold whitespace-nowrap"><button type="button" onclick="alternarOrdenacaoColuna('date')" class="group inline-flex items-center gap-1 font-semibold text-secondary hover:text-primary transition-colors cursor-pointer"><span class="">DATA</span><span id="sortIconDate" class="material-symbols-outlined text-primary" style="font-size: 16px;">arrow_downward</span></button></th><th class="py-3 px-4 font-semibold whitespace-nowrap"><button type="button" onclick="alternarOrdenacaoColuna('val')" class="group inline-flex items-center gap-1 font-semibold text-secondary hover:text-primary transition-colors cursor-pointer"><span class="">VALOR</span><span id="sortIconVal" class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors" style="font-size: 16px;">swap_vert</span></button></th><th class="py-3 px-4 font-semibold whitespace-nowrap">STATUS</th><th class="py-3 px-4 font-semibold text-center whitespace-nowrap">COMPROVANTE</th><th class="py-3 px-4 font-semibold text-right whitespace-nowrap">AÇÕES</th></tr></thead><tbody class="divide-y divide-outline-variant/15 text-body-sm font-body-sm" id="transaction-table-body"><tr class="hover:bg-surface/70 transition-colors bg-[#ECFDF5]/30"><td class="py-3.5 px-4 whitespace-nowrap"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-[#ECFDF5] text-[#059669] flex items-center justify-center shrink-0"><span class="material-symbols-outlined" style="font-size: 18px;">payments</span></div><div><div class="font-semibold text-on-surface">Salário &amp; Pró-labore Mensal</div><div class="text-label-sm font-label-sm text-secondary">Depósito em Conta Corrente PJ</div></div></div></td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-[#ECFDF5] text-[#059669] font-medium">Proventos / Salário</span></td><td class="py-3.5 px-4 text-secondary font-label-md whitespace-nowrap">05 Out, 09:00</td><td class="py-3.5 px-4 font-numeric-data text-[#059669] font-bold whitespace-nowrap">+ R$ 7.000,00</td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-[#ECFDF5] text-[#059669]"><span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>Recebido</span></td><td class="py-3.5 px-4 text-center whitespace-nowrap"><button class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-outline-variant/40 bg-surface hover:bg-surface-container text-primary font-label-sm text-label-sm transition-colors" onclick="visualizarComprovante('holerite_outubro.pdf')"><span class="material-symbols-outlined" style="font-size: 15px;">description</span><span class="">holerite.pdf</span></button></td><td class="py-3.5 px-4 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1 text-secondary"><button class="p-1 hover:text-primary transition-colors" title="Download"><span class="material-symbols-outlined" style="font-size: 18px;">download</span></button><button class="p-1 hover:text-primary transition-colors" title="Mais Detalhes"><span class="material-symbols-outlined" style="font-size: 18px;">more_vert</span></button></div></td></tr><tr class="hover:bg-surface/70 transition-colors bg-[#ECFDF5]/20"><td class="py-3.5 px-4 whitespace-nowrap"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0"><span class="material-symbols-outlined" style="font-size: 18px;">trending_up</span></div><div><div class="font-semibold text-on-surface">Rendimento de Investimentos (CDB / CDI)</div><div class="text-label-sm font-label-sm text-secondary">Liquidação Automática Corretora</div></div></div></td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-[#ECFDF5] text-[#059669] font-medium">Rendimentos</span></td><td class="py-3.5 px-4 text-secondary font-label-md whitespace-nowrap">02 Out, 14:10</td><td class="py-3.5 px-4 font-numeric-data text-[#059669] font-bold whitespace-nowrap">+ R$ 1.500,00</td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-[#ECFDF5] text-[#059669]"><span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>Recebido</span></td><td class="py-3.5 px-4 text-center whitespace-nowrap"><button class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-outline-variant/40 bg-surface hover:bg-surface-container text-primary font-label-sm text-label-sm transition-colors" onclick="visualizarComprovante('informe_rendimento.pdf')"><span class="material-symbols-outlined" style="font-size: 15px;">description</span><span class="">informe.pdf</span></button></td><td class="py-3.5 px-4 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1 text-secondary"><button class="p-1 hover:text-primary transition-colors" title="Download"><span class="material-symbols-outlined" style="font-size: 18px;">download</span></button><button class="p-1 hover:text-primary transition-colors" title="Mais Detalhes"><span class="material-symbols-outlined" style="font-size: 18px;">more_vert</span></button></div></td></tr><tr class="hover:bg-surface/70 transition-colors"><td class="py-3.5 px-4 whitespace-nowrap"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-primary shrink-0"><span class="material-symbols-outlined" data-icon="shopping_cart" style="font-size: 18px;">shopping_cart</span></div><div><div class="font-semibold text-on-surface">Pão de Açúcar - Compras Semanais</div><div class="text-label-sm font-label-sm text-secondary">Cartão Corporate Final 4821</div></div></div></td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-container text-secondary">Alimentação</span></td><td class="py-3.5 px-4 text-secondary font-label-md whitespace-nowrap">13 Out, 18:42</td><td class="py-3.5 px-4 font-numeric-data text-on-surface font-semibold whitespace-nowrap">R$ 384,20</td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-[#ECFDF5] text-[#059669]"><span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>Liquidado</span></td><td class="py-3.5 px-4 text-center whitespace-nowrap"><button class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-outline-variant/40 bg-surface hover:bg-surface-container text-primary font-label-sm text-label-sm transition-colors" onclick="visualizarComprovante('comprovante_pao_de_acucar.pdf')"><span class="material-symbols-outlined" data-icon="description" style="font-size: 15px;">description</span><span class="">comprovante_pix.pdf</span></button></td><td class="py-3.5 px-4 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1 text-secondary"><button class="p-1 hover:text-primary transition-colors" title="Download Recibo"><span class="material-symbols-outlined" data-icon="download" style="font-size: 18px;">download</span></button><button class="p-1 hover:text-primary transition-colors" title="Mais Detalhes"><span class="material-symbols-outlined" data-icon="more_vert" style="font-size: 18px;">more_vert</span></button></div></td></tr><tr class="hover:bg-surface/70 transition-colors"><td class="py-3.5 px-4 whitespace-nowrap"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container shrink-0"><span class="material-symbols-outlined" data-icon="local_gas_station" style="font-size: 18px;">local_gas_station</span></div><div><div class="font-semibold text-on-surface">Posto Ipiranga Alphaville</div><div class="text-label-sm font-label-sm text-secondary">Combustível e Troca de Filtro</div></div></div></td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-secondary-container text-on-secondary-container">Transporte</span></td><td class="py-3.5 px-4 text-secondary font-label-md whitespace-nowrap">12 Out, 09:15</td><td class="py-3.5 px-4 font-numeric-data text-on-surface font-semibold whitespace-nowrap">R$ 290,00</td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-[#ECFDF5] text-[#059669]"><span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>Liquidado</span></td><td class="py-3.5 px-4 text-center whitespace-nowrap"><button class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-outline-variant/40 bg-surface hover:bg-surface-container text-primary font-label-sm text-label-sm transition-colors" onclick="visualizarComprovante('recibo_ipiranga.png')"><span class="material-symbols-outlined" data-icon="image" style="font-size: 15px;">image</span><span class="">cupom_fiscal.png</span></button></td><td class="py-3.5 px-4 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1 text-secondary"><button class="p-1 hover:text-primary transition-colors" title="Download Recibo"><span class="material-symbols-outlined" data-icon="download" style="font-size: 18px;">download</span></button><button class="p-1 hover:text-primary transition-colors" title="Mais Detalhes"><span class="material-symbols-outlined" data-icon="more_vert" style="font-size: 18px;">more_vert</span></button></div></td></tr><tr class="hover:bg-surface/70 transition-colors"><td class="py-3.5 px-4 whitespace-nowrap"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-primary shrink-0"><span class="material-symbols-outlined" data-icon="cloud" style="font-size: 18px;">cloud</span></div><div><div class="font-semibold text-on-surface">Amazon Web Services (AWS)</div><div class="text-label-sm font-label-sm text-secondary">Hospedagem Cloud &amp; CDN</div></div></div></td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-container text-secondary">Tecnologia</span></td><td class="py-3.5 px-4 text-secondary font-label-md whitespace-nowrap">11 Out, 04:30</td><td class="py-3.5 px-4 font-numeric-data text-on-surface font-semibold whitespace-nowrap">R$ 540,80</td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-[#FFFBEB] text-[#D97706]"><span class="w-1.5 h-1.5 rounded-full bg-[#D97706]"></span>Pendente</span></td><td class="py-3.5 px-4 text-center whitespace-nowrap"><span class="text-label-sm font-label-sm text-outline-variant italic">Sem anexo</span></td><td class="py-3.5 px-4 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1 text-secondary"><button class="p-1 hover:text-primary transition-colors" onclick="toggleModal(true)" title="Anexar Recibo"><span class="material-symbols-outlined text-outline" data-icon="attach_file" style="font-size: 18px;">attach_file</span></button><button class="p-1 hover:text-primary transition-colors" title="Mais Detalhes"><span class="material-symbols-outlined" data-icon="more_vert" style="font-size: 18px;">more_vert</span></button></div></td></tr><tr class="hover:bg-surface/70 transition-colors"><td class="py-3.5 px-4 whitespace-nowrap"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0"><span class="material-symbols-outlined" data-icon="fitness_center" style="font-size: 18px;">fitness_center</span></div><div><div class="font-semibold text-on-surface">Bio Ritmo Club Mensalidade</div><div class="text-label-sm font-label-sm text-secondary">Saúde e Bem-estar</div></div></div></td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-tertiary-fixed text-on-tertiary-fixed">Saúde / Lazer</span></td><td class="py-3.5 px-4 text-secondary font-label-md whitespace-nowrap">08 Out, 11:20</td><td class="py-3.5 px-4 font-numeric-data text-on-surface font-semibold whitespace-nowrap">R$ 289,00</td><td class="py-3.5 px-4 whitespace-nowrap"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-[#ECFDF5] text-[#059669]"><span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>Liquidado</span></td><td class="py-3.5 px-4 text-center whitespace-nowrap"><button class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-outline-variant/40 bg-surface hover:bg-surface-container text-primary font-label-sm text-label-sm transition-colors" onclick="visualizarComprovante('comprovante_bioritmo.pdf')"><span class="material-symbols-outlined" data-icon="description" style="font-size: 15px;">description</span><span class="">recibo_debito.pdf</span></button></td><td class="py-3.5 px-4 text-right whitespace-nowrap"><div class="flex items-center justify-end gap-1 text-secondary"><button class="p-1 hover:text-primary transition-colors" title="Download Recibo"><span class="material-symbols-outlined" data-icon="download" style="font-size: 18px;">download</span></button><button class="p-1 hover:text-primary transition-colors" title="Mais Detalhes"><span class="material-symbols-outlined" data-icon="more_vert" style="font-size: 18px;">more_vert</span></button></div></td></tr></tbody></table></div>
+<!-- Table Footer / Pagination -->
+<div class="p-4 border-t border-outline-variant/20 flex flex-col sm:flex-row items-center justify-between text-body-sm font-body-sm text-secondary gap-3">
+<span class="">Mostrando 4 de 18 despesas cadastradas em Outubro</span>
+<div class="flex items-center gap-1">
+<button class="px-2.5 py-1 rounded border border-outline-variant/40 hover:bg-surface transition-colors disabled:opacity-50" disabled="">Anterior</button>
+<button class="px-3 py-1 rounded bg-primary text-on-primary font-semibold text-label-md">1</button>
+<button class="px-3 py-1 rounded border border-outline-variant/40 hover:bg-surface transition-colors text-label-md">2</button>
+<button class="px-2.5 py-1 rounded border border-outline-variant/40 hover:bg-surface transition-colors">Próxima</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar (Visible only on Mobile as per Responsive Pivot) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant/30 flex items-center justify-around py-2 px-3 shadow-lg">
+<a class="flex flex-col items-center gap-0.5 text-primary" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet" style="font-variation-settings: &quot;FILL&quot; 1;">account_balance_wallet</span>
+<span class="text-label-sm font-label-sm">Painel</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-secondary" href="#">
+<span class="material-symbols-outlined" data-icon="receipt">receipt</span>
+<span class="text-label-sm font-label-sm">Despesas</span>
+</a>
+<button class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center -mt-4 shadow-md active:scale-95 transition-transform" onclick="toggleModal(true)">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+<a class="flex flex-col items-center gap-0.5 text-secondary" href="#">
+<span class="material-symbols-outlined" data-icon="event_repeat">event_repeat</span>
+<span class="text-label-sm font-label-sm">Fixos</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-secondary" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-label-sm font-label-sm">Ajustes</span>
+</a>
+</nav>
+</div>
+<!-- 4. MODAL / DRAWER INTERATIVO: Adicionar Novo Gasto -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-surface/40 backdrop-blur-sm hidden transition-opacity duration-200" id="expenseModal">
+<div class="bg-surface-container-lowest w-full max-w-lg rounded-2xl border border-outline-variant/50 shadow-2xl overflow-hidden flex flex-col max-h-[921px]">
+<!-- Modal Header -->
+<div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between bg-surface/50">
+<div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Adicionar Novo Gasto</h3>
+<p class="text-body-sm font-body-sm text-secondary">Insira os detalhes e anexe o comprovante bancário ou fiscal.</p>
+</div>
+<button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" onclick="toggleModal(false)">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<!-- Modal Body (Scrollable) -->
+<form class="p-6 overflow-y-auto space-y-4 custom-scroll" id="newExpenseForm" onsubmit="salvarDespesa(event)">
+<!-- Descrição / Nome da Despesa -->
+<div>
+<label class="block text-label-md font-label-md text-on-surface font-semibold mb-1" for="expenseName">
+            Nome / Descrição do Gasto *
+          </label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary" data-icon="edit" style="font-size: 18px;">edit</span>
+<input class="w-full pl-9 pr-3 py-2 bg-surface-container-lowest rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-md font-body-md text-on-surface placeholder:text-secondary/60" id="expenseName" placeholder="Ex: Supermercado Pão de Açúcar, Uber, Internet..." required="" type="text">
+</div>
+</div>
+<!-- Categoria & Data Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div>
+<label class="block text-label-md font-label-md text-on-surface font-semibold mb-1" for="expenseCategory">
+              Categoria *
+            </label>
+<select class="w-full py-2 px-3 bg-surface-container-lowest rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-md font-body-md text-on-surface" id="expenseCategory" required="">
+<option value="Alimentação">Alimentação / Mercado</option>
+<option value="Transporte">Transporte / Mobilidade</option>
+<option value="Moradia">Moradia / Contas Fixas</option>
+<option value="Lazer">Lazer / Assinaturas</option>
+<option value="Saúde">Saúde / Farmácia</option>
+<option value="Tecnologia">Tecnologia &amp; Serviços</option>
+</select>
+</div>
+<div>
+<label class="block text-label-md font-label-md text-on-surface font-semibold mb-1" for="expenseDate">
+              Data do Pagamento *
+            </label>
+<input class="w-full py-2 px-3 bg-surface-container-lowest rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-md font-body-md text-on-surface" id="expenseDate" required="" type="date" value="2024-10-14">
+</div>
+</div>
+<!-- Valor em R$ e Tipo de Despesa -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div>
+<label class="block text-label-md font-label-md text-on-surface font-semibold mb-1" for="expenseValue">
+              Valor (R$) *
+            </label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-secondary font-numeric-data font-semibold">R$</span>
+<input class="w-full pl-10 pr-3 py-2 bg-surface-container-lowest rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-md font-body-md text-on-surface font-numeric-data" id="expenseValue" placeholder="0,00" required="" step="0.01" type="number">
+</div>
+</div>
+<div>
+<label class="block text-label-md font-label-md text-on-surface font-semibold mb-1" for="expenseType">
+              Tipo de Custo
+            </label>
+<select class="w-full py-2 px-3 bg-surface-container-lowest rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-md font-body-md text-on-surface" id="expenseType">
+<option value="Variavel">Gasto Variável</option>
+<option value="Fixo">Compromisso Fixo</option>
+</select>
+</div>
+</div>
+<!-- Área de Upload de Comprovante Elegante (Drag and drop com preview de comprovante_pix.pdf) -->
+<div>
+<label class="block text-label-md font-label-md text-on-surface font-semibold mb-1">
+            Anexo de Comprovante (PDF, JPG, PNG)
+          </label>
+<div class="border-2 border-dashed border-outline-variant hover:border-primary rounded-xl p-4 text-center cursor-pointer transition-colors bg-surface/40 group relative" id="dropZone">
+<input class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" id="fileInput" onchange="manipularArquivo(this)" type="file">
+<div class="flex flex-col items-center" id="uploadPrompt">
+<div class="w-10 h-10 rounded-full bg-surface-container-high group-hover:bg-primary-container text-primary group-hover:text-on-primary-container flex items-center justify-center mb-2 transition-colors">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors mb-1" data-icon="upload_file" style="font-size: 32px;">upload_file</span>
+</div>
+<p class="text-label-md font-label-md font-semibold text-on-surface">Arraste ou clique para anexar comprovante</p>
+<p class="text-label-sm font-label-sm text-secondary mt-0.5">Suporte para comprovante PIX, Recibo Bancário ou Cupom Fiscal</p>
+</div>
+<!-- Preview do Arquivo Anexado (comprovante_pix.pdf) -->
+<div class="flex items-center justify-between p-2.5 bg-surface-container-lowest rounded-lg border border-primary/40 shadow-xs text-left" id="filePreview">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded bg-[#ECFDF5] text-[#059669] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors mb-1" data-icon="upload_file" style="font-size: 32px;">upload_file</span>
+</div>
+<div>
+<div class="text-label-md font-label-md font-semibold text-on-surface truncate" id="fileNameText">comprovante_pix.pdf</div>
+<div class="text-label-sm font-label-sm text-secondary">248 KB • Pronto para sincronizar</div>
+</div>
+</div>
+<button class="text-secondary hover:text-error p-1 rounded transition-colors" onclick="removerArquivo(event)" title="Remover anexo" type="button">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors mb-1" data-icon="upload_file" style="font-size: 32px;">upload_file</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Botões de Ação do Modal -->
+<div class="pt-4 border-t border-outline-variant/20 flex items-center justify-end gap-3">
+<button class="px-4 py-2 rounded-lg border border-outline-variant/60 text-secondary hover:bg-surface font-label-md text-label-md transition-colors" onclick="toggleModal(false)" type="button">
+            Cancelar
+          </button>
+<button class="bg-primary hover:bg-primary-container text-on-primary px-5 py-2 rounded-lg font-label-md text-label-md font-semibold flex items-center gap-2 shadow-sm transition-transform active:scale-[0.99] cursor-pointer" type="submit">
+<span class="material-symbols-outlined" data-icon="check" style="font-size: 18px;">check</span>
+            Salvar Despesa
+          </button>
+</div>
+</form>
+</div>
+</div><div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-surface/40 backdrop-blur-sm hidden transition-opacity duration-200" id="incomeModal"><div class="bg-surface-container-lowest w-full max-w-lg rounded-2xl border border-outline-variant/50 shadow-2xl overflow-hidden flex flex-col max-h-[921px]"><div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between bg-surface/50"><div><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-[#ECFDF5] text-[#059669] flex items-center justify-center"><span class="material-symbols-outlined" style="font-size: 18px;">arrow_downward</span></div><h3 class="text-headline-sm font-headline-sm text-on-surface">Registrar Nova Entrada</h3></div><p class="text-body-sm font-body-sm text-secondary mt-0.5">Adicione receitas, salários, freelas ou rendimentos ao seu fluxo de caixa.</p></div><button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" onclick="toggleIncomeModal(false)" title="Fechar"><span class="material-symbols-outlined">close</span></button></div><form class="p-6 overflow-y-auto space-y-4 custom-scroll" id="newIncomeForm" onsubmit="salvarEntrada(event)"><div><label class="block text-label-md font-label-md text-on-surface font-semibold mb-1" for="incomeValue">Valor da Receita (R$) *</label><div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#059669] font-numeric-data font-bold">R$</span><input class="w-full pl-10 pr-3 py-2.5 bg-surface-container-lowest rounded-lg border border-outline-variant focus:border-tertiary focus:ring-1 focus:ring-tertiary text-headline-sm font-numeric-metric font-bold text-[#059669] placeholder:text-secondary/50" id="incomeValue" placeholder="0,00" required="" step="0.01" type="number"></div></div><div><label class="block text-label-md font-label-md text-on-surface font-semibold mb-1" for="incomeDesc">Descrição da Entrada *</label><div class="relative"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary" style="font-size: 18px;">edit</span><input class="w-full pl-9 pr-3 py-2 bg-surface-container-lowest rounded-lg border border-outline-variant focus:border-tertiary focus:ring-1 focus:ring-tertiary text-body-md font-body-md text-on-surface placeholder:text-secondary/60" id="incomeDesc" placeholder="Ex: Salário mensal, Projeto Freelance UI, Dividendos..." required="" type="text"></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-label-md font-label-md text-on-surface font-semibold mb-1" for="incomeCategory">Categoria *</label><select class="w-full py-2 px-3 bg-surface-container-lowest rounded-lg border border-outline-variant focus:border-tertiary focus:ring-1 focus:ring-tertiary text-body-md font-body-md text-on-surface" id="incomeCategory" required=""><option value="Salário / Pró-labore">Salário / Pró-labore</option><option value="Freelance / Serviços">Freelance / Serviços</option><option value="Rendimentos / Investimentos">Rendimentos / Investimentos</option><option value="Vendas">Vendas &amp; Produtos</option><option value="Outros">Outras Receitas</option></select></div><div><label class="block text-label-md font-label-md text-on-surface font-semibold mb-1" for="incomeDate">Data do Recebimento *</label><input class="w-full py-2 px-3 bg-surface-container-lowest rounded-lg border border-outline-variant focus:border-tertiary focus:ring-1 focus:ring-tertiary text-body-md font-body-md text-on-surface" id="incomeDate" required="" type="date" value="2024-10-14"></div></div><div><label class="block text-label-md font-label-md text-on-surface font-semibold mb-1" for="incomeAccount">Conta de Destino *</label><div class="relative"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary" style="font-size: 18px;">account_balance</span><select class="w-full pl-9 pr-3 py-2 bg-surface-container-lowest rounded-lg border border-outline-variant focus:border-tertiary focus:ring-1 focus:ring-tertiary text-body-md font-body-md text-on-surface" id="incomeAccount"><option value="Conta Corrente PJ">Conta Corrente PJ (Banco Inter / Itaú)</option><option value="Conta Pessoal (PF)">Conta Pessoal (PF)</option><option value="Carteira de Investimentos">Carteira de Investimentos (XP / BTG)</option><option value="Caixa Físico">Caixa Físico / Cofre</option></select></div></div><div><label class="block text-label-md font-label-md text-on-surface font-semibold mb-1">Anexo de Comprovante / Holerite / Recibo</label><div class="border-2 border-dashed border-outline-variant hover:border-tertiary rounded-xl p-4 text-center cursor-pointer transition-colors bg-surface/40 group relative" id="incomeDropZone"><input class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" id="incomeFileInput" onchange="manipularArquivoEntrada(this)" type="file"><div class="flex flex-col items-center" id="incomeUploadPrompt"><div class="w-10 h-10 rounded-full bg-[#ECFDF5] group-hover:bg-tertiary text-[#059669] group-hover:text-on-tertiary flex items-center justify-center mb-2 transition-colors"><span class="material-symbols-outlined mb-1" style="font-size: 28px;">cloud_upload</span></div><p class="text-label-md font-label-md font-semibold text-on-surface group-hover:text-tertiary">Arraste ou clique para anexar recibo</p><p class="text-label-sm font-label-sm text-secondary mt-0.5">PDF, PNG ou JPG até 10MB (ex: holerite, nota fiscal)</p></div><div class="hidden flex items-center justify-between p-2.5 bg-surface-container-lowest rounded-lg border border-[#059669]/40 shadow-xs text-left" id="incomeFilePreview"><div class="flex items-center gap-2.5"><div class="w-9 h-9 rounded bg-[#ECFDF5] text-[#059669] flex items-center justify-center shrink-0"><span class="material-symbols-outlined" style="font-size: 20px;">description</span></div><div><div class="text-label-md font-label-md font-semibold text-on-surface truncate" id="incomeFileNameText">comprovante.pdf</div><div class="text-label-sm font-label-sm text-[#059669]">Anexo pronto para vincular</div></div></div><button class="text-secondary hover:text-error p-1 rounded transition-colors" onclick="removerArquivoEntrada(event)" title="Remover anexo" type="button"><span class="material-symbols-outlined" style="font-size: 18px;">close</span></button></div></div></div><div class="pt-4 border-t border-outline-variant/20 flex items-center justify-end gap-3"><button class="px-4 py-2 rounded-lg border border-outline-variant/60 text-secondary hover:bg-surface font-label-md text-label-md transition-colors" onclick="toggleIncomeModal(false)" type="button">Cancelar</button><button class="bg-tertiary hover:bg-tertiary-container text-on-tertiary px-5 py-2 rounded-lg font-label-md text-label-md font-semibold flex items-center gap-2 shadow-sm transition-transform active:scale-[0.99] cursor-pointer" type="submit"><span class="material-symbols-outlined" style="font-size: 18px;">check_circle</span>Confirmar Entrada</button></div></form></div></div>
+<!-- Toast Notification Feedback -->
+<div class="fixed bottom-6 right-6 z-50 bg-inverse-surface text-inverse-on-surface px-4 py-3 rounded-xl shadow-lg border border-outline-variant/30 flex items-center gap-3 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none" id="toastNotification">
+<span class="material-symbols-outlined text-primary-fixed" data-icon="task_alt" style="font-size: 20px;">task_alt</span>
+<span class="text-label-md font-label-md" id="toastMessage">Operação realizada com sucesso!</span>
+</div>
+<script>
+    // Micro-interactions and state helpers
+    let isSidebarCollapsed = false;
+
+    function toggleSidebarCollapse() {
+      isSidebarCollapsed = !isSidebarCollapsed;
+      const sidebar = document.getElementById('sideNavRail');
+      const mainCanvas = document.getElementById('mainCanvas');
+      const textItems = document.querySelectorAll('.sidebar-text-item');
+      const navLinks = document.querySelectorAll('.sidebar-nav-link');
+      const actionBtn = document.querySelector('.sidebar-action-btn');
+      const collapseIcon = document.getElementById('collapseIcon');
+      const toggleBtn = document.getElementById('sidebarToggleBtn');
+      const profileCard = document.querySelector('.sidebar-profile-card');
+
+      if (isSidebarCollapsed) {
+        // Collapse to w-20
+        sidebar.classList.remove('w-64');
+        sidebar.classList.add('w-20');
+        mainCanvas.classList.remove('lg:pl-64');
+        mainCanvas.classList.add('lg:pl-20');
+
+        // Hide text labels with fade
+        textItems.forEach(el => el.classList.add('hidden'));
+
+        // Center link items for icon-only display
+        navLinks.forEach(link => {
+          link.classList.remove('px-3');
+          link.classList.add('px-0', 'justify-center');
+        });
+
+        // Compact action button
+        if (actionBtn) {
+          actionBtn.classList.remove('w-full', 'px-3');
+          actionBtn.classList.add('w-12', 'h-12', 'p-0', 'mx-auto', 'rounded-xl');
+        }
+
+        // Compact profile card
+        if (profileCard) {
+          profileCard.classList.remove('p-3', 'gap-3');
+          profileCard.classList.add('p-1.5', 'justify-center');
+        }
+
+        // Adjust collapse icon and tooltip
+        collapseIcon.innerText = 'chevron_right';
+        toggleBtn.setAttribute('title', 'Expandir menu');
+      } else {
+        // Expand back to w-64
+        sidebar.classList.remove('w-20');
+        sidebar.classList.add('w-64');
+        mainCanvas.classList.remove('lg:pl-20');
+        mainCanvas.classList.add('lg:pl-64');
+
+        // Show text labels
+        textItems.forEach(el => el.classList.remove('hidden'));
+
+        // Restore link styling
+        navLinks.forEach(link => {
+          link.classList.remove('px-0', 'justify-center');
+          link.classList.add('px-3');
+        });
+
+        // Restore action button
+        if (actionBtn) {
+          actionBtn.classList.remove('w-12', 'h-12', 'p-0', 'mx-auto', 'rounded-xl');
+          actionBtn.classList.add('w-full', 'px-3');
+        }
+
+        // Restore profile card
+        if (profileCard) {
+          profileCard.classList.remove('p-1.5', 'justify-center');
+          profileCard.classList.add('p-3', 'gap-3');
+        }
+
+        // Adjust collapse icon and tooltip
+        collapseIcon.innerText = 'chevron_left';
+        toggleBtn.setAttribute('title', 'Recolher menu');
+      }
+    }
+
+    function toggleModal(show) {
+      const modal = document.getElementById('expenseModal');
+      if (show) {
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.classList.remove('opacity-0'), 10);
+      } else {
+        modal.classList.add('opacity-0');
+        setTimeout(() => modal.classList.add('hidden'), 200);
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toastNotification');
+      const text = document.getElementById('toastMessage');
+      text.innerText = message;
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 3500);
+    }
+
+    function toggleFixoStatus(rowId, badgeId, isChecked) {
+      const row = document.getElementById(rowId);
+      const badge = document.getElementById(badgeId);
+      if (isChecked) {
+        badge.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-[#ECFDF5] text-[#059669]";
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span> Pago`;
+        showToast("Gasto fixo confirmado e marcado como Pago!");
+      } else {
+        badge.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-[#FFFBEB] text-[#D97706]";
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-[#D97706] animate-pulse"></span> Pendente`;
+        showToast("Gasto fixo alterado para status Pendente.");
+      }
+    }
+
+    function marcarTodosPagos() {
+      ['check-1', 'check-2', 'check-3'].forEach((id, idx) => {
+        const checkbox = document.getElementById(id);
+        if (checkbox) {
+          checkbox.checked = true;
+          toggleFixoStatus(`fixo-row-${idx + 1}`, `badge-${idx + 1}`, true);
+        }
+      });
+      showToast("Todos os 3 gastos fixos foram liquidados com sucesso!");
+    }
+
+    function quickActionFixos() {
+      toggleModal(true);
+      document.getElementById('expenseType').value = 'Fixo';
+      document.getElementById('expenseName').focus();
+    }
+
+    function copiarPix(chave) {
+      navigator.clipboard.writeText(chave).then(() => {
+        showToast("Código Copia-e-Cola PIX copiado com sucesso!");
+      }).catch(() => {
+        showToast("Chave PIX copiada!");
+      });
+    }
+
+    function visualizarComprovante(fileName) {
+      showToast(`Abrindo comprovante: ${fileName}`);
+    }
+
+    function removerArquivo(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      document.getElementById('filePreview').classList.add('hidden');
+      document.getElementById('uploadPrompt').classList.remove('hidden');
+      document.getElementById('fileInput').value = '';
+    }
+
+    function manipularArquivo(input) {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        document.getElementById('fileNameText').innerText = file.name;
+        document.getElementById('uploadPrompt').classList.add('hidden');
+        document.getElementById('filePreview').classList.remove('hidden');
+        showToast(`Anexo ${file.name} adicionado com sucesso!`);
+      }
+    }
+
+    function salvarDespesa(e) {
+      e.preventDefault();
+      const nome = document.getElementById('expenseName').value;
+      const categoria = document.getElementById('expenseCategory').value;
+      const valor = parseFloat(document.getElementById('expenseValue').value).toFixed(2);
+      const data = document.getElementById('expenseDate').value;
+
+      // Adicionar nova linha no topo da tabela de últimos gastos
+      const tbody = document.getElementById('transaction-table-body');
+      const newRow = document.createElement('tr');
+      newRow.className = "hover:bg-surface/70 transition-colors bg-surface-container-low/30";
+      newRow.innerHTML = `
+        <td class="py-3.5 px-4">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined" data-icon="receipt" style="font-size: 18px;">receipt</span>
+            </div>
+            <div>
+              <div class="font-semibold text-on-surface">${nome}</div>
+              <div class="text-label-sm font-label-sm text-secondary">Novo lançamento cadastrado</div>
+            </div>
+          </div>
+        </td>
+        <td class="py-3.5 px-4">
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-container text-secondary">
+            ${categoria}
+          </span>
+        </td>
+        <td class="py-3.5 px-4 text-secondary font-label-md">${data}</td>
+        <td class="py-3.5 px-4 font-numeric-data text-on-surface font-semibold">R$ ${valor.replace('.', ',')}</td>
+        <td class="py-3.5 px-4">
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-[#ECFDF5] text-[#059669]">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
+            Liquidado
+          </span>
+        </td>
+        <td class="py-3.5 px-4 text-center">
+          <button onclick="visualizarComprovante('comprovante_pix.pdf')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-outline-variant/40 bg-surface hover:bg-surface-container text-primary font-label-sm text-label-sm transition-colors">
+            <span class="material-symbols-outlined" data-icon="description" style="font-size: 15px;">description</span>
+            <span>comprovante_pix.pdf</span>
+          </button>
+        </td>
+        <td class="py-3.5 px-4 text-right">
+          <div class="flex items-center justify-end gap-1 text-secondary">
+            <button class="p-1 hover:text-primary transition-colors"><span class="material-symbols-outlined" data-icon="download" style="font-size: 18px;">download</span></button>
+            <button class="p-1 hover:text-primary transition-colors"><span class="material-symbols-outlined" data-icon="more_vert" style="font-size: 18px;">more_vert</span></button>
+          </div>
+        </td>
+      `;
+
+      tbody.insertBefore(newRow, tbody.firstChild);
+      toggleModal(false);
+      showToast(`Despesa "${nome}" no valor de R$ ${valor} salva com sucesso!`);
+      document.getElementById('newExpenseForm').reset();
+    }
+  </script>
+
+
+<script id="income-modal-script" class="">
+  function toggleIncomeModal(show) {
+    const modal = document.getElementById('incomeModal');
+    if (!modal) return;
+    if (show) {
+      modal.classList.remove('hidden');
+      setTimeout(() => modal.classList.remove('opacity-0'), 10);
+    } else {
+      modal.classList.add('opacity-0');
+      setTimeout(() => modal.classList.add('hidden'), 200);
+    }
+  }
+
+  function manipularArquivoEntrada(input) {
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      document.getElementById('incomeFileNameText').innerText = file.name;
+      document.getElementById('incomeUploadPrompt').classList.add('hidden');
+      document.getElementById('incomeFilePreview').classList.remove('hidden');
+      showToast('Comprovante ' + file.name + ' anexado!');
+    }
+  }
+
+  function removerArquivoEntrada(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    document.getElementById('incomeFilePreview').classList.add('hidden');
+    document.getElementById('incomeUploadPrompt').classList.remove('hidden');
+    document.getElementById('incomeFileInput').value = '';
+  }
+
+  function salvarEntrada(e) {
+    e.preventDefault();
+    const valor = parseFloat(document.getElementById('incomeValue').value || '0').toFixed(2);
+    const desc = document.getElementById('incomeDesc').value;
+    const cat = document.getElementById('incomeCategory').value;
+    const data = document.getElementById('incomeDate').value;
+    const conta = document.getElementById('incomeAccount').value;
+
+    const tbody = document.getElementById('transaction-table-body');
+    if (tbody) {
+      const newRow = document.createElement('tr');
+      newRow.className = 'hover:bg-surface/70 transition-colors bg-[#ECFDF5]/30';
+      newRow.innerHTML = `
+        <td class="py-3.5 px-4 whitespace-nowrap">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-[#ECFDF5] text-[#059669] flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined" style="font-size: 18px;">arrow_downward</span>
+            </div>
+            <div>
+              <div class="font-semibold text-on-surface">${desc}</div>
+              <div class="text-label-sm font-label-sm text-secondary">${conta}</div>
+            </div>
+          </div>
+        </td>
+        <td class="py-3.5 px-4 whitespace-nowrap">
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-[#ECFDF5] text-[#059669] font-medium">
+            ${cat}
+          </span>
+        </td>
+        <td class="py-3.5 px-4 text-secondary font-label-md whitespace-nowrap">${data}</td>
+        <td class="py-3.5 px-4 font-numeric-data text-[#059669] font-bold whitespace-nowrap">+ R$ ${valor.replace('.', ',')}</td>
+        <td class="py-3.5 px-4 whitespace-nowrap">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-[#ECFDF5] text-[#059669]">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
+            Recebido
+          </span>
+        </td>
+        <td class="py-3.5 px-4 text-center whitespace-nowrap">
+          <button class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-outline-variant/40 bg-surface hover:bg-surface-container text-primary font-label-sm text-label-sm transition-colors" onclick="visualizarComprovante('comprovante_entrada.pdf')">
+            <span class="material-symbols-outlined" style="font-size: 15px;">description</span>
+            <span>recibo.pdf</span>
+          </button>
+        </td>
+        <td class="py-3.5 px-4 text-right whitespace-nowrap">
+          <div class="flex items-center justify-end gap-1 text-secondary">
+            <button class="p-1 hover:text-primary transition-colors" title="Download Recibo"><span class="material-symbols-outlined" style="font-size: 18px;">download</span></button>
+            <button class="p-1 hover:text-primary transition-colors" title="Mais Detalhes"><span class="material-symbols-outlined" style="font-size: 18px;">more_vert</span></button>
+          </div>
+        </td>
+      `;
+      tbody.insertBefore(newRow, tbody.firstChild);
+    }
+
+    toggleIncomeModal(false);
+    showToast('Entrada "' + desc + '" no valor de R$ ' + valor.replace('.', ',') + ' registrada com sucesso!');
+    document.getElementById('newIncomeForm').reset();
+    const preview = document.getElementById('incomeFilePreview');
+    const prompt = document.getElementById('incomeUploadPrompt');
+    if (preview) preview.classList.add('hidden');
+    if (prompt) prompt.classList.remove('hidden');
+  }
+
+  // Fechar ao clicar no backdrop ou pressionar ESC
+  document.addEventListener('click', function(e) {
+    const modal = document.getElementById('incomeModal');
+    if (modal && !modal.classList.contains('hidden') && e.target === modal) {
+      toggleIncomeModal(false);
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      toggleIncomeModal(false);
+    }
+  });
+</script><script id="header-controls-script" class="">
+  function toggleLangMenu() {
+    const menu = document.getElementById('langDropdownMenu');
+    if (menu) {
+      menu.classList.toggle('hidden');
+    }
+  }
+
+  function selectLanguage(code, name) {
+    const langText = document.getElementById('currentLangText');
+    if (langText) {
+      langText.innerText = code;
+    }
+    const menu = document.getElementById('langDropdownMenu');
+    if (menu) {
+      menu.classList.add('hidden');
+    }
+    showToast('Idioma alterado para ' + name);
+  }
+
+  function toggleThemeMode() {
+    const html = document.documentElement;
+    const themeIcon = document.getElementById('themeIcon');
+    const isDark = html.classList.toggle('dark');
+    if (isDark) {
+      html.classList.remove('light');
+      if (themeIcon) themeIcon.innerText = 'light_mode';
+      showToast('Modo escuro ativado');
+    } else {
+      html.classList.add('light');
+      if (themeIcon) themeIcon.innerText = 'dark_mode';
+      showToast('Modo claro ativado');
+    }
+  }
+
+  // Fechar dropdown de idioma ao clicar fora
+  document.addEventListener('click', function(e) {
+    const btn = document.getElementById('langSelectorBtn');
+    const menu = document.getElementById('langDropdownMenu');
+    if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+      menu.classList.add('hidden');
+    }
+  });
+</script><script id="transaction-advanced-filters-script" class="">
+  let currentActiveTab = 'todos';
+  let isAdvancedPanelOpen = false;
+
+  function toggleAdvancedFilterPanel() {
+    const panel = document.getElementById('advancedFilterPanel');
+    const arrow = document.getElementById('filterArrowIcon');
+    const btn = document.getElementById('toggleFilterBtn');
+    if (!panel) return;
+    isAdvancedPanelOpen = !isAdvancedPanelOpen;
+    if (isAdvancedPanelOpen) {
+      panel.classList.remove('hidden');
+      if (arrow) arrow.style.transform = 'rotate(180deg)';
+      if (btn) btn.classList.add('bg-surface-container-high', 'text-primary');
+    } else {
+      panel.classList.add('hidden');
+      if (arrow) arrow.style.transform = 'rotate(0deg)';
+      if (btn) btn.classList.remove('bg-surface-container-high', 'text-primary');
+    }
+  }
+
+  function filtrarPorAba(tipo, el) {
+    currentActiveTab = tipo;
+    ['tab-btn-all', 'tab-btn-in', 'tab-btn-out', 'tab-btn-pend'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) {
+        b.classList.remove('bg-surface-container-lowest', 'text-primary', 'shadow-xs', 'font-semibold');
+        b.classList.add('text-secondary');
+      }
+    });
+    if (el) {
+      el.classList.add('bg-surface-container-lowest', 'text-primary', 'shadow-xs', 'font-semibold');
+      el.classList.remove('text-secondary');
+    }
+    aplicarFiltrosAvancados();
+  }
+
+  function executarBuscaRapida(query) {
+    const clearBtn = document.getElementById('clearSearchBtn');
+    if (clearBtn) {
+      if (query.trim().length > 0) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+    }
+    aplicarFiltrosAvancados();
+  }
+
+  function limparInputBusca() {
+    const input = document.getElementById('transactionSearchInput');
+    if (input) {
+      input.value = '';
+      executarBuscaRapida('');
+      input.focus();
+    }
+  }
+
+  function selecionarChipCategoria(cat) {
+    const select = document.getElementById('filterCategorySelect');
+    if (select) {
+      select.value = cat;
+      aplicarFiltrosAvancados();
+    }
+  }
+
+  function atualizarAtalhoPeriodo(periodo) {
+    const fromInput = document.getElementById('filterDateFrom');
+    const toInput = document.getElementById('filterDateTo');
+    if (!fromInput || !toInput) return;
+    if (periodo === '7dias') {
+      fromInput.value = '2024-10-07';
+      toInput.value = '2024-10-14';
+    } else if (periodo === 'este_mes') {
+      fromInput.value = '2024-10-01';
+      toInput.value = '2024-10-31';
+    } else if (periodo === 'mes_anterior') {
+      fromInput.value = '2024-09-01';
+      toInput.value = '2024-09-30';
+    }
+    aplicarFiltrosAvancados();
+  }
+
+  function aplicarFiltrosAvancados() {
+    const searchVal = (document.getElementById('transactionSearchInput')?.value || '').toLowerCase().trim();
+    const catVal = document.getElementById('filterCategorySelect')?.value || 'todas';
+    const valMin = parseFloat(document.getElementById('filterValMin')?.value || '0');
+    const valMaxRaw = document.getElementById('filterValMax')?.value;
+    const valMax = valMaxRaw ? parseFloat(valMaxRaw) : Infinity;
+    const checkLiq = document.getElementById('filterCheckLiquidado')?.checked ?? true;
+    const checkPend = document.getElementById('filterCheckPendente')?.checked ?? true;
+    const checkComAnexo = document.getElementById('filterCheckComAnexo')?.checked ?? false;
+
+    const tbody = document.getElementById('transaction-table-body');
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr');
+    let visibleCount = 0;
+    let filterCount = 0;
+
+    if (searchVal) filterCount++;
+    if (catVal !== 'todas') filterCount++;
+    if (valMin > 0) filterCount++;
+    if (valMaxRaw) filterCount++;
+    if (!checkLiq || !checkPend || checkComAnexo) filterCount++;
+
+    const badge = document.getElementById('activeFilterCountBadge');
+    const resetBtn = document.getElementById('resetFilterBtn');
+    if (badge) {
+      if (filterCount > 0) {
+        badge.innerText = filterCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+    if (resetBtn) {
+      if (filterCount > 0 || currentActiveTab !== 'todos') {
+        resetBtn.classList.remove('hidden');
+      } else {
+        resetBtn.classList.add('hidden');
+      }
+    }
+
+    rows.forEach(row => {
+      const text = row.innerText.toLowerCase();
+      const isPositive = row.innerText.includes('+ R$');
+      const isPendente = text.includes('pendente');
+      const hasAttachment = !text.includes('sem anexo');
+
+      // Abas
+      let matchTab = true;
+      if (currentActiveTab === 'entradas') matchTab = isPositive;
+      else if (currentActiveTab === 'saidas') matchTab = !isPositive;
+      else if (currentActiveTab === 'pendentes') matchTab = isPendente;
+
+      // Texto
+      let matchSearch = true;
+      if (searchVal) matchSearch = text.includes(searchVal);
+
+      // Categoria
+      let matchCategory = true;
+      if (catVal !== 'todas') {
+        matchCategory = text.includes(catVal.toLowerCase());
+      }
+
+      // Status
+      let matchStatus = true;
+      if (isPendente && !checkPend) matchStatus = false;
+      if (!isPendente && !checkLiq) matchStatus = false;
+
+      // Comprovante
+      let matchAnexo = true;
+      if (checkComAnexo && !hasAttachment) matchAnexo = false;
+
+      // Valor numérico aproximado
+      let matchVal = true;
+      const numMatch = row.innerText.match(/r\$\s*([\d\.]+),(\d{2})/i);
+      if (numMatch) {
+        const cleanNum = parseFloat(numMatch[1].replace(/\./g, '') + '.' + numMatch[2]);
+        if (cleanNum < valMin || cleanNum > valMax) {
+          matchVal = false;
+        }
+      }
+
+      if (matchTab && matchSearch && matchCategory && matchStatus && matchAnexo && matchVal) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    const countText = document.getElementById('filterResultsCountText');
+    if (countText) {
+      countText.innerText = `${visibleCount} lançamentos correspondentes`;
+    }
+  }
+
+  function resetarTodosFiltros() {
+    const searchInput = document.getElementById('transactionSearchInput');
+    if (searchInput) searchInput.value = '';
+    const catSelect = document.getElementById('filterCategorySelect');
+    if (catSelect) catSelect.value = 'todas';
+    const periodSelect = document.getElementById('filterPeriodSelect');
+    if (periodSelect) periodSelect.value = 'este_mes';
+    const valMin = document.getElementById('filterValMin');
+    if (valMin) valMin.value = '';
+    const valMax = document.getElementById('filterValMax');
+    if (valMax) valMax.value = '';
+    const checkLiq = document.getElementById('filterCheckLiquidado');
+    if (checkLiq) checkLiq.checked = true;
+    const checkPend = document.getElementById('filterCheckPendente');
+    if (checkPend) checkPend.checked = true;
+    const checkAnexo = document.getElementById('filterCheckComAnexo');
+    if (checkAnexo) checkAnexo.checked = false;
+
+    filtrarPorAba('todos', document.getElementById('tab-btn-all'));
+    showToast('Filtros resetados com sucesso.');
+  }
+
+  function exportarExtratoCSV() {
+    const rows = document.querySelectorAll('#transaction-table-body tr');
+    let csvContent = 'data:text/csv;charset=utf-8,Descricao,Categoria,Data,Valor,Status\n';
+    rows.forEach(r => {
+      if (r.style.display !== 'none') {
+        const cols = r.querySelectorAll('td');
+        if (cols.length >= 5) {
+          const desc = cols[0].innerText.replace(/\n/g, ' - ').replace(/,/g, ' ');
+          const cat = cols[1].innerText.trim();
+          const data = cols[2].innerText.trim();
+          const val = cols[3].innerText.trim();
+          const status = cols[4].innerText.trim();
+          csvContent += `"${desc}","${cat}","${data}","${val}","${status}"\n`;
+        }
+      }
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'extrato_aurawealth_outubro.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Download do extrato em CSV iniciado!');
+  }
+</script><script id="table-sorting-script">
+  let currentSortCriteria = 'date_desc';
+
+  function extrairDataValorLinha(row) {
+    const cols = row.querySelectorAll('td');
+    let timestamp = 0;
+    let valorNumerico = 0;
+    if (cols.length >= 4) {
+      const dataStr = cols[2].innerText.trim();
+      const meses = {'Jan': 0, 'Fev': 1, 'Mar': 2, 'Abr': 3, 'Mai': 4, 'Jun': 5, 'Jul': 6, 'Ago': 7, 'Set': 8, 'Out': 9, 'Nov': 10, 'Dez': 11};
+      const matchData = dataStr.match(/(\d{1,2})\s+([A-Za-z]+)(?:,\s+(\d{2}):(\d{2}))?/);
+      if (matchData) {
+        const dia = parseInt(matchData[1], 10);
+        const mes = meses[matchData[2]] !== undefined ? meses[matchData[2]] : 9;
+        const hora = matchData[3] ? parseInt(matchData[3], 10) : 0;
+        const min = matchData[4] ? parseInt(matchData[4], 10) : 0;
+        timestamp = new Date(2024, mes, dia, hora, min).getTime();
+      } else {
+        const parsed = Date.parse(dataStr);
+        if (!isNaN(parsed)) timestamp = parsed;
+      }
+      const valText = cols[3].innerText.replace(/[^0-9,-]/g, '').replace(',', '.');
+      valorNumerico = parseFloat(valText) || 0;
+    }
+    return { timestamp, valorNumerico };
+  }
+
+  function alterarOrdenacaoTabela(criterio, exibirToast = true) {
+    currentSortCriteria = criterio;
+    const select = document.getElementById('tableSortSelect');
+    if (select && select.value !== criterio) {
+      select.value = criterio;
+    }
+    atualizarIconesCabecalho(criterio);
+    const tbody = document.getElementById('transaction-table-body');
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    rows.sort((a, b) => {
+      const valA = extrairDataValorLinha(a);
+      const valB = extrairDataValorLinha(b);
+      if (criterio === 'date_desc') {
+        return valB.timestamp - valA.timestamp;
+      } else if (criterio === 'date_asc') {
+        return valA.timestamp - valB.timestamp;
+      } else if (criterio === 'val_desc') {
+        return valB.valorNumerico - valA.valorNumerico;
+      } else if (criterio === 'val_asc') {
+        return valA.valorNumerico - valB.valorNumerico;
+      }
+      return 0;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+    if (exibirToast && typeof showToast === 'function') {
+      const labels = {
+        'date_desc': 'Extrato ordenado: Data mais recente',
+        'date_asc': 'Extrato ordenado: Data mais antiga',
+        'val_desc': 'Extrato ordenado: Maior valor',
+        'val_asc': 'Extrato ordenado: Menor valor'
+      };
+      showToast(labels[criterio] || 'Tabela reordenada com sucesso');
+    }
+  }
+
+  function atualizarIconesCabecalho(criterio) {
+    const dateIcon = document.getElementById('sortIconDate');
+    const valIcon = document.getElementById('sortIconVal');
+    if (!dateIcon || !valIcon) return;
+    if (criterio === 'date_desc') {
+      dateIcon.innerText = 'arrow_downward';
+      dateIcon.className = 'material-symbols-outlined text-primary font-bold';
+      valIcon.innerText = 'swap_vert';
+      valIcon.className = 'material-symbols-outlined text-outline-variant';
+    } else if (criterio === 'date_asc') {
+      dateIcon.innerText = 'arrow_upward';
+      dateIcon.className = 'material-symbols-outlined text-primary font-bold';
+      valIcon.innerText = 'swap_vert';
+      valIcon.className = 'material-symbols-outlined text-outline-variant';
+    } else if (criterio === 'val_desc') {
+      valIcon.innerText = 'arrow_downward';
+      valIcon.className = 'material-symbols-outlined text-primary font-bold';
+      dateIcon.innerText = 'swap_vert';
+      dateIcon.className = 'material-symbols-outlined text-outline-variant';
+    } else if (criterio === 'val_asc') {
+      valIcon.innerText = 'arrow_upward';
+      valIcon.className = 'material-symbols-outlined text-primary font-bold';
+      dateIcon.innerText = 'swap_vert';
+      dateIcon.className = 'material-symbols-outlined text-outline-variant';
+    }
+  }
+
+  function alternarOrdenacaoColuna(coluna) {
+    if (coluna === 'date') {
+      if (currentSortCriteria === 'date_desc') {
+        alterarOrdenacaoTabela('date_asc');
+      } else {
+        alterarOrdenacaoTabela('date_desc');
+      }
+    } else if (coluna === 'val') {
+      if (currentSortCriteria === 'val_desc') {
+        alterarOrdenacaoTabela('val_asc');
+      } else {
+        alterarOrdenacaoTabela('val_desc');
+      }
+    }
+  }
+</script>
+
+</body></html>

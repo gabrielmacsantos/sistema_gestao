@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Money is always stored as integer cents (amountCents, ...Cents).
+// Dates are stored in UTC; month logic runs in America/Sao_Paulo (see src/lib/dates.ts).
+
+enum TransactionType {
+  EXPENSE
+  INCOME
+}
+
+enum TransactionStatus {
+  PAID
+  PENDING
+  // A recurring occurrence the user removed; kept so it is not regenerated.
+  SKIPPED
+}
+
+enum TransactionSource {
+  MANUAL
+  RECURRING
+  NFCE
+  RECEIPT_PHOTO
+  BANK_IMPORT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  categories   Category[]
+  transactions Transaction[]
+  recurrings   Recurring[]
+  budgets      Budget[]
+  goals        SavingsGoal[]
+}
+
+model Category {
+  id        String          @id @default(cuid())
+  userId    String
+  name      String
+  type      TransactionType
+  color     String          @default("#64748b")
+  createdAt DateTime        @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  recurrings   Recurring[]
+  budget       Budget?
+
+  @@unique([userId, type, name])
+}
+
+model Transaction {
+  id            String            @id @default(cuid())
+  userId        String
+  type          TransactionType
+  description   String
+  amountCents   Int
+  date          DateTime
+  status        TransactionStatus @default(PAID)
+  source        TransactionSource @default(MANUAL)
+  paymentMethod String?
+  notes         String?
+  merchantName  String?
+  merchantTaxId String?
+  // NFC-e access key, OFX FITID or CSV row hash. Used for deduplication.
+  externalId    String?
+  // Path relative to storage/, e.g. "<userId>/<file>.jpg".
+  attachment    String?
+  categoryId    String?
+  recurringId   String?
+  // "YYYY-MM" of the recurring occurrence.
+  period        String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  recurring Recurring?        @relation(fields: [recurringId], references: [id], onDelete: SetNull)
+  items     TransactionItem[]
+
+  @@unique([userId, source, externalId])
+  @@unique([recurringId, period])
+  @@index([userId, date])
+}
+
+model TransactionItem {
+  id             String @id @default(cuid())
+  transactionId  String
+  description    String
+  quantity       Float  @default(1)
+  unit           String?
+  unitPriceCents Int?
+  totalCents     Int
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+// Template for fixed monthly expenses/incomes. Occurrences are Transactions
+// generated per month (see src/server/services/recurring.ts).
+model Recurring {
+  id            String          @id @default(cuid())
+  userId        String
+  type          TransactionType
+  description   String
+  amountCents   Int
+  dayOfMonth    Int
+  // "YYYY-MM"; endMonth is inclusive and null means no end.
+  startMonth    String
+  endMonth      String?
+  paymentMethod String?
+  categoryId    String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+// Monthly spending limit for an expense category.
+model Budget {
+  id          String @id @default(cuid())
+  userId      String
+  categoryId  String @unique
+  amountCents Int
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model SavingsGoal {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  targetCents Int
+  savedCents  Int       @default(0)
+  deadline    DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
