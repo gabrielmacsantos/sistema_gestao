@@ -6,7 +6,7 @@
 
 ### 👉 [Abrir o Minhas Finanças](https://gabrielmacsantos.github.io/sistema_gestao/)
 
-**Cada pessoa entra com a própria conta do GitHub e vê só as próprias finanças.**<br/>
+**Cada pessoa cria a sua conta, entra com usuário e senha e vê só as próprias finanças.**<br/>
 Funciona no celular e no computador, sem instalar nada e sem servidor: tudo roda dentro do GitHub.
 
 ![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-online-222222?logo=github&logoColor=white)
@@ -26,22 +26,22 @@ Funciona no celular e no computador, sem instalar nada e sem servidor: tudo roda
 
 ## 👥 Como funciona com várias pessoas
 
-Todo mundo usa **o mesmo link**. O que separa uma pessoa da outra é a **conta do GitHub** de cada uma:
+Todo mundo usa **o mesmo link**. Cada pessoa tem **login e cadastro próprios**, e os dados de cada uma ficam guardados **na conta do GitHub dela**:
 
 ```
             https://gabrielmacsantos.github.io/sistema_gestao/   (o mesmo site para todos)
                     │                     │                     │
-              entra com              entra com             entra com
-             GitHub da Ana        GitHub do Bruno       GitHub da Carla
+              Entrar: ana            Entrar: bruno          Entrar: carla
+              + senha da Ana         + senha do Bruno       + senha da Carla
                     │                     │                     │
-        🔒 Gist secreto da Ana  🔒 Gist secreto do Bruno  🔒 Gist secreto da Carla
-          (senha da Ana)          (senha do Bruno)         (senha da Carla)
+         🔒 GitHub da Ana        🔒 GitHub do Bruno       🔒 GitHub da Carla
+         (dados criptografados)  (dados criptografados)   (dados criptografados)
 ```
 
-- 🔑 **O login de cada pessoa é a conta do GitHub dela** + uma **senha** que ela mesma cria.
-- 🗄️ **Os dados ficam na conta do GitHub de cada um**, num *Gist secreto*, e não neste repositório nem num servidor.
-- 🔒 **Tudo é criptografado no próprio aparelho** (AES-256) antes de ir para o GitHub. Sem a senha da pessoa, ninguém lê, nem você, nem o GitHub.
-- 📱 **Vale em qualquer aparelho:** entrando com a mesma conta e senha no celular e no computador, os dados são os mesmos.
+- 🔑 **Login:** o **usuário do GitHub** da pessoa + uma **senha** que ela cria no cadastro.
+- 🗄️ **Onde ficam os dados:** num arquivo na conta do GitHub de cada pessoa, e não neste repositório nem num servidor.
+- 🔒 **Privacidade:** tudo é **criptografado no próprio aparelho** (AES-256) antes de ir para o GitHub. Sem a senha da pessoa, ninguém lê, nem você, nem o GitHub.
+- 📱 **Qualquer aparelho:** é só entrar com usuário e senha no celular ou no computador.
 - 🆓 **Grátis:** só precisa de uma conta gratuita do GitHub.
 
 Para convidar alguém, **basta mandar o link**. A pessoa não precisa de acesso a este repositório.
@@ -50,36 +50,33 @@ Para convidar alguém, **basta mandar o link**. A pessoa não precisa de acesso 
 
 ## 🚀 Passo a passo para quem vai usar
 
-### 1. Primeiro acesso (uma vez por pessoa, uns 2 minutos)
+### 1. Criar conta (uma vez, uns 2 minutos)
 
 1. **Tenha uma conta no GitHub.** Se não tiver, crie grátis em [github.com/signup](https://github.com/signup).
-2. Abra **https://gabrielmacsantos.github.io/sistema_gestao/** e clique em **Entrar com meu GitHub**. No celular, também dá para chegar em **☰ → Backup**.
-3. Na janela que abrir, clique no link **"Abra esta página do GitHub"**. Ele já vem com a permissão certa (**gist**) marcada.
-4. No GitHub, em *Expiration*, escolha **No expiration**, desça até o fim e clique em **Generate token**.
-5. Copie o código que aparece (começa com `ghp_`) e cole no site.
-6. **Crie uma senha** para os seus dados (mínimo 8 caracteres) e clique em **Conectar**.
+2. Abra **https://gabrielmacsantos.github.io/sistema_gestao/** e clique em **Criar conta**.
+3. Clique em **"Gere seu código de acesso"**. O GitHub abre com a permissão certa (**gist**) já marcada.
+4. Em *Expiration*, escolha **No expiration**, desça até o fim e clique em **Generate token**.
+5. Copie o código (começa com `ghp_`), cole no campo **Código de acesso do GitHub** e **crie sua senha** (mínimo de 10 caracteres).
+6. Clique em **Criar conta**. Pronto, você já está dentro.
 
-> 📝 **Guarde o código `ghp_...` e a senha** nas suas notas ou no gerenciador de senhas. Você vai precisar deles para entrar em outro aparelho.
+> O código de acesso é usado **só no cadastro**: ele fica guardado, criptografado, dentro da sua conta. Daqui para frente você entra só com **usuário e senha**.
 
-Pronto! O topo do site passa a mostrar **"Salvo no GitHub ✓"**, e cada alteração é salva sozinha.
+### 2. Entrar (em qualquer aparelho)
 
-### 2. No dia a dia
+Abra o link, preencha **Usuário do GitHub** e **Senha** e clique em **Entrar**. Seus dados aparecem na hora. No mesmo aparelho, o site lembra de você até você clicar em **Sair**.
 
-- Abra o link e use normalmente: lance gastos, marque contas como pagas, acompanhe o painel.
-- Não precisa entrar de novo no mesmo aparelho: o site lembra de você.
+### 3. No dia a dia
+
+- Lance gastos, marque contas como pagas e acompanhe o painel. Tudo é salvo sozinho: o topo mostra **"Salvo no GitHub ✓"**.
 - No celular, use **"Adicionar à tela inicial"** no menu do navegador para abrir como um app.
 
-### 3. Em outro aparelho, ou depois de limpar o navegador
+### 4. Sair (importante em computador compartilhado)
 
-Abra o link, clique em **Entrar com meu GitHub** e informe **o mesmo código e a mesma senha**. Seus dados voltam na hora.
-
-### 4. Em computador compartilhado
-
-Ao terminar, vá em **Backup → Sair desta conta**. O site salva tudo no seu GitHub e deixa o navegador **vazio** para a próxima pessoa.
+Clique em **Sair** (no menu lateral ou, no celular, em **☰**). O site salva tudo e volta para a tela de login, sem deixar nada seu no navegador.
 
 ### Quer só conhecer antes?
 
-Clique em **"Ver com dados de exemplo"** na tela inicial. Os dados fictícios ficam só no navegador; para recomeçar, use **Backup → Apagar dados**.
+Na tela de login, clique em **"Usar sem conta (só neste aparelho)"** e depois em **"Ver com dados de exemplo"**. Sem conta, os dados ficam só naquele navegador. Se depois você criar uma conta, o que já lançou vai junto.
 
 ---
 
@@ -88,13 +85,13 @@ Clique em **"Ver com dados de exemplo"** na tela inicial. Os dados fictícios fi
 <details>
 <summary><b>Esqueci a senha. E agora?</b></summary>
 
-A senha não fica guardada em lugar nenhum, e é isso que garante a privacidade. Sem ela, **o backup não pode ser aberto**. Se o site ainda estiver aberto em algum aparelho seu, vá em **Backup → Baixar backup** para salvar uma cópia em arquivo. Depois, apague o Gist antigo em [gist.github.com](https://gist.github.com) e conecte de novo com uma senha nova.
+A senha não fica guardada em lugar nenhum, e é isso que garante a privacidade. Sem ela, **os dados não podem ser abertos**. Se o site ainda estiver aberto em algum aparelho seu, vá em **Backup → Baixar backup** para salvar uma cópia. Depois apague o arquivo *"Minhas Finanças: dados criptografados"* em [gist.github.com](https://gist.github.com), crie a conta de novo e use **Backup → Restaurar** com a cópia.
 </details>
 
 <details>
-<summary><b>Perdi o código <code>ghp_...</code>.</b></summary>
+<summary><b>Qual é o meu "usuário do GitHub"?</b></summary>
 
-Sem problema: os dados continuam no GitHub. Gere um código novo pelo mesmo link do passo 3 e entre com ele e com a **mesma senha** de antes.
+É o nome que aparece no endereço do seu perfil: em `github.com/ana-silva`, o usuário é `ana-silva`. Não é o e-mail.
 </details>
 
 <details>
@@ -104,21 +101,21 @@ Não. Os dados não passam por nenhum servidor nem por este repositório: vão d
 </details>
 
 <details>
-<summary><b>O que é esse "Gist secreto"?</b></summary>
+<summary><b>Vi um arquivo "Minhas Finanças" no meu perfil do GitHub. É seguro?</b></summary>
 
-É um arquivo guardado na sua conta do GitHub, que não aparece no seu perfil nem em buscas. Você o vê em [gist.github.com](https://gist.github.com) com o nome *"Backup criptografado do Minhas Finanças"*. O conteúdo é ilegível sem a sua senha. Não edite esse arquivo.
-</details>
-
-<details>
-<summary><b>Posso usar sem conectar ao GitHub?</b></summary>
-
-Pode, mas os dados ficam **só naquele navegador**: limpar os dados de navegação apaga tudo, e eles não aparecem em outros aparelhos. Dá para guardar uma cópia manual em **Backup → Baixar backup**.
+É ali que seus dados ficam. O arquivo é público para que você consiga entrar só com usuário e senha em qualquer aparelho, mas o conteúdo é **ilegível sem a sua senha**. Por isso o cadastro exige no mínimo 10 caracteres: prefira uma frase longa. **Não apague nem edite esse arquivo**, ou você perde os dados.
 </details>
 
 <details>
 <summary><b>Celular e computador ao mesmo tempo funciona?</b></summary>
 
-Sim. Ao abrir o site (ou voltar para a aba), ele busca a versão mais recente no GitHub. Se você alterar nos dois aparelhos ao mesmo tempo, vale a versão salva por último.
+Sim. Ao abrir o site (ou voltar para a aba), ele busca a versão mais recente. Se você alterar nos dois aparelhos ao mesmo tempo, vale a versão salva por último.
+</details>
+
+<details>
+<summary><b>Posso usar sem conta?</b></summary>
+
+Pode, pelo botão **"Usar sem conta"** na tela de login. Os dados ficam só naquele navegador: limpar os dados de navegação apaga tudo, e eles não aparecem em outros aparelhos.
 </details>
 
 ---
@@ -131,7 +128,7 @@ Sim. Ao abrir o site (ou voltar para a aba), ele busca a versão mais recente no
 | 🔁 **Gastos fixos automáticos** | Aluguel, contas e assinaturas geram um lançamento pendente por mês, sozinhos. Editar um fixo nunca altera o passado. |
 | 🏦 **Extrato OFX/CSV** | Importe o extrato do banco, revise antes de salvar e sem duplicar o que já foi importado. |
 | 🎯 **Orçamentos e metas** | Limite mensal por categoria, com alerta a partir de 80%, e metas de economia. |
-| 🔐 **Login pelo GitHub** | Cada pessoa com os próprios dados, criptografados na própria conta. |
+| 🔐 **Login e cadastro** | Cada pessoa com usuário, senha e dados próprios, criptografados na conta do GitHub dela. |
 | 🌗 **Tema claro e escuro** | Segue o sistema ou a sua escolha. |
 | 🧾 **NFC-e e 📸 foto com IA** | Leitura do QR Code do cupom fiscal e de fotos de recibo. *Só na versão completa, que roda num computador (veja abaixo).* |
 
@@ -165,9 +162,10 @@ Sim. Ao abrir o site (ou voltar para a aba), ele busca a versão mais recente no
 
 O site é o arquivo [`index.html`](./index.html): um único arquivo HTML/JS, sem build e sem servidor, publicado pelo **GitHub Pages** a partir da raiz da branch `main`. **Qualquer push na `main` atualiza o site** em cerca de 1 minuto.
 
-- **Dados:** ficam no `localStorage` do navegador e, quando a pessoa conecta, num Gist secreto da conta dela, criptografado com AES-256-GCM. A chave é derivada da senha com PBKDF2-SHA256 (310 mil iterações) e nunca sai do aparelho.
-- **Por que Gist e não este repositório:** o repositório é público. Gravar dados nele exporia as finanças de todos.
-- **Por que um código de acesso e não um botão "Entrar com GitHub":** o login OAuth do GitHub exige um servidor para guardar o *client secret*, e o GitHub Pages não executa código no servidor. O código de acesso com permissão só de **gist** é a forma de autenticar 100% dentro do GitHub.
+- **Contas sem servidor:** no cadastro, a pessoa informa um token do GitHub (escopo `gist`) e cria uma senha. O site grava na conta dela um Gist com um único arquivo, `minhas-financas.json`, que guarda os dados **e o token**, criptografados com AES-256-GCM. A chave é derivada da senha com PBKDF2-SHA256 (310 mil iterações) e nunca sai do aparelho.
+- **Login com usuário + senha:** o site lista os gists públicos do usuário (API pública do GitHub), baixa o arquivo, decifra com a senha e recupera o token de dentro dele para continuar salvando. Por isso o Gist é **público**: só o texto cifrado fica exposto, e a senha mínima é de 10 caracteres.
+- **Por que não neste repositório:** ele é público e compartilhado. Cada pessoa grava só na própria conta.
+- **Por que não um botão "Entrar com GitHub":** o OAuth do GitHub exige um servidor para guardar o *client secret*, e o GitHub Pages não executa código no servidor.
 - **Requisito para publicar:** em *Settings → Pages*, deixe *Source: Deploy from a branch*, *Branch: `main` / `(root)`*.
 
 ### Versão completa (rodando no seu computador)

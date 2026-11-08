@@ -308,6 +308,22 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .sync .txt { display: none; }
 @media (min-width: 1024px) { .sync .txt { display: inline; } }
 .steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; color: var(--on-var); }
+main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: 32px 16px; background: var(--c-low); }
+.auth-box { width: 100%; max-width: 420px; }
+.auth-brand { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px; }
+.auth-card { padding: 24px; box-shadow: var(--shadow-3); }
+.auth-form { display: flex; flex-direction: column; gap: 16px; }
+.auth-form .btn { margin-top: 4px; }
+.tabs a { display: grid; place-items: center; height: 36px; border-radius: 6px; color: var(--secondary); font-weight: 600; }
+.tabs a.on { background: var(--card); color: var(--primary); box-shadow: var(--shadow); }
+.auth-switch { margin-top: 16px; text-align: center; color: var(--secondary); }
+.auth-switch a, .steps a { color: var(--primary); font-weight: 600; text-decoration: underline; }
+.auth-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+.auth-note { margin-top: 12px; font-size: 12px; color: var(--secondary); text-align: center; }
+.auth-note svg.i { vertical-align: -2px; margin-right: 4px; }
+.account { display: none; align-items: center; gap: 10px; margin-top: 8px; padding: 10px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--surface); }
+.avatar { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 999px; background: var(--c-high); color: var(--primary); font-size: 12px; font-weight: 700; }
+@media (min-width: 1024px) { .account { display: flex; } }
 .sheet-nav a { display: flex; align-items: center; gap: 12px; padding: 14px 4px; border-bottom: 1px solid var(--c-low); font-weight: 600; }
 .sheet-nav a:last-child { border-bottom: 0; }
 .review { width: 100%; border-collapse: collapse; }
@@ -369,6 +385,7 @@ const ICONS = {
   edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
   target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
   cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
   github: '<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>',
   sparkles: '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
@@ -511,14 +528,18 @@ function projected(month) {
   return state.recurrings.filter((r) => activeMonths(r, month, month).length).map((r) => ({ type: r.type, amountCents: r.amountCents, recurringId: r.id, description: r.description, date: occurrenceDate(month, r.dayOfMonth), categoryId: r.categoryId }));
 }
 
-// ---------- GitHub backup (secret Gist, encrypted with the user's password) ----------
-// The repository is public, so data never goes there. A secret Gist holds one file with the
-// state encrypted by AES-256-GCM; the key comes from the password via PBKDF2 and never leaves
-// the browser. GitHub only ever sees ciphertext.
+// ---------- Accounts (GitHub) ----------
+// No server: each person's account lives in their own GitHub. Sign-up takes a GitHub access
+// token (gist scope) and a password; the data, together with the token, is encrypted with
+// AES-256-GCM (key from the password via PBKDF2) and stored in a gist of that person. The gist
+// is public so that logging in on another device needs only GitHub username + password: anyone
+// can download the file, but without the password it is unreadable ciphertext.
 const SYNC_KEY = "minhas-financas:github";
+const LOCAL_KEY = "minhas-financas:local";
 const GIST_FILE = "minhas-financas.json";
 const API = "https://api.github.com";
 const PBKDF2_ITERATIONS = 310000;
+const MIN_PASSWORD = 10;
 let sync = loadSync();
 let syncStatus = sync ? "ok" : "off"; // off | ok | saving | error
 let pushTimer = null;
@@ -526,6 +547,12 @@ let pushing = false;
 
 function loadSync() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null"); } catch { return null; } }
 function storeSync(value) { sync = value; try { value ? localStorage.setItem(SYNC_KEY, JSON.stringify(value)) : localStorage.removeItem(SYNC_KEY); } catch {} }
+/** "Usar sem conta": data only in this browser. Older installs with data but no account count as local. */
+function isLocalMode() {
+  try { if (localStorage.getItem(LOCAL_KEY) === "1") return true; } catch {}
+  return state.transactions.length > 0 || state.recurrings.length > 0;
+}
+function setLocalMode(on) { try { on ? localStorage.setItem(LOCAL_KEY, "1") : localStorage.removeItem(LOCAL_KEY); } catch {} }
 
 function toB64(bytes) { let s = ""; const a = new Uint8Array(bytes); for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode(...a.subarray(i, i + 0x8000)); return btoa(s); }
 const fromB64 = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -534,25 +561,29 @@ async function deriveKey(password, salt) {
   return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
 }
 const importKey = (raw) => crypto.subtle.importKey("raw", fromB64(raw), "AES-GCM", false, ["encrypt", "decrypt"]);
-async function encryptState(key, salt) {
+const exportKey = async (key) => toB64(await crypto.subtle.exportKey("raw", key));
+/** File format 2: { state, token } encrypted. Format 1 (older backups) held only the state. */
+async function encryptState(key, salt, token) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify(state)));
-  return JSON.stringify({ app: "minhas-financas", format: 1, kdf: "PBKDF2-SHA256", iterations: PBKDF2_ITERATIONS, salt: toB64(salt), iv: toB64(iv), savedAt: state.savedAt || 0, data: toB64(data) });
+  const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify({ state, token })));
+  return JSON.stringify({ app: "minhas-financas", format: 2, kdf: "PBKDF2-SHA256", iterations: PBKDF2_ITERATIONS, salt: toB64(salt), iv: toB64(iv), savedAt: state.savedAt || 0, data: toB64(data) });
 }
 async function decryptFile(file, key) {
-  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(file.iv) }, key, fromB64(file.data));
-  const data = JSON.parse(new TextDecoder().decode(plain));
-  if (!data || data.version !== 1 || !Array.isArray(data.transactions)) throw new Error("Backup inválido.");
-  return data;
+  const plain = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(file.iv) }, key, fromB64(file.data))));
+  const { state: data, token } = file.format >= 2 ? plain : { state: plain, token: null };
+  if (!data || data.version !== 1 || !Array.isArray(data.transactions)) throw new Error("Arquivo de dados inválido.");
+  return { data, token };
 }
 
 async function gh(path, token, options = {}) {
   let res;
-  try {
-    res = await fetch(API + path, { ...options, headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${token}`, "X-GitHub-Api-Version": "2022-11-28", ...(options.body ? { "Content-Type": "application/json" } : {}) } });
-  } catch { throw new Error("Sem conexão com o GitHub. Verifique a internet."); }
+  const headers = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.body ? { "Content-Type": "application/json" } : {}) };
+  try { res = await fetch(API + path, { ...options, headers }); }
+  catch { throw new Error("Sem conexão com o GitHub. Verifique a internet."); }
   if (res.status === 401) throw new Error("Código de acesso inválido ou expirado. Gere um novo no GitHub.");
-  if (res.status === 403 || res.status === 404) throw new Error("O código não tem permissão para gists. Gere um novo marcando a opção “gist”.");
+  if (res.status === 403 && res.headers.get("x-ratelimit-remaining") === "0") throw new Error("Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.");
+  if (res.status === 403) throw new Error("O código não tem permissão para gists. Gere um novo marcando a opção “gist”.");
+  if (res.status === 404) throw Object.assign(new Error("Não encontrado no GitHub."), { notFound: true });
   if (!res.ok) throw new Error(`O GitHub respondeu com erro (${res.status}). Tente de novo em instantes.`);
   return res.json();
 }
@@ -560,9 +591,10 @@ async function gh(path, token, options = {}) {
 async function readGistFile(gist) {
   const f = gist.files?.[GIST_FILE];
   if (!f) return null;
-  const text = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
+  const text = typeof f.content === "string" && !f.truncated ? f.content : await (await fetch(f.raw_url)).text();
   return JSON.parse(text);
 }
+const ownGist = (list) => list.find((g) => g.files && g.files[GIST_FILE] && g.public) || list.find((g) => g.files && g.files[GIST_FILE]);
 
 function setSyncStatus(status) {
   syncStatus = status;
@@ -587,7 +619,7 @@ async function pushNow() {
   if (pushing) { pushTimer = setTimeout(pushNow, 800); return; }
   pushing = true; setSyncStatus("saving");
   try {
-    const content = await encryptState(await importKey(sync.key), fromB64(sync.salt));
+    const content = await encryptState(await importKey(sync.key), fromB64(sync.salt), sync.token);
     await gh(`/gists/${sync.gistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files: { [GIST_FILE]: { content } } }) });
     storeSync({ ...sync, lastPush: Date.now() });
     setSyncStatus("ok");
@@ -602,33 +634,51 @@ async function pullIfNewer() {
   try {
     const file = await readGistFile(await gh(`/gists/${sync.gistId}`, sync.token));
     if (file && (file.savedAt || 0) > (state.savedAt || 0)) {
-      replaceState(await decryptFile(file, await importKey(sync.key)));
-      persist(); render(); toast("Dados atualizados com o backup do GitHub.");
-    } else if (file && (state.savedAt || 0) > (file.savedAt || 0)) {
+      replaceState((await decryptFile(file, await importKey(sync.key))).data);
+      persist(); render(); toast("Dados atualizados com o que foi salvo no GitHub.");
+    } else if (file && ((state.savedAt || 0) > (file.savedAt || 0) || (file.format || 1) < 2)) {
       pushNow();
     }
     setSyncStatus("ok");
   } catch (e) { setSyncStatus("error"); }
 }
 
-/** Connects with a token + password. Finds the existing backup or creates a new secret gist. */
-async function connectGitHub(token, password) {
+/** Login on any device: GitHub username + password. The token comes out of the decrypted file. */
+async function logIn(username, password) {
+  let gists;
+  try { gists = await gh(`/users/${encodeURIComponent(username)}/gists?per_page=100`); }
+  catch (e) { if (e.notFound) throw new Error("Usuário do GitHub não encontrado. Confira como ele aparece no seu perfil (github.com/usuario)."); throw e; }
+  const found = ownGist(gists);
+  if (!found) throw new Error(`Não encontramos uma conta do Minhas Finanças para @${username}. Use “Criar conta”.`);
+  const file = await readGistFile(await gh(`/gists/${found.id}`));
+  const salt = fromB64(file.salt), key = await deriveKey(password, salt);
+  let opened;
+  try { opened = await decryptFile(file, key); } catch { throw new Error("Usuário ou senha incorretos."); }
+  if (!opened.token) throw new Error("Esta conta foi criada numa versão anterior. Use “Criar conta” uma vez, com o código de acesso e a mesma senha.");
+  const user = await gh("/user", opened.token);
+  return { settings: { token: opened.token, gistId: found.id, login: user.login, salt: file.salt, key: await exportKey(key) }, data: opened.data };
+}
+
+/** Sign-up: token + password. Reuses an existing file (same password) or creates the account gist. */
+async function signUp(token, password) {
   const user = await gh("/user", token);
-  const gists = await gh("/gists?per_page=100", token);
-  const found = gists.find((g) => g.files && g.files[GIST_FILE]);
+  const found = ownGist(await gh("/gists?per_page=100", token));
   if (found) {
     const file = await readGistFile(await gh(`/gists/${found.id}`, token));
-    const salt = fromB64(file.salt), key = await deriveKey(password, salt);
-    let remote;
-    try { remote = await decryptFile(file, key); } catch { throw new Error("Senha incorreta para o backup que já existe no GitHub."); }
-    const settings = { token, gistId: found.id, login: user.login, salt: file.salt, key: toB64(await crypto.subtle.exportKey("raw", key)) };
-    return { settings, remote, remoteSavedAt: file.savedAt || 0 };
+    const key = await deriveKey(password, fromB64(file.salt));
+    let opened;
+    try { opened = await decryptFile(file, key); } catch { throw Object.assign(new Error(`Você já tem uma conta (@${user.login}). Entre com seu usuário e a senha que criou.`), { exists: true }); }
+    const settings = { token, gistId: found.id, login: user.login, salt: file.salt, key: await exportKey(key) };
+    if (found.public) return { settings, data: opened.data, existed: true };
+    // Older secret backup: move it to a public account gist so username + password login works.
+    replaceState(opened.data);
+    const gist = await gh("/gists", token, { method: "POST", body: JSON.stringify({ description: "Minhas Finanças: dados criptografados (não apague)", public: true, files: { [GIST_FILE]: { content: await encryptState(key, fromB64(file.salt), token) } } }) });
+    return { settings: { ...settings, gistId: gist.id }, data: opened.data, existed: true };
   }
   const salt = crypto.getRandomValues(new Uint8Array(16)), key = await deriveKey(password, salt);
   if (!state.savedAt) state.savedAt = Date.now();
-  const content = await encryptState(key, salt);
-  const gist = await gh("/gists", token, { method: "POST", body: JSON.stringify({ description: "Backup criptografado do Minhas Finanças (não edite)", public: false, files: { [GIST_FILE]: { content } } }) });
-  return { settings: { token, gistId: gist.id, login: user.login, salt: toB64(salt), key: toB64(await crypto.subtle.exportKey("raw", key)) }, remote: null };
+  const gist = await gh("/gists", token, { method: "POST", body: JSON.stringify({ description: "Minhas Finanças: dados criptografados (não apague)", public: true, files: { [GIST_FILE]: { content: await encryptState(key, salt, token) } } }) });
+  return { settings: { token, gistId: gist.id, login: user.login, salt: toB64(salt), key: await exportKey(key) }, data: null, existed: false };
 }
 
 // ---------- Reports ----------
@@ -678,10 +728,11 @@ const ROUTES = [
   { path: "importar", label: "Importar extrato", icon: "upload" },
   { path: "backup", label: "Backup", icon: "save" },
 ];
+const AUTH_PAGES = ["entrar", "cadastro"];
 function route() {
   const [p, q] = location.hash.replace(/^#\/?/, "").split("?");
   const params = new URLSearchParams(q || "");
-  const path = ROUTES.some((r) => r.path === p) ? p : "painel";
+  const path = ROUTES.some((r) => r.path === p) || AUTH_PAGES.includes(p) ? p : "painel";
   const mes = params.get("mes");
   return { path, params, month: isMonth(mes) ? mes : currentMonth() };
 }
@@ -702,7 +753,9 @@ function shell(r, content) {
       <button class="btn btn-primary btn-new" data-act="new-tx" title="Novo gasto">${icon("plus")}<span class="lbl">Novo gasto</span></button>
       <nav class="nav" aria-label="Principal">${ROUTES.slice(0, 6).map(navLink).join("")}</nav>
     </div>
-    <div class="rail-foot nav">${navLink(ROUTES[6])}</div>
+    <div class="rail-foot nav">${navLink(ROUTES[6])}${sync
+      ? `<a href="javascript:void 0" data-act="logout" title="Sair">${icon("logout")}<span class="lbl">Sair</span></a><div class="account" title="@${esc(sync.login)}"><span class="avatar">${esc(sync.login.slice(0, 2).toUpperCase())}</span><span class="lbl"><b>@${esc(sync.login)}</b><br><span class="hint">Dados salvos no GitHub</span></span></div>`
+      : `<a href="${href("entrar")}" title="Entrar">${icon("github")}<span class="lbl">Entrar / criar conta</span></a>`}</div>
   </aside>
   <div class="page">
     <header class="topbar"><div class="topbar-in">
@@ -773,12 +826,12 @@ function viewPainel(r) {
         <span class="chip" style="background:var(--c-high);color:var(--primary);width:40px;height:40px">${icon("sparkles")}</span>
         <div style="flex:1;min-width:0">
           <h2 class="h-card">Bem-vindo ao Minhas Finanças 👋</h2>
-          <p class="muted" style="margin-top:4px">Comece cadastrando seu salário e seus gastos fixos (aluguel, contas, assinaturas). Seus dados ficam salvos <b>só neste navegador</b>, sem cadastro.</p>
+          <p class="muted" style="margin-top:4px">Comece cadastrando seu salário e seus gastos fixos (aluguel, contas, assinaturas). Você está usando <b>sem conta</b>: os dados ficam só neste navegador. Crie uma conta para salvar no GitHub e usar em qualquer aparelho.</p>
           <div class="actions" style="margin-top:16px">
             <button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Lançar salário</button>
             <button class="btn btn-secondary btn-sm" data-act="new-rec">${icon("calendar")} Cadastrar gasto fixo</button>
             <button class="btn btn-ghost btn-sm" data-act="demo">${icon("sparkles")} Ver com dados de exemplo</button>
-            ${sync ? "" : `<button class="btn btn-ghost btn-sm" data-act="connect">${icon("github")} Entrar com meu GitHub</button>`}
+            ${sync ? "" : `<a class="btn btn-ghost btn-sm" href="${href("cadastro")}">${icon("github")} Criar conta</a>`}
           </div>
         </div>
       </div>
@@ -969,17 +1022,17 @@ function viewBackup() {
   const last = sync?.lastPush ? new Date(sync.lastPush).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : null;
   const github = sync
     ? `<section class="card" style="grid-column:1/-1;border-color:color-mix(in srgb,var(--success) 35%,transparent)">
-        <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("github")} Salvo no GitHub</h2><span class="badge ${syncStatus === "error" ? "b-warning" : "b-success"}">${syncStatus === "error" ? "Erro no último envio" : syncStatus === "saving" ? "Salvando…" : "Conectado"}</span></div>
-        <p class="muted">Conta <b>@${esc(sync.login)}</b>. Cada alteração é criptografada com a sua senha e salva automaticamente num Gist secreto.${last ? ` Último envio: ${esc(last)}.` : ""}</p>
-        <p class="hint" style="margin-top:6px">Em outro aparelho ou depois de limpar o navegador, abra o site, clique em <b>Entrar com meu GitHub</b> e informe o código de acesso e a senha. Em computador compartilhado, use <b>Sair desta conta</b> ao terminar.</p>
-        <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="push-now">${icon("cloud")} Salvar agora</button><button class="btn btn-ghost btn-sm" data-act="logout">Sair desta conta</button></div>
+        <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("github")} Conta @${esc(sync.login)}</h2><span class="badge ${syncStatus === "error" ? "b-warning" : "b-success"}">${syncStatus === "error" ? "Erro no último envio" : syncStatus === "saving" ? "Salvando…" : "Salvo no GitHub"}</span></div>
+        <p class="muted">Cada alteração é criptografada com a sua senha e salva automaticamente na sua conta do GitHub.${last ? ` Último envio: ${esc(last)}.` : ""}</p>
+        <p class="hint" style="margin-top:6px">Em outro aparelho, entre com seu usuário do GitHub e sua senha. Em computador compartilhado, use <b>Sair</b> ao terminar.</p>
+        <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="push-now">${icon("cloud")} Salvar agora</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon("logout")} Sair</button></div>
       </section>`
     : `<section class="card welcome" style="grid-column:1/-1">
-        <h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("github")} Salvar no GitHub</h2>
-        <p class="muted" style="margin:6px 0 16px">Guarde uma cópia <b>criptografada com sua senha</b> na sua conta do GitHub. Ela é atualizada sozinha a cada alteração e permite recuperar tudo se você limpar o navegador, além de usar no celular e no computador.</p>
-        <button class="btn btn-primary" data-act="connect">${icon("github")} ${state.transactions.length || state.recurrings.length ? "Conectar ao GitHub" : "Entrar com meu GitHub"}</button>
+        <h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("github")} Você está sem conta</h2>
+        <p class="muted" style="margin:6px 0 16px">Os dados estão só neste navegador. Crie uma conta para salvá-los criptografados no seu GitHub e entrar de qualquer aparelho com usuário e senha. O que você já lançou aqui vai junto.</p>
+        <div class="actions"><a class="btn btn-primary" href="${href("cadastro")}">${icon("github")} Criar conta</a><a class="btn btn-secondary" href="${href("entrar")}">Já tenho conta</a></div>
       </section>`;
-  return `${pageHead("Backup e dados", "Por padrão, seus dados ficam só neste navegador. Conecte ao GitHub para não perder nada.")}
+  return `${pageHead("Backup e dados", sync ? "Seus dados são salvos automaticamente na sua conta do GitHub." : "Sem conta, os dados ficam só neste navegador.")}
   <div class="grid-2">
     ${github}
     <section class="card"><h2 class="h-card">Exportar</h2><p class="muted" style="margin:6px 0 16px">Baixa um arquivo .json com tudo: ${n} lançamentos, ${state.recurrings.length} fixos, ${state.categories.length} categorias, orçamentos e metas.</p><button class="btn btn-primary" data-act="export">${icon("save")} Baixar backup</button></section>
@@ -999,7 +1052,15 @@ function render() {
     occurrencesMonth = currentMonth();
   }
   monthIndex = null;
-  const r = route();
+  let r = route();
+  // Logged in: the auth pages lead to the app. Not logged in and not "sem conta": show the login.
+  if (AUTH_PAGES.includes(r.path) && sync) { history.replaceState(null, "", href("painel")); r = route(); }
+  if (!AUTH_PAGES.includes(r.path) && !sync && !isLocalMode()) { history.replaceState(null, "", href("entrar")); r = route(); }
+  if (AUTH_PAGES.includes(r.path)) {
+    document.getElementById("app").innerHTML = viewAuth(r.path);
+    document.title = `${r.path === "entrar" ? "Entrar" : "Criar conta"} · Minhas Finanças`;
+    return;
+  }
   document.getElementById("app").innerHTML = shell(r, VIEWS[r.path](r));
   document.title = `${ROUTES.find((x) => x.path === r.path).label} · Minhas Finanças`;
 }
@@ -1023,16 +1084,16 @@ function toast(msg) {
   el.innerHTML = `<span style="color:#89f5e7;display:flex">${icon("checkCircle")}</span>${esc(msg)}`;
   document.body.appendChild(el); toastTimer = setTimeout(() => el.remove(), 2800);
 }
-function showErrors(errors) {
-  document.querySelectorAll("#modal .err").forEach((e) => e.remove());
-  document.querySelectorAll("#modal [aria-invalid]").forEach((e) => e.removeAttribute("aria-invalid"));
+function showErrors(errors, root = document.getElementById("modal")) {
+  root.querySelectorAll(".err").forEach((e) => e.remove());
+  root.querySelectorAll("[aria-invalid]").forEach((e) => e.removeAttribute("aria-invalid"));
   for (const [name, msg] of Object.entries(errors)) {
-    const input = document.querySelector(`#modal [name="${name}"]`); if (!input) continue;
+    const input = root.querySelector(`[name="${name}"]`); if (!input) continue;
     input.setAttribute("aria-invalid", "true");
     const p = document.createElement("p"); p.className = "err"; p.textContent = msg;
     input.closest(".field").appendChild(p);
   }
-  const firstBad = document.querySelector("#modal [aria-invalid]"); if (firstBad) firstBad.focus();
+  const firstBad = root.querySelector("[aria-invalid]"); if (firstBad) firstBad.focus();
 }
 const field = (label, name, control, cls = "", hint = "") => `<div class="field ${cls}"><label for="f-${name}">${label}</label>${control}${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
 const input = (name, value = "", attrs = "") => `<input class="input" id="f-${name}" name="${name}" value="${esc(value)}" ${attrs}>`;
@@ -1185,63 +1246,94 @@ function confirmDialog(title, text, label, onYes) {
 }
 
 function menuSheet() {
-  openModal({ title: "Menu", body: `<nav class="sheet-nav">${ROUTES.map((x) => `<a href="${href(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}</nav>` });
+  const account = sync
+    ? `<a href="javascript:void 0" data-act="logout">${icon("logout")} Sair (@${esc(sync.login)})</a>`
+    : `<a href="${href("entrar")}" data-act="close-nav">${icon("github")} Entrar / criar conta</a>`;
+  openModal({ title: "Menu", body: `<nav class="sheet-nav">${ROUTES.map((x) => `<a href="${href(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}${account}</nav>` });
 }
 
-function connectForm() {
+// ---------- Login / sign-up pages ----------
+function viewAuth(page) {
+  const login = page === "entrar";
   const tokenUrl = "https://github.com/settings/tokens/new?scopes=gist&description=Minhas%20Finan%C3%A7as";
-  openModal({
-    title: "Conectar ao GitHub", sub: "Leva 1 minuto e só precisa ser feito uma vez por aparelho.",
-    body: `<ol class="steps">
-        <li><a class="t-primary" style="font-weight:600;text-decoration:underline" href="${tokenUrl}" target="_blank" rel="noopener">Abra esta página do GitHub</a> (entre na sua conta se pedir). A permissão <b>gist</b> já vem marcada.</li>
-        <li>Em <i>Expiration</i>, escolha <b>No expiration</b>, desça até o fim e clique em <b>Generate token</b>.</li>
-        <li>Copie o código (começa com <code>ghp_</code>) e cole abaixo. <b>Guarde-o</b> nas suas notas ou no gerenciador de senhas.</li>
+  const hasLocal = state.transactions.length || state.recurrings.length;
+  const form = login
+    ? `<form class="auth-form" id="auth-form" data-page="entrar" novalidate>
+        ${field("Usuário do GitHub", "username", input("username", "", 'autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="seu-usuario" autofocus'))}
+        ${field("Senha", "password", input("password", "", 'type="password" autocomplete="current-password"'))}
+        <button type="submit" class="btn btn-primary" style="width:100%">Entrar</button>
+      </form>
+      <p class="auth-switch">Não tem conta? <a href="${href("cadastro")}">Criar conta</a></p>`
+    : `<ol class="steps">
+        <li>Tenha uma conta no GitHub (grátis). Não tem? <a href="https://github.com/signup" target="_blank" rel="noopener">Crie aqui</a>.</li>
+        <li><a href="${tokenUrl}" target="_blank" rel="noopener">Gere seu código de acesso</a>: em <i>Expiration</i> escolha <b>No expiration</b> e clique em <b>Generate token</b>. A permissão <b>gist</b> já vem marcada.</li>
+        <li>Cole o código abaixo e crie sua senha. Depois disso você entra só com <b>usuário do GitHub e senha</b>.</li>
       </ol>
-      <div class="form-grid" style="margin-top:20px">
-        ${field("Código de acesso do GitHub", "token", input("token", "", 'type="password" autocomplete="off" placeholder="ghp_..." spellcheck="false"'))}
-        ${field("Senha do backup", "password", input("password", "", 'type="password" autocomplete="new-password"'), "", "Primeira vez: crie uma senha (mínimo 8 caracteres). Restaurando: use a mesma senha de antes.")}
-        ${field("Repita a senha", "password2", input("password2", "", 'type="password" autocomplete="new-password"'), "", "Sem a senha não é possível abrir o backup. Nem o GitHub consegue recuperá-la.")}
-      </div>`,
-    foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="connect-btn">${icon("github")} Conectar</button>`,
-    onSubmit: async () => {
-      const v = formData(), errors = {}, token = v.token.trim();
-      if (!/^(ghp_|github_pat_|gho_)\w{20,}$/.test(token)) errors.token = "Cole o código completo gerado no GitHub (começa com ghp_).";
-      if (v.password.length < 8) errors.password = "Use pelo menos 8 caracteres.";
-      else if (v.password !== v.password2) errors.password2 = "As senhas não são iguais.";
-      if (Object.keys(errors).length) return showErrors(errors);
-      const btn = document.getElementById("connect-btn"); btn.disabled = true; btn.textContent = "Conectando…";
-      try {
-        const { settings, remote, remoteSavedAt } = await connectGitHub(token, v.password);
-        const hasLocal = state.transactions.length || state.recurrings.length;
-        const finish = (useRemote) => {
-          storeSync(settings);
-          if (useRemote) { replaceState(remote); persist(); } else { save(); }
-          syncStatus = "ok"; closeModal(); render();
-          toast(useRemote ? "Backup restaurado do GitHub." : "Conectado! Seus dados agora são salvos no GitHub.");
-        };
-        if (!remote) return finish(false);
-        if (!hasLocal) return finish(true);
-        const when = remoteSavedAt ? new Date(remoteSavedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "data desconhecida";
-        openModal({
-          title: "Já existe um backup no GitHub", sub: `Salvo em ${esc(when)} com ${remote.transactions.filter((t) => t.status !== "SKIPPED").length} lançamentos.`,
-          body: `<p class="muted">Este navegador também tem dados. Qual versão você quer manter? A outra será substituída.</p>`,
-          foot: `<button type="button" class="btn btn-secondary btn-sm" id="keep-local">Manter os deste navegador</button><button type="button" class="btn btn-primary btn-sm" id="use-remote">Usar o backup do GitHub</button>`,
-        });
-        document.getElementById("keep-local").onclick = () => finish(false);
-        document.getElementById("use-remote").onclick = () => finish(true);
-      } catch (e) {
-        btn.disabled = false; btn.innerHTML = `${icon("github")} Conectar`;
-        showErrors(/[Ss]enha/.test(e.message) ? { password: e.message } : { token: e.message });
-      }
-    },
-  });
+      <form class="auth-form" id="auth-form" data-page="cadastro" novalidate style="margin-top:20px">
+        ${field("Código de acesso do GitHub", "token", input("token", "", 'type="password" autocomplete="off" spellcheck="false" placeholder="ghp_..."'), "", "Usado só uma vez. Fica guardado criptografado na sua conta.")}
+        ${field("Crie uma senha", "password", input("password", "", 'type="password" autocomplete="new-password"'), "", `Mínimo de ${MIN_PASSWORD} caracteres. Sem ela ninguém abre seus dados, nem o GitHub. Por isso, não a perca.`)}
+        ${field("Repita a senha", "password2", input("password2", "", 'type="password" autocomplete="new-password"'))}
+        <button type="submit" class="btn btn-primary" style="width:100%">Criar conta</button>
+      </form>
+      ${hasLocal ? `<p class="hint" style="margin-top:12px">Os dados que você já lançou neste navegador vão para a nova conta.</p>` : ""}
+      <p class="auth-switch">Já tem conta? <a href="${href("entrar")}">Entrar</a></p>`;
+  return `<main class="auth">
+    <div class="auth-box">
+      <div class="auth-brand"><span class="brand-logo">${icon("wallet")}</span><div><h1 class="brand-name" style="font-size:22px;line-height:28px">Minhas Finanças</h1><p class="muted">Controle financeiro pessoal</p></div></div>
+      <div class="card auth-card">
+        <div class="tabs" role="tablist" style="margin-bottom:20px"><a role="tab" class="${login ? "on" : ""}" href="${href("entrar")}" aria-selected="${login}">Entrar</a><a role="tab" class="${login ? "" : "on"}" href="${href("cadastro")}" aria-selected="${!login}">Criar conta</a></div>
+        ${form}
+      </div>
+      <div class="auth-foot">
+        <button class="btn btn-ghost btn-sm" data-act="use-local">${hasLocal ? "Continuar sem conta" : "Usar sem conta (só neste aparelho)"}</button>
+        <button class="icon-btn" data-act="theme" aria-label="Alternar tema claro/escuro">${icon(document.documentElement.dataset.theme === "dark" ? "sun" : "moon")}</button>
+      </div>
+      <p class="auth-note">${icon("lock", 'style="width:14px;height:14px"')} Seus dados são criptografados no seu aparelho e guardados na sua própria conta do GitHub.</p>
+    </div>
+  </main>`;
+}
+
+async function submitAuth(form) {
+  const page = form.dataset.page, v = Object.fromEntries(new FormData(form).entries()), errors = {};
+  const btn = form.querySelector('button[type="submit"]');
+  if (page === "entrar") {
+    if (!/^[a-z\d](?:[a-z\d-]{0,38})$/i.test(v.username.trim().replace(/^@/, ""))) errors.username = "Informe seu usuário do GitHub (o nome que aparece em github.com/usuario).";
+    if (!v.password) errors.password = "Informe sua senha.";
+  } else {
+    if (!/^(ghp_|github_pat_|gho_)\w{20,}$/.test(v.token.trim())) errors.token = "Cole o código completo gerado no GitHub (começa com ghp_).";
+    if (v.password.length < MIN_PASSWORD) errors.password = `Use pelo menos ${MIN_PASSWORD} caracteres.`;
+    else if (v.password !== v.password2) errors.password2 = "As senhas não são iguais.";
+  }
+  if (Object.keys(errors).length) return showErrors(errors, form);
+  const label = btn.textContent; btn.disabled = true; btn.textContent = page === "entrar" ? "Entrando…" : "Criando conta…";
+  try {
+    if (page === "entrar") {
+      const { settings, data } = await logIn(v.username.trim().replace(/^@/, ""), v.password);
+      storeSync(settings); replaceState(data); persist();
+      setLocalMode(false); syncStatus = "ok";
+      location.hash = href("painel"); render();
+      toast(`Bem-vindo de volta, @${settings.login}!`);
+    } else {
+      const { settings, data, existed } = await signUp(v.token.trim(), v.password);
+      storeSync(settings);
+      if (data) { replaceState(data); persist(); } else { save(); }
+      setLocalMode(false); syncStatus = "ok";
+      location.hash = href("painel"); render();
+      toast(existed ? `Conta @${settings.login} encontrada. Dados carregados.` : `Conta criada! Bem-vindo, @${settings.login}.`);
+      if (existed && data) pushNow();
+    }
+  } catch (e) {
+    btn.disabled = false; btn.textContent = label;
+    const key = page === "entrar" ? (/[Ss]enha|incorretos/.test(e.message) ? "password" : "username") : (/[Ss]enha|já tem uma conta/.test(e.message) ? "password" : "token");
+    showErrors({ [key]: e.message }, form);
+  }
 }
 
 /** Saves what is pending to GitHub and then clears this browser, so another person can use it. */
 function logoutForm() {
   openModal({
     title: "Sair desta conta?", sub: `@${esc(sync.login)}`,
-    body: `<p class="muted">Seus dados continuam salvos no GitHub e voltam quando você entrar de novo. Este navegador fica vazio, pronto para outra pessoa usar.</p>`,
+    body: `<p class="muted">Seus dados continuam salvos no GitHub e voltam quando você entrar de novo com seu usuário e senha. Este navegador fica vazio, pronto para outra pessoa usar.</p>`,
     foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="logout-btn">Salvar e sair</button>`,
     onSubmit: async () => {
       const btn = document.getElementById("logout-btn"); btn.disabled = true; btn.textContent = "Salvando…";
@@ -1252,9 +1344,9 @@ function logoutForm() {
         btn.disabled = false; btn.textContent = "Salvar e sair";
         return toast("Não foi possível salvar no GitHub. Verifique a internet e tente de novo.");
       }
-      storeSync(null); syncStatus = "off";
+      storeSync(null); syncStatus = "off"; setLocalMode(false);
       replaceState(emptyState()); persist();
-      closeModal(); location.hash = href("painel"); render();
+      closeModal(); location.hash = href("entrar"); render();
       toast("Você saiu. Seus dados estão salvos no GitHub.");
     },
   });
@@ -1407,7 +1499,7 @@ document.addEventListener("click", (e) => {
     "edit-goal": () => goalForm(state.goals.find((g) => g.id === id)),
     "deposit-goal": () => depositForm(state.goals.find((g) => g.id === id)),
     "del-goal": () => confirmDialog("Excluir meta?", "A meta será removida.", "Excluir", () => { state.goals = state.goals.filter((g) => g.id !== id); save(); toast("Meta excluída."); }),
-    "connect": connectForm,
+    "use-local": () => { setLocalMode(true); location.hash = href("painel"); render(); },
     "push-now": pushNow,
     "logout": logoutForm,
     "cancel-import": () => { importDrafts = null; render(); },
@@ -1418,11 +1510,14 @@ document.addEventListener("click", (e) => {
       toast("Backup baixado.");
     },
     "demo": () => { if (state.transactions.length || state.recurrings.length) confirmDialog("Carregar dados de exemplo?", "Isso <b>substitui</b> os dados atuais deste navegador. Exporte um backup antes se quiser guardá-los.", "Substituir", loadDemo); else loadDemo(); },
-    "wipe": () => confirmDialog("Apagar todos os dados?", `Tudo deste navegador será removido.${sync ? " O backup no GitHub também será substituído pelos dados vazios." : ""} Essa ação não pode ser desfeita.`, "Apagar tudo", () => { replaceState(emptyState()); save(); location.hash = href("painel"); toast("Dados apagados."); }),
+    "wipe": () => confirmDialog("Apagar todos os dados?", `Todos os lançamentos, fixos, orçamentos e metas serão removidos.${sync ? " Os dados salvos na sua conta do GitHub também serão apagados." : ""} Essa ação não pode ser desfeita.`, "Apagar tudo", () => { replaceState(emptyState()); save(); location.hash = href("painel"); toast("Dados apagados."); }),
   };
   if (actions[act]) { e.preventDefault(); actions[act](); }
 });
-document.addEventListener("submit", (e) => { if (e.target.id === "modal") { e.preventDefault(); modalSubmit?.(); } });
+document.addEventListener("submit", (e) => {
+  if (e.target.id === "modal") { e.preventDefault(); modalSubmit?.(); }
+  else if (e.target.id === "auth-form") { e.preventDefault(); submitAuth(e.target); }
+});
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.querySelector(".overlay")) closeModal(); });
 document.addEventListener("change", (e) => {
   const t = e.target;
