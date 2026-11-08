@@ -253,7 +253,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
             <ChartLegend />
           </div>
 
-          <div className="my-4 grid grid-cols-1 gap-2 xl:grid-cols-3">
+          <div className="my-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
             <FlowStat icon={<ArrowDown className="size-4" />} label="Total entradas" value={`+ ${formatBRL(income)}`} tone="text-success" />
             <FlowStat icon={<ArrowUp className="size-4" />} label="Total saídas" value={formatBRL(expense)} tone="text-on-surface" />
             <FlowStat
@@ -437,23 +437,23 @@ function FlowStat({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-2 rounded-xl border border-hairline p-3",
+        "flex min-w-0 items-center gap-2.5 rounded-xl border border-hairline p-3",
         highlight ? "bg-surface-container-low" : "bg-surface",
       )}
     >
-      <span className="flex min-w-0 items-center gap-2 text-label-md whitespace-nowrap text-secondary">
-        <span
-          className={cn(
-            "flex size-7 items-center justify-center rounded-lg",
-            highlight ? "bg-tertiary-fixed text-on-tertiary-fixed" : "bg-surface-container-lowest text-primary",
-          )}
-          aria-hidden
-        >
-          {icon}
-        </span>
-        {label}
+      <span
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-lg",
+          highlight ? "bg-tertiary-fixed text-on-tertiary-fixed" : "bg-surface-container-lowest text-primary",
+        )}
+        aria-hidden
+      >
+        {icon}
       </span>
-      <span className={cn("text-numeric-data whitespace-nowrap tabular-nums", tone)}>{value}</span>
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate text-label-md text-secondary">{label}</span>
+        <span className={cn("truncate text-numeric-data tabular-nums", tone)}>{value}</span>
+      </span>
     </div>
   );
 }

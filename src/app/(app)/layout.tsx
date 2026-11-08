@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut, Plus, ScanLine, Tags, Wallet } from "lucide-react";
+import { LogOut, Plus, Tags, Wallet } from "lucide-react";
 import { buttonClass } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getCurrentUser } from "@/server/auth";
@@ -91,9 +91,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
             <div className="flex shrink-0 items-center gap-2">
               <ThemeToggle />
-              <Link href="/importar" className={`${iconButton} md:hidden`} aria-label="Importar" title="Importar">
-                <ScanLine className="size-[18px]" aria-hidden />
-              </Link>
               <Link href="/categorias" className={`${iconButton} md:hidden`} aria-label="Categorias" title="Categorias">
                 <Tags className="size-[18px]" aria-hidden />
               </Link>
