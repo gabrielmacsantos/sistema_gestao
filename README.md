@@ -74,6 +74,7 @@ Abra o link, preencha **Usuário do GitHub** e **Senha** e clique em **Entrar**.
 ### 3. No dia a dia
 
 - Lance gastos, marque contas como pagas e acompanhe o painel. Tudo é salvo sozinho: o topo mostra **"Salvo no GitHub ✓"**.
+- **Comprovante:** no lançamento, toque em **Anexar comprovante** e tire a foto (ou escolha da galeria). O lançamento ganha um 📎 na lista e a foto abre com um toque. Valor e descrição você digita.
 - No celular, use **"Adicionar à tela inicial"** no menu do navegador para abrir como um app.
 
 ### 4. Sair (importante em computador compartilhado)
@@ -119,6 +120,12 @@ Sim. Ao abrir o site (ou voltar para a aba), ele busca a versão mais recente. S
 </details>
 
 <details>
+<summary><b>Onde ficam as fotos dos comprovantes?</b></summary>
+
+No seu aparelho e, com conta, num segundo arquivo do seu GitHub (*"Minhas Finanças: comprovantes criptografados"*), também ilegível sem a sua senha. Em outro aparelho, cada foto é baixada só quando você abre o lançamento. O **Baixar backup** em arquivo não inclui as fotos.
+</details>
+
+<details>
 <summary><b>Posso usar sem conta?</b></summary>
 
 Pode, pelo botão **"Usar sem conta"** na tela de login. Os dados ficam só naquele navegador: limpar os dados de navegação apaga tudo, e eles não aparecem em outros aparelhos.
@@ -132,11 +139,12 @@ Pode, pelo botão **"Usar sem conta"** na tela de login. Os dados ficam só naqu
 |---|---|
 | 📊 **Painel completo** | Entradas, total gasto, fixos comprometidos, gastos variáveis e saldo livre previsto, com fluxo de caixa de 6 meses e distribuição por categoria. |
 | 🔁 **Gastos fixos automáticos** | Aluguel, contas e assinaturas geram um lançamento pendente por mês, sozinhos. Editar um fixo nunca altera o passado. |
+| 📷 **Foto do comprovante** | Tire uma foto pelo celular (ou escolha da galeria) e anexe ao lançamento. Ela é reduzida no aparelho e salva criptografada no seu GitHub. |
 | 🏦 **Extrato OFX/CSV** | Importe o extrato do banco, revise antes de salvar e sem duplicar o que já foi importado. |
 | 🎯 **Orçamentos e metas** | Limite mensal por categoria, com alerta a partir de 80%, e metas de economia. |
 | 🔐 **Login e cadastro** | Cada pessoa com usuário, senha e dados próprios, criptografados na conta do GitHub dela. |
 | 🌗 **Tema claro e escuro** | Segue o sistema ou a sua escolha. |
-| 🧾 **NFC-e e 📸 foto com IA** | Leitura do QR Code do cupom fiscal e de fotos de recibo. *Só na versão completa, que roda num computador (veja abaixo).* |
+| 🧾 **NFC-e e leitura automática da foto** | Leitura do QR Code do cupom fiscal e dos valores da foto com IA. *Só na versão completa, que roda num computador (veja abaixo).* |
 
 ---
 
@@ -178,6 +186,7 @@ O site é o arquivo [`index.html`](./index.html): um único arquivo HTML/JS, sem
 
 - **Contas sem servidor:** no cadastro, a pessoa informa um token do GitHub (escopo `gist`) e cria uma senha. O site grava na conta dela um Gist com um único arquivo, `minhas-financas.json`, que guarda os dados **e o token**, criptografados com AES-256-GCM. A chave é derivada da senha com PBKDF2-SHA256 (310 mil iterações) e nunca sai do aparelho.
 - **Login com usuário + senha:** o site lista os gists públicos do usuário (API pública do GitHub), baixa o arquivo, decifra com a senha e recupera o token de dentro dele para continuar salvando. Por isso o Gist é **público**: só o texto cifrado fica exposto, e a senha mínima é de 10 caracteres.
+- **Fotos de comprovante:** reduzidas no aparelho (até 1600px, JPEG), guardadas no IndexedDB e, com conta, cifradas com a mesma chave e enviadas como um arquivo por foto num segundo Gist (`comprovantes`), para o arquivo principal continuar pequeno. Outros aparelhos baixam pela URL *raw* do Gist só quando a foto é aberta.
 - **Por que não neste repositório:** ele é público e compartilhado. Cada pessoa grava só na própria conta.
 - **Por que não um botão "Entrar com GitHub":** o OAuth do GitHub exige um servidor para guardar o *client secret*, e o GitHub Pages não executa código no servidor.
 - **Requisito para publicar:** em *Settings → Pages*, deixe *Source: Deploy from a branch*, *Branch: `main` / `(root)`*.

@@ -324,6 +324,16 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .account { display: none; align-items: center; gap: 10px; margin-top: 8px; padding: 10px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--surface); }
 .avatar { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 999px; background: var(--c-high); color: var(--primary); font-size: 12px; font-weight: 700; }
 @media (min-width: 1024px) { .account { display: flex; } }
+.field-label { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .02em; }
+.drop-sm { flex-direction: row; justify-content: center; gap: 10px; padding: 14px; border-width: 1px; border-radius: 12px; flex-wrap: wrap; }
+.photo-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.thumb { width: 64px; height: 64px; padding: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--hairline); background: var(--c-low); flex: none; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.clip { display: inline-flex; vertical-align: -3px; margin-right: 4px; color: var(--primary); }
+.clip svg.i { width: 15px; height: 15px; }
+.viewer { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgb(2 6 23 / .85); animation: fade .15s; cursor: zoom-out; }
+.viewer img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: var(--shadow-3); }
+.viewer .icon-btn { position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px; color: #fff; border-color: rgb(255 255 255 / .3); }
 .sheet-nav a { display: flex; align-items: center; gap: 12px; padding: 14px 4px; border-bottom: 1px solid var(--c-low); font-weight: 600; }
 .sheet-nav a:last-child { border-bottom: 0; }
 .review { width: 100%; border-collapse: collapse; }
@@ -386,6 +396,8 @@ const ICONS = {
   file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
   target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
+  camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  paperclip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
   cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
   github: '<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>',
   sparkles: '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
@@ -681,6 +693,123 @@ async function signUp(token, password) {
   return { settings: { token, gistId: gist.id, login: user.login, salt: toB64(salt), key: await exportKey(key) }, data: null, existed: false };
 }
 
+// ---------- Receipt photos ----------
+// Photos are shrunk on the device (max 1600px JPEG) and kept in IndexedDB. With an account, each
+// one is also encrypted with the same key as the data and stored as its own file in a second gist
+// ("comprovantes"), so the main data file stays small. Other devices download a photo only when it
+// is opened, straight from the gist's raw URL.
+const PHOTO_MAX_SIDE = 1600;
+const photoDb = (() => {
+  let opening;
+  const open = () => (opening ||= new Promise((resolve, reject) => {
+    const req = indexedDB.open("minhas-financas", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("photos", { keyPath: "id" });
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  }));
+  const run = async (mode, fn) => {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const t = db.transaction("photos", mode), req = fn(t.objectStore("photos"));
+      t.oncomplete = () => resolve(req?.result);
+      t.onerror = () => reject(t.error);
+    });
+  };
+  return {
+    get: (id) => run("readonly", (st) => st.get(id)),
+    all: () => run("readonly", (st) => st.getAll()),
+    put: (rec) => run("readwrite", (st) => st.put(rec)),
+    del: (id) => run("readwrite", (st) => st.delete(id)),
+    clear: () => run("readwrite", (st) => st.clear()),
+  };
+})();
+
+async function decodeImage(file) {
+  try { return await createImageBitmap(file, { imageOrientation: "from-image" }); } catch {}
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image(); img.src = url; await img.decode();
+    return img;
+  } finally { URL.revokeObjectURL(url); }
+}
+/** Phone photo -> JPEG of at most 1600px (usually 150 to 400 KB). */
+async function compressImage(file) {
+  if (file.size > 30 * 1024 * 1024) throw new Error("Foto grande demais (máximo 30 MB).");
+  if (file.type && !file.type.startsWith("image/")) throw new Error("Escolha uma foto (da câmera ou da galeria).");
+  let img;
+  try { img = await decodeImage(file); } catch { throw new Error("Não foi possível abrir essa imagem. Tente tirar a foto de novo."); }
+  const w0 = img.width, h0 = img.height, scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(w0, h0));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(w0 * scale); canvas.height = Math.round(h0 * scale);
+  canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.72));
+  if (!blob) throw new Error("Não foi possível processar a foto.");
+  return blob;
+}
+
+const photoFile = (id) => `${id}.bin`;
+async function encryptPhoto(blob) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await importKey(sync.key), await blob.arrayBuffer()));
+  const out = new Uint8Array(12 + data.length); out.set(iv); out.set(data, 12);
+  return toB64(out);
+}
+async function decryptPhoto(text) {
+  const bytes = fromB64(text.trim());
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes.subarray(0, 12) }, await importKey(sync.key), bytes.subarray(12));
+  return new Blob([plain], { type: "image/jpeg" });
+}
+
+/** The photo as a Blob: from this device, or downloaded and decrypted from the user's gist. */
+async function getPhoto(id) {
+  try { const rec = await photoDb.get(id); if (rec) return rec.blob; } catch {}
+  if (!sync || !state.photosGistId) return null;
+  try {
+    const res = await fetch(`https://gist.githubusercontent.com/${encodeURIComponent(sync.login)}/${state.photosGistId}/raw/${photoFile(id)}`);
+    if (!res.ok) return null;
+    const blob = await decryptPhoto(await res.text());
+    photoDb.put({ id, blob, uploaded: true }).catch(() => {});
+    return blob;
+  } catch { return null; }
+}
+
+/** Sends photos not uploaded yet. Returns false if something could not be sent. */
+let photoSync = null;
+function syncPhotos() {
+  if (!sync) return Promise.resolve(true);
+  return (photoSync ||= (async () => {
+    try {
+      const pending = (await photoDb.all()).filter((r) => !r.uploaded);
+      for (const rec of pending) {
+        const files = { [photoFile(rec.id)]: { content: await encryptPhoto(rec.blob) } };
+        if (!state.photosGistId) {
+          const gist = await gh("/gists", sync.token, { method: "POST", body: JSON.stringify({ description: "Minhas Finanças: comprovantes criptografados (não apague)", public: true, files }) });
+          state.photosGistId = gist.id; save();
+        } else {
+          await gh(`/gists/${state.photosGistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files }) });
+        }
+        await photoDb.put({ ...rec, uploaded: true });
+      }
+      return true;
+    } catch (e) { toast(e.message || "Não foi possível enviar a foto ao GitHub."); return false; }
+    finally { photoSync = null; }
+  })());
+}
+/** Removes a photo here and (best effort) from the gist. */
+async function deletePhoto(id) {
+  try { await photoDb.del(id); } catch {}
+  if (sync && state.photosGistId) gh(`/gists/${state.photosGistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files: { [photoFile(id)]: null } }) }).catch(() => {});
+}
+async function clearPhotos() { try { await photoDb.clear(); } catch {} }
+
+function viewPhoto(blob) {
+  const url = URL.createObjectURL(blob), el = document.createElement("div");
+  el.className = "viewer"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Comprovante");
+  el.innerHTML = `<img src="${url}" alt="Foto do comprovante"><button type="button" class="icon-btn" aria-label="Fechar">${icon("x")}</button>`;
+  el.addEventListener("click", () => { URL.revokeObjectURL(url); el.remove(); });
+  document.body.appendChild(el);
+}
+
 // ---------- Reports ----------
 function monthSummary(month) {
   const list = ofMonth(month), proj = projected(month);
@@ -796,7 +925,7 @@ function ledgerRow(t, { toggle = false } = {}) {
     <button class="row-main" data-act="edit-tx" data-id="${t.id}">
       ${toggle ? "" : `<span class="row-icon" style="color:${esc(color)}">${icon(ic)}</span>`}
       <span style="flex:1;min-width:0">
-        <span class="row-title truncate" style="display:block">${esc(t.description)}</span>
+        <span class="row-title truncate" style="display:block">${t.attachmentId ? `<span class="clip" title="Tem comprovante">${icon("paperclip")}</span>` : ""}${esc(t.description)}</span>
         <span class="row-meta"><span>${sub}</span><span class="m-mob">· ${dayMonth(t.date)}</span>${t.status === "PENDING" ? `<span class="m-mob">${statusBadge(t)}</span>` : ""}</span>
       </span>
       <span class="row-cat">${catChip(c)}</span>
@@ -990,7 +1119,7 @@ function viewImportar() {
     <label class="drop" id="drop" for="file">
       <span class="chip" style="background:var(--c-high);color:var(--primary);width:44px;height:44px">${icon("upload")}</span>
       <b>Clique para escolher ou arraste o arquivo aqui</b>
-      <span class="hint">Arquivos .ofx (recomendado) ou .csv exportados do internet banking</span>
+      <span class="hint">Arquivos .ofx (recomendado) ou .csv exportados do internet banking. Para foto de comprovante, use “Anexar comprovante” no lançamento.</span>
     </label>
     <input type="file" id="file" accept=".ofx,.csv,.txt" hidden />
     <div class="field" style="margin-top:16px">
@@ -1035,7 +1164,7 @@ function viewBackup() {
   return `${pageHead("Backup e dados", sync ? "Seus dados são salvos automaticamente na sua conta do GitHub." : "Sem conta, os dados ficam só neste navegador.")}
   <div class="grid-2">
     ${github}
-    <section class="card"><h2 class="h-card">Exportar</h2><p class="muted" style="margin:6px 0 16px">Baixa um arquivo .json com tudo: ${n} lançamentos, ${state.recurrings.length} fixos, ${state.categories.length} categorias, orçamentos e metas.</p><button class="btn btn-primary" data-act="export">${icon("save")} Baixar backup</button></section>
+    <section class="card"><h2 class="h-card">Exportar</h2><p class="muted" style="margin:6px 0 16px">Baixa um arquivo .json (sem as fotos de comprovante) com ${n} lançamentos, ${state.recurrings.length} fixos, ${state.categories.length} categorias, orçamentos e metas.</p><button class="btn btn-primary" data-act="export">${icon("save")} Baixar backup</button></section>
     <section class="card"><h2 class="h-card">Restaurar</h2><p class="muted" style="margin:6px 0 16px">Carrega um backup exportado antes. <b>Substitui</b> os dados atuais deste navegador.</p><label class="btn btn-secondary" for="restore">${icon("upload")} Escolher arquivo</label><input type="file" id="restore" accept=".json,application/json" hidden></section>
     <section class="card"><h2 class="h-card">Dados de exemplo</h2><p class="muted" style="margin:6px 0 16px">Preenche 6 meses de lançamentos fictícios para você explorar o sistema.</p><button class="btn btn-secondary" data-act="demo">${icon("sparkles")} Carregar exemplo</button></section>
     <section class="card"><h2 class="h-card">Apagar tudo</h2><p class="muted" style="margin:6px 0 16px">Remove todos os dados deste navegador e recomeça do zero.</p><button class="btn btn-danger" data-act="wipe">${icon("trash")} Apagar dados</button></section>
@@ -1102,8 +1231,29 @@ const catSelect = (type, sel, name = "categoryId") => `<select class="input" id=
 const formData = () => Object.fromEntries(new FormData(document.getElementById("modal")).entries());
 
 // ---------- Forms ----------
+// Photo chosen in the open form: a new Blob, or "removed" for the existing one.
+let formPhoto = { blob: null, removed: false, existingId: null };
+async function renderPhotoSlot() {
+  const slot = document.getElementById("photo-slot"); if (!slot) return;
+  const { blob, removed, existingId } = formPhoto;
+  const show = blob || (!removed && existingId ? await getPhoto(existingId) : null);
+  if (!document.getElementById("photo-slot")) return;
+  if (show) {
+    const url = URL.createObjectURL(show);
+    slot.innerHTML = `<div class="photo-row"><button type="button" class="thumb" data-act="photo-view" aria-label="Ver comprovante"><img src="${url}" alt="Comprovante"></button>
+      <div class="actions"><button type="button" class="btn btn-secondary btn-sm" data-act="photo-view">Ver</button><label class="btn btn-ghost btn-sm" for="photo-input">Trocar</label><button type="button" class="btn btn-ghost btn-sm" data-act="photo-remove">${icon("trash")} Remover</button></div></div>`;
+    slot.querySelector("img").addEventListener("load", () => URL.revokeObjectURL(url), { once: true });
+    formPhoto.shown = show;
+  } else if (!removed && existingId) {
+    slot.innerHTML = `<p class="hint">Comprovante indisponível neste aparelho (sem internet ou foi removido).</p><label class="btn btn-secondary btn-sm" for="photo-input" style="margin-top:8px">${icon("camera")} Trocar foto</label>`;
+  } else {
+    slot.innerHTML = `<label class="drop drop-sm" for="photo-input">${icon("camera")}<b>Anexar comprovante</b><span class="hint">Tire uma foto ou escolha da galeria</span></label>`;
+  }
+}
+
 function txForm(tx, presetType) {
   let type = tx?.type || presetType || "EXPENSE";
+  formPhoto = { blob: null, removed: false, existingId: tx?.attachmentId || null };
   const draw = () => {
     const d = document.getElementById("modal") ? formData() : {};
     openModal({
@@ -1117,23 +1267,33 @@ function txForm(tx, presetType) {
         ${field("Categoria", "categoryId", catSelect(type, d.categoryId ?? tx?.categoryId))}
         ${field("Situação", "status", `<select class="input" id="f-status" name="status"><option value="PAID" ${(d.status ?? tx?.status) !== "PENDING" ? "selected" : ""}>${type === "INCOME" ? "Recebido" : "Pago"}</option><option value="PENDING" ${(d.status ?? tx?.status) === "PENDING" ? "selected" : ""}>Pendente</option></select>`)}
         ${field("Observações", "notes", `<textarea class="input" id="f-notes" name="notes" maxlength="500">${esc(d.notes ?? tx?.notes ?? "")}</textarea>`, "full")}
+        <div class="field full"><span class="field-label">Comprovante (opcional)</span><div id="photo-slot"></div><input type="file" id="photo-input" accept="image/*" hidden></div>
       </div>`,
       foot: `${tx ? `<button type="button" class="btn btn-danger btn-sm left" data-act="del-tx" data-id="${tx.id}">${icon("trash")} Excluir</button>` : ""}<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm">${icon("check")} Salvar</button>`,
-      onSubmit: () => {
+      onSubmit: async () => {
         const v = formData(), errors = {}, amount = parseMoneyToCents(v.amount);
         if (!v.description.trim()) errors.description = "Informe uma descrição.";
         if (amount === null || amount <= 0) errors.amount = "Informe um valor maior que zero.";
         if (!isDate(v.date)) errors.date = "Data inválida.";
         if (Object.keys(errors).length) return showErrors(errors);
-        const data = { type, description: v.description.trim(), amountCents: amount, date: v.date, categoryId: v.categoryId || null, status: v.status === "PENDING" ? "PENDING" : "PAID", notes: v.notes.trim() };
+        let attachmentId = formPhoto.existingId;
+        if (formPhoto.blob) {
+          attachmentId = uid();
+          try { await photoDb.put({ id: attachmentId, blob: formPhoto.blob, uploaded: false }); }
+          catch { return toast("Este navegador não permitiu guardar a foto (modo privado?)."); }
+        } else if (formPhoto.removed) attachmentId = null;
+        if (formPhoto.existingId && attachmentId !== formPhoto.existingId) deletePhoto(formPhoto.existingId);
+        const data = { type, description: v.description.trim(), amountCents: amount, date: v.date, categoryId: v.categoryId || null, status: v.status === "PENDING" ? "PENDING" : "PAID", notes: v.notes.trim(), attachmentId };
         if (tx) Object.assign(state.transactions.find((t) => t.id === tx.id), data);
         else state.transactions.push({ id: uid(), source: "MANUAL", recurringId: null, period: null, createdAt: Date.now(), ...data });
         save(); closeModal(); render(); toast(tx ? "Lançamento atualizado." : "Lançamento salvo.");
+        if (formPhoto.blob) syncPhotos();
       },
     });
   };
-  txForm.setType = (t) => { type = t; draw(); };
+  txForm.setType = (t) => { type = t; draw(); renderPhotoSlot(); };
   draw();
+  renderPhotoSlot();
 }
 
 function recForm(rec) {
@@ -1309,7 +1469,7 @@ async function submitAuth(form) {
   try {
     if (page === "entrar") {
       const { settings, data } = await logIn(v.username.trim().replace(/^@/, ""), v.password);
-      storeSync(settings); replaceState(data); persist();
+      storeSync(settings); await clearPhotos(); replaceState(data); persist();
       setLocalMode(false); syncStatus = "ok";
       location.hash = href("painel"); render();
       toast(`Bem-vindo de volta, @${settings.login}!`);
@@ -1321,6 +1481,7 @@ async function submitAuth(form) {
       location.hash = href("painel"); render();
       toast(existed ? `Conta @${settings.login} encontrada. Dados carregados.` : `Conta criada! Bem-vindo, @${settings.login}.`);
       if (existed && data) pushNow();
+      syncPhotos();
     }
   } catch (e) {
     btn.disabled = false; btn.textContent = label;
@@ -1339,13 +1500,14 @@ function logoutForm() {
       const btn = document.getElementById("logout-btn"); btn.disabled = true; btn.textContent = "Salvando…";
       // Wait for an upload already in flight, then send the latest state.
       while (pushing) await new Promise((r) => setTimeout(r, 200));
+      const photosOk = await syncPhotos();
       await pushNow();
-      if (syncStatus === "error") {
+      if (syncStatus === "error" || !photosOk) {
         btn.disabled = false; btn.textContent = "Salvar e sair";
         return toast("Não foi possível salvar no GitHub. Verifique a internet e tente de novo.");
       }
       storeSync(null); syncStatus = "off"; setLocalMode(false);
-      replaceState(emptyState()); persist();
+      replaceState(emptyState()); persist(); await clearPhotos();
       closeModal(); location.hash = href("entrar"); render();
       toast("Você saiu. Seus dados estão salvos no GitHub.");
     },
@@ -1407,6 +1569,9 @@ function parseCsv(text, signMode) {
 }
 async function handleImportFile(file) {
   if (!file) return;
+  if ((file.type && /^image\/|pdf$/.test(file.type)) || /\.(jpe?g|png|heic|heif|webp|pdf)$/i.test(file.name)) {
+    return toast("Isso é uma foto ou PDF. Para guardar um comprovante, abra o lançamento e use “Anexar comprovante”. Aqui entram só extratos .ofx ou .csv.");
+  }
   if (file.size > 5 * 1024 * 1024) return toast("Arquivo grande demais (máximo 5 MB).");
   try {
     const text = decodeFile(await file.arrayBuffer());
@@ -1437,6 +1602,7 @@ function confirmImport() {
 
 // ---------- Demo data ----------
 function loadDemo() {
+  clearPhotos();
   const fresh = emptyState(), cat = (name, type = "EXPENSE") => fresh.categories.find((c) => c.name === name && c.type === type).id;
   const cur = currentMonth(), start = addMonths(cur, -5), today = Number(todayISO().slice(8, 10));
   fresh.recurrings = [
@@ -1475,6 +1641,7 @@ document.addEventListener("click", (e) => {
     "toggle": () => { const t = state.transactions.find((x) => x.id === id); t.status = t.status === "PAID" ? "PENDING" : "PAID"; save(); render(); },
     "del-tx": () => { const t = state.transactions.find((x) => x.id === id); confirmDialog("Excluir lançamento?", `"${esc(t.description)}" será removido.`, "Excluir", () => {
       // Removed fixed occurrences become tombstones so they are not generated again.
+      if (t.attachmentId) { deletePhoto(t.attachmentId); t.attachmentId = null; }
       if (t.recurringId) t.status = "SKIPPED"; else state.transactions = state.transactions.filter((x) => x.id !== id);
       save(); toast("Lançamento excluído."); }); },
     "new-rec": () => recForm(null),
@@ -1499,6 +1666,8 @@ document.addEventListener("click", (e) => {
     "edit-goal": () => goalForm(state.goals.find((g) => g.id === id)),
     "deposit-goal": () => depositForm(state.goals.find((g) => g.id === id)),
     "del-goal": () => confirmDialog("Excluir meta?", "A meta será removida.", "Excluir", () => { state.goals = state.goals.filter((g) => g.id !== id); save(); toast("Meta excluída."); }),
+    "photo-view": () => { if (formPhoto.shown) viewPhoto(formPhoto.shown); },
+    "photo-remove": () => { formPhoto.blob = null; formPhoto.removed = true; formPhoto.shown = null; renderPhotoSlot(); },
     "use-local": () => { setLocalMode(true); location.hash = href("painel"); render(); },
     "push-now": pushNow,
     "logout": logoutForm,
@@ -1510,7 +1679,9 @@ document.addEventListener("click", (e) => {
       toast("Backup baixado.");
     },
     "demo": () => { if (state.transactions.length || state.recurrings.length) confirmDialog("Carregar dados de exemplo?", "Isso <b>substitui</b> os dados atuais deste navegador. Exporte um backup antes se quiser guardá-los.", "Substituir", loadDemo); else loadDemo(); },
-    "wipe": () => confirmDialog("Apagar todos os dados?", `Todos os lançamentos, fixos, orçamentos e metas serão removidos.${sync ? " Os dados salvos na sua conta do GitHub também serão apagados." : ""} Essa ação não pode ser desfeita.`, "Apagar tudo", () => { replaceState(emptyState()); save(); location.hash = href("painel"); toast("Dados apagados."); }),
+    "wipe": () => confirmDialog("Apagar todos os dados?", `Todos os lançamentos, fixos, orçamentos e metas serão removidos.${sync ? " Os dados salvos na sua conta do GitHub também serão apagados." : ""} Essa ação não pode ser desfeita.`, "Apagar tudo", () => {
+      if (sync && state.photosGistId) gh(`/gists/${state.photosGistId}`, sync.token, { method: "DELETE" }).catch(() => {});
+      clearPhotos(); replaceState(emptyState()); save(); location.hash = href("painel"); toast("Dados apagados."); }),
   };
   if (actions[act]) { e.preventDefault(); actions[act](); }
 });
@@ -1525,6 +1696,12 @@ document.addEventListener("change", (e) => {
     const r = route(), p = Object.fromEntries(r.params.entries()); p[t.dataset.filter] = t.value; p.mes = r.month;
     location.hash = href("lancamentos", p);
   } else if (t.id === "file") handleImportFile(t.files[0]);
+  else if (t.id === "photo-input") {
+    const file = t.files[0]; t.value = ""; if (!file) return;
+    const slot = document.getElementById("photo-slot"); if (slot) slot.innerHTML = `<p class="hint">Preparando a foto…</p>`;
+    compressImage(file).then((blob) => { formPhoto.blob = blob; formPhoto.removed = false; renderPhotoSlot(); })
+      .catch((err) => { toast(err.message); renderPhotoSlot(); });
+  }
   else if (t.id === "restore") {
     const file = t.files[0]; if (!file) return;
     file.text().then((text) => {
