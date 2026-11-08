@@ -26,6 +26,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **Orçamentos e metas** | `/orcamentos` | Limite mensal por categoria, com alerta a partir de 80%, e metas de economia. |
 | **Categorias** | `/categorias` | Categorias de despesa e receita (cada conta nova recebe um conjunto padrão). |
 
+**Versão online simples (`index.html` na raiz):** um único arquivo HTML/JS publicado no GitHub Pages (https://gabrielmacsantos.github.io/sistema_gestao/), sem servidor e sem login, com os dados no `localStorage` do navegador. Cobre painel, lançamentos, fixos, orçamentos, metas, categorias, importação OFX/CSV (com revisão) e backup em JSON. Não tem NFC-e nem foto com IA. Segue o mesmo design system e as mesmas regras de dinheiro em centavos. Ao mudar uma regra de negócio, avalie se ela também vale para o `index.html`.
+
 **Regra de ouro dos dados automáticos:** dados vindos de NFC-e, foto ou extrato **sempre** passam por uma tela de revisão. O usuário confirma ou corrige antes de qualquer lançamento ser salvo.
 
 ---

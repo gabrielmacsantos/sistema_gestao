@@ -4,7 +4,9 @@
 
 **Gestão de finanças pessoais com controle total do fluxo de caixa: gastos fixos, lançamentos, notas fiscais, extratos e orçamentos, num só lugar.**
 
-Web, responsivo (mobile-first) e roda **100% local**: seus dados ficam na sua máquina.
+### 👉 [Abrir o Minhas Finanças](https://gabrielmacsantos.github.io/sistema_gestao/)
+
+**Não precisa instalar nem criar conta:** abra o link no celular ou no computador e comece a usar. Os dados ficam salvos no seu próprio navegador.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
@@ -61,7 +63,25 @@ Web, responsivo (mobile-first) e roda **100% local**: seus dados ficam na sua m�
 
 ---
 
-## 🚀 Começando
+## 🌐 Usando online (mais fácil)
+
+1. Abra **https://gabrielmacsantos.github.io/sistema_gestao/**
+2. Clique em **"Ver com dados de exemplo"** para conhecer, ou já lance seu salário e seus gastos fixos.
+3. No celular, use *"Adicionar à tela inicial"* do navegador para abrir como um app.
+
+**O que funciona online:** painel, lançamentos, gastos fixos automáticos, orçamentos, metas, categorias, importação de extrato OFX/CSV e tema escuro.
+
+**Bom saber:**
+- 🔒 Seus dados ficam **só no navegador** em que você usa. Nada é enviado para servidor nenhum.
+- 💾 Celular e computador não compartilham dados. Use **Backup → Baixar backup** para guardar uma cópia ou levar para outro aparelho.
+- 🧹 Limpar os dados do navegador apaga os lançamentos. Faça backups de vez em quando.
+- A versão online é o arquivo [`index.html`](./index.html), publicado pelo GitHub Pages. A leitura de NFC-e por QR Code e de foto de cupom com IA existe só na versão completa, abaixo.
+
+---
+
+## 🚀 Versão completa (rodando no seu computador)
+
+Tem login com várias contas, banco SQLite, leitura de NFC-e e foto de cupom com IA.
 
 **Requisito:** Node.js 20.19+ (testado com Node 24). Não precisa de Docker nem de banco em nuvem.
 
