@@ -778,7 +778,7 @@ function viewPainel(r) {
             <button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Lançar salário</button>
             <button class="btn btn-secondary btn-sm" data-act="new-rec">${icon("calendar")} Cadastrar gasto fixo</button>
             <button class="btn btn-ghost btn-sm" data-act="demo">${icon("sparkles")} Ver com dados de exemplo</button>
-            ${sync ? "" : `<button class="btn btn-ghost btn-sm" data-act="connect">${icon("github")} Restaurar do GitHub</button>`}
+            ${sync ? "" : `<button class="btn btn-ghost btn-sm" data-act="connect">${icon("github")} Entrar com meu GitHub</button>`}
           </div>
         </div>
       </div>
@@ -971,13 +971,13 @@ function viewBackup() {
     ? `<section class="card" style="grid-column:1/-1;border-color:color-mix(in srgb,var(--success) 35%,transparent)">
         <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("github")} Salvo no GitHub</h2><span class="badge ${syncStatus === "error" ? "b-warning" : "b-success"}">${syncStatus === "error" ? "Erro no último envio" : syncStatus === "saving" ? "Salvando…" : "Conectado"}</span></div>
         <p class="muted">Conta <b>@${esc(sync.login)}</b>. Cada alteração é criptografada com a sua senha e salva automaticamente num Gist secreto.${last ? ` Último envio: ${esc(last)}.` : ""}</p>
-        <p class="hint" style="margin-top:6px">Se limpar o navegador ou trocar de aparelho, abra o site, clique em <b>Restaurar do GitHub</b> e informe o código de acesso e a senha.</p>
-        <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="push-now">${icon("cloud")} Salvar agora</button><button class="btn btn-ghost btn-sm" data-act="disconnect">Desconectar este navegador</button></div>
+        <p class="hint" style="margin-top:6px">Em outro aparelho ou depois de limpar o navegador, abra o site, clique em <b>Entrar com meu GitHub</b> e informe o código de acesso e a senha. Em computador compartilhado, use <b>Sair desta conta</b> ao terminar.</p>
+        <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="push-now">${icon("cloud")} Salvar agora</button><button class="btn btn-ghost btn-sm" data-act="logout">Sair desta conta</button></div>
       </section>`
     : `<section class="card welcome" style="grid-column:1/-1">
         <h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("github")} Salvar no GitHub</h2>
         <p class="muted" style="margin:6px 0 16px">Guarde uma cópia <b>criptografada com sua senha</b> na sua conta do GitHub. Ela é atualizada sozinha a cada alteração e permite recuperar tudo se você limpar o navegador, além de usar no celular e no computador.</p>
-        <button class="btn btn-primary" data-act="connect">${icon("github")} ${state.transactions.length || state.recurrings.length ? "Conectar ao GitHub" : "Conectar ou restaurar do GitHub"}</button>
+        <button class="btn btn-primary" data-act="connect">${icon("github")} ${state.transactions.length || state.recurrings.length ? "Conectar ao GitHub" : "Entrar com meu GitHub"}</button>
       </section>`;
   return `${pageHead("Backup e dados", "Por padrão, seus dados ficam só neste navegador. Conecte ao GitHub para não perder nada.")}
   <div class="grid-2">
@@ -1237,6 +1237,29 @@ function connectForm() {
   });
 }
 
+/** Saves what is pending to GitHub and then clears this browser, so another person can use it. */
+function logoutForm() {
+  openModal({
+    title: "Sair desta conta?", sub: `@${esc(sync.login)}`,
+    body: `<p class="muted">Seus dados continuam salvos no GitHub e voltam quando você entrar de novo. Este navegador fica vazio, pronto para outra pessoa usar.</p>`,
+    foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="logout-btn">Salvar e sair</button>`,
+    onSubmit: async () => {
+      const btn = document.getElementById("logout-btn"); btn.disabled = true; btn.textContent = "Salvando…";
+      // Wait for an upload already in flight, then send the latest state.
+      while (pushing) await new Promise((r) => setTimeout(r, 200));
+      await pushNow();
+      if (syncStatus === "error") {
+        btn.disabled = false; btn.textContent = "Salvar e sair";
+        return toast("Não foi possível salvar no GitHub. Verifique a internet e tente de novo.");
+      }
+      storeSync(null); syncStatus = "off";
+      replaceState(emptyState()); persist();
+      closeModal(); location.hash = href("painel"); render();
+      toast("Você saiu. Seus dados estão salvos no GitHub.");
+    },
+  });
+}
+
 // ---------- Import (OFX / CSV) ----------
 function decodeFile(buffer) {
   try { return new TextDecoder("utf-8", { fatal: true }).decode(buffer); }
@@ -1386,7 +1409,7 @@ document.addEventListener("click", (e) => {
     "del-goal": () => confirmDialog("Excluir meta?", "A meta será removida.", "Excluir", () => { state.goals = state.goals.filter((g) => g.id !== id); save(); toast("Meta excluída."); }),
     "connect": connectForm,
     "push-now": pushNow,
-    "disconnect": () => confirmDialog("Desconectar do GitHub?", "Este navegador para de salvar no GitHub. O backup continua guardado lá e pode ser restaurado depois.", "Desconectar", () => { clearTimeout(pushTimer); pushTimer = null; storeSync(null); syncStatus = "off"; toast("Desconectado do GitHub."); }),
+    "logout": logoutForm,
     "cancel-import": () => { importDrafts = null; render(); },
     "confirm-import": confirmImport,
     "export": () => {

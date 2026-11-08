@@ -2,19 +2,18 @@
 
 # 💰 Minhas Finanças
 
-**Gestão de finanças pessoais com controle total do fluxo de caixa: gastos fixos, lançamentos, notas fiscais, extratos e orçamentos, num só lugar.**
+**Controle financeiro pessoal para você e quem você quiser: gastos fixos, lançamentos, extratos, orçamentos e metas, num só lugar.**
 
 ### 👉 [Abrir o Minhas Finanças](https://gabrielmacsantos.github.io/sistema_gestao/)
 
-**Não precisa instalar nem criar conta:** abra o link no celular ou no computador e comece a usar. Os dados ficam salvos no seu próprio navegador.
+**Cada pessoa entra com a própria conta do GitHub e vê só as próprias finanças.**<br/>
+Funciona no celular e no computador, sem instalar nada e sem servidor: tudo roda dentro do GitHub.
 
+![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-online-222222?logo=github&logoColor=white)
+![Criptografia](https://img.shields.io/badge/dados-AES--256_criptografados-00685f)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
-![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-local-003B57?logo=sqlite&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-tested-6E9F18?logo=vitest&logoColor=white)
 ![Playwright](https://img.shields.io/badge/Playwright-E2E-2EAD33?logo=playwright&logoColor=white)
 
 <br/>
@@ -25,19 +24,116 @@
 
 ---
 
-## ✨ Destaques
+## 👥 Como funciona com várias pessoas
+
+Todo mundo usa **o mesmo link**. O que separa uma pessoa da outra é a **conta do GitHub** de cada uma:
+
+```
+            https://gabrielmacsantos.github.io/sistema_gestao/   (o mesmo site para todos)
+                    │                     │                     │
+              entra com              entra com             entra com
+             GitHub da Ana        GitHub do Bruno       GitHub da Carla
+                    │                     │                     │
+        🔒 Gist secreto da Ana  🔒 Gist secreto do Bruno  🔒 Gist secreto da Carla
+          (senha da Ana)          (senha do Bruno)         (senha da Carla)
+```
+
+- 🔑 **O login de cada pessoa é a conta do GitHub dela** + uma **senha** que ela mesma cria.
+- 🗄️ **Os dados ficam na conta do GitHub de cada um**, num *Gist secreto*, e não neste repositório nem num servidor.
+- 🔒 **Tudo é criptografado no próprio aparelho** (AES-256) antes de ir para o GitHub. Sem a senha da pessoa, ninguém lê, nem você, nem o GitHub.
+- 📱 **Vale em qualquer aparelho:** entrando com a mesma conta e senha no celular e no computador, os dados são os mesmos.
+- 🆓 **Grátis:** só precisa de uma conta gratuita do GitHub.
+
+Para convidar alguém, **basta mandar o link**. A pessoa não precisa de acesso a este repositório.
+
+---
+
+## 🚀 Passo a passo para quem vai usar
+
+### 1. Primeiro acesso (uma vez por pessoa, uns 2 minutos)
+
+1. **Tenha uma conta no GitHub.** Se não tiver, crie grátis em [github.com/signup](https://github.com/signup).
+2. Abra **https://gabrielmacsantos.github.io/sistema_gestao/** e clique em **Entrar com meu GitHub**. No celular, também dá para chegar em **☰ → Backup**.
+3. Na janela que abrir, clique no link **"Abra esta página do GitHub"**. Ele já vem com a permissão certa (**gist**) marcada.
+4. No GitHub, em *Expiration*, escolha **No expiration**, desça até o fim e clique em **Generate token**.
+5. Copie o código que aparece (começa com `ghp_`) e cole no site.
+6. **Crie uma senha** para os seus dados (mínimo 8 caracteres) e clique em **Conectar**.
+
+> 📝 **Guarde o código `ghp_...` e a senha** nas suas notas ou no gerenciador de senhas. Você vai precisar deles para entrar em outro aparelho.
+
+Pronto! O topo do site passa a mostrar **"Salvo no GitHub ✓"**, e cada alteração é salva sozinha.
+
+### 2. No dia a dia
+
+- Abra o link e use normalmente: lance gastos, marque contas como pagas, acompanhe o painel.
+- Não precisa entrar de novo no mesmo aparelho: o site lembra de você.
+- No celular, use **"Adicionar à tela inicial"** no menu do navegador para abrir como um app.
+
+### 3. Em outro aparelho, ou depois de limpar o navegador
+
+Abra o link, clique em **Entrar com meu GitHub** e informe **o mesmo código e a mesma senha**. Seus dados voltam na hora.
+
+### 4. Em computador compartilhado
+
+Ao terminar, vá em **Backup → Sair desta conta**. O site salva tudo no seu GitHub e deixa o navegador **vazio** para a próxima pessoa.
+
+### Quer só conhecer antes?
+
+Clique em **"Ver com dados de exemplo"** na tela inicial. Os dados fictícios ficam só no navegador; para recomeçar, use **Backup → Apagar dados**.
+
+---
+
+## ❓ Perguntas frequentes
+
+<details>
+<summary><b>Esqueci a senha. E agora?</b></summary>
+
+A senha não fica guardada em lugar nenhum, e é isso que garante a privacidade. Sem ela, **o backup não pode ser aberto**. Se o site ainda estiver aberto em algum aparelho seu, vá em **Backup → Baixar backup** para salvar uma cópia em arquivo. Depois, apague o Gist antigo em [gist.github.com](https://gist.github.com) e conecte de novo com uma senha nova.
+</details>
+
+<details>
+<summary><b>Perdi o código <code>ghp_...</code>.</b></summary>
+
+Sem problema: os dados continuam no GitHub. Gere um código novo pelo mesmo link do passo 3 e entre com ele e com a **mesma senha** de antes.
+</details>
+
+<details>
+<summary><b>O dono do site ou do repositório consegue ver minhas finanças?</b></summary>
+
+Não. Os dados não passam por nenhum servidor nem por este repositório: vão direto do seu aparelho para a **sua** conta do GitHub, já criptografados com a **sua** senha.
+</details>
+
+<details>
+<summary><b>O que é esse "Gist secreto"?</b></summary>
+
+É um arquivo guardado na sua conta do GitHub, que não aparece no seu perfil nem em buscas. Você o vê em [gist.github.com](https://gist.github.com) com o nome *"Backup criptografado do Minhas Finanças"*. O conteúdo é ilegível sem a sua senha. Não edite esse arquivo.
+</details>
+
+<details>
+<summary><b>Posso usar sem conectar ao GitHub?</b></summary>
+
+Pode, mas os dados ficam **só naquele navegador**: limpar os dados de navegação apaga tudo, e eles não aparecem em outros aparelhos. Dá para guardar uma cópia manual em **Backup → Baixar backup**.
+</details>
+
+<details>
+<summary><b>Celular e computador ao mesmo tempo funciona?</b></summary>
+
+Sim. Ao abrir o site (ou voltar para a aba), ele busca a versão mais recente no GitHub. Se você alterar nos dois aparelhos ao mesmo tempo, vale a versão salva por último.
+</details>
+
+---
+
+## ✨ O que dá para fazer
 
 | | |
 |---|---|
 | 📊 **Painel completo** | Entradas, total gasto, fixos comprometidos, gastos variáveis e saldo livre previsto, com fluxo de caixa de 6 meses e distribuição por categoria. |
-| 🔁 **Gastos fixos inteligentes** | Aluguel, contas e assinaturas geram um lançamento pendente por mês, automaticamente. Editar um fixo nunca altera o passado. |
-| 🧾 **NFC-e por QR Code** | Aponte a câmera para o cupom fiscal e os itens da compra são buscados no portal da SEFAZ. |
-| 📸 **Foto de cupom com IA** | Tire uma foto do recibo e a Claude API extrai estabelecimento, data, valor e itens. |
-| 🏦 **Extrato OFX/CSV** | Importe o extrato do banco sem duplicar o que já foi importado. |
-| ✅ **Revisão obrigatória** | Nada vindo de NFC-e, foto ou extrato é salvo sem você conferir e confirmar. |
-| 🎯 **Orçamentos e metas** | Limite mensal por categoria com alerta a partir de 80%, e metas de economia. |
-| 🌗 **Tema claro e escuro** | Segue o sistema ou a sua escolha, sem piscar ao carregar. |
-| 👥 **Multiusuário isolado** | Cada conta vê apenas os próprios dados, com o isolamento garantido no servidor e coberto por testes. |
+| 🔁 **Gastos fixos automáticos** | Aluguel, contas e assinaturas geram um lançamento pendente por mês, sozinhos. Editar um fixo nunca altera o passado. |
+| 🏦 **Extrato OFX/CSV** | Importe o extrato do banco, revise antes de salvar e sem duplicar o que já foi importado. |
+| 🎯 **Orçamentos e metas** | Limite mensal por categoria, com alerta a partir de 80%, e metas de economia. |
+| 🔐 **Login pelo GitHub** | Cada pessoa com os próprios dados, criptografados na própria conta. |
+| 🌗 **Tema claro e escuro** | Segue o sistema ou a sua escolha. |
+| 🧾 **NFC-e e 📸 foto com IA** | Leitura do QR Code do cupom fiscal e de fotos de recibo. *Só na versão completa, que roda num computador (veja abaixo).* |
 
 ---
 
@@ -63,38 +159,20 @@
 
 ---
 
-## 🌐 Usando online (mais fácil)
+## 🛠️ Para quem mantém o projeto
 
-1. Abra **https://gabrielmacsantos.github.io/sistema_gestao/**
-2. Clique em **"Ver com dados de exemplo"** para conhecer, ou já lance seu salário e seus gastos fixos.
-3. No celular, use *"Adicionar à tela inicial"* do navegador para abrir como um app.
+### Como o site online é publicado
 
-**O que funciona online:** painel, lançamentos, gastos fixos automáticos, orçamentos, metas, categorias, importação de extrato OFX/CSV e tema escuro.
+O site é o arquivo [`index.html`](./index.html): um único arquivo HTML/JS, sem build e sem servidor, publicado pelo **GitHub Pages** a partir da raiz da branch `main`. **Qualquer push na `main` atualiza o site** em cerca de 1 minuto.
 
-### ☁️ Não perca nada: salve no GitHub
+- **Dados:** ficam no `localStorage` do navegador e, quando a pessoa conecta, num Gist secreto da conta dela, criptografado com AES-256-GCM. A chave é derivada da senha com PBKDF2-SHA256 (310 mil iterações) e nunca sai do aparelho.
+- **Por que Gist e não este repositório:** o repositório é público. Gravar dados nele exporia as finanças de todos.
+- **Por que um código de acesso e não um botão "Entrar com GitHub":** o login OAuth do GitHub exige um servidor para guardar o *client secret*, e o GitHub Pages não executa código no servidor. O código de acesso com permissão só de **gist** é a forma de autenticar 100% dentro do GitHub.
+- **Requisito para publicar:** em *Settings → Pages*, deixe *Source: Deploy from a branch*, *Branch: `main` / `(root)`*.
 
-Por padrão os dados ficam só no navegador, e limpar o histórico/dados de navegação apaga tudo. Para evitar isso:
+### Versão completa (rodando no seu computador)
 
-1. No site, abra **Backup → Conectar ao GitHub** (no celular, pelo menu ☰).
-2. Clique no link indicado: o GitHub abre já com a permissão **gist** marcada. Escolha *No expiration* e clique em **Generate token**.
-3. Cole o código (`ghp_...`) e **crie uma senha**. Guarde os dois nas suas notas ou no gerenciador de senhas.
-
-Pronto: cada alteração é **criptografada com a sua senha (AES-256)** e salva sozinha num *Gist secreto* da sua conta. O topo do site mostra **"Salvo no GitHub ✓"**.
-
-- **Limpou o navegador ou trocou de aparelho?** Abra o site, clique em **Restaurar do GitHub** e informe o código e a senha.
-- **Celular e computador juntos:** conecte os dois com o mesmo código e senha. Ao abrir o site, ele pega a versão salva por último.
-- **Privacidade:** o GitHub só guarda dados embaralhados. Sem a senha ninguém lê, nem o GitHub. Por isso, **sem a senha o backup não pode ser recuperado**.
-
-**Bom saber:**
-- 🔒 Sem conectar ao GitHub, nada sai do seu navegador.
-- 💾 Também dá para baixar uma cópia em arquivo em **Backup → Baixar backup**.
-- A versão online é o arquivo [`index.html`](./index.html), publicado pelo GitHub Pages. A leitura de NFC-e por QR Code e de foto de cupom com IA existe só na versão completa, abaixo.
-
----
-
-## 🚀 Versão completa (rodando no seu computador)
-
-Tem login com várias contas, banco SQLite, leitura de NFC-e e foto de cupom com IA.
+Tem login próprio com e-mail e senha, banco SQLite, leitura de NFC-e e foto de cupom com IA. Os dados ficam no computador onde ela roda.
 
 **Requisito:** Node.js 20.19+ (testado com Node 24). Não precisa de Docker nem de banco em nuvem.
 
@@ -109,7 +187,7 @@ npm run dev
 
 Abra **http://localhost:3000** e crie sua conta. Cada conta nova já recebe um conjunto de categorias padrão.
 
-### ⚙️ Variáveis de ambiente
+#### ⚙️ Variáveis de ambiente
 
 | Variável | Obrigatória | Descrição |
 |---|:---:|---|
@@ -119,13 +197,13 @@ Abra **http://localhost:3000** e crie sua conta. Cada conta nova já recebe um c
 | `ANTHROPIC_MODEL` | | Modelo de visão. Padrão: `claude-opus-5-5` |
 | `COOKIE_SECURE` | | `true` apenas se o app for servido em HTTPS |
 
-### 📲 Usando no celular
+#### 📲 Usando no celular
 
 Com o computador e o celular na mesma rede, acesse `http://<IP-do-computador>:3000`.
 
 A câmera ao vivo para QR Code exige HTTPS (ou localhost). Pelo IP, use o botão **"Foto do QR Code"**, que abre a câmera do celular do mesmo jeito.
 
-### ⚡ Produção local
+#### ⚡ Produção local
 
 ```bash
 npm run build
@@ -179,7 +257,7 @@ src/
 - 💵 **Dinheiro em centavos inteiros**, sem ponto flutuante. A formatação em BRL acontece só na tela.
 - 🕐 **Datas em UTC**, com meses e agrupamentos no fuso `America/Sao_Paulo`.
 - 🔒 **Isolamento por usuário em toda leitura e escrita**, coberto por testes de integração.
-- 🛡️ **Privacidade:** nada de analytics ou bancos em nuvem. Só saem da máquina as fotos de cupom (para a Claude API) e a URL do QR Code (para a SEFAZ).
+- 🛡️ **Privacidade:** nada de analytics ou bancos em nuvem. Na versão completa, só saem da máquina as fotos de cupom (para a Claude API) e a URL do QR Code (para a SEFAZ). No site online, os dados só saem criptografados, para o Gist da própria pessoa.
 
 Detalhes, padrões de código e regras do projeto: veja o [CLAUDE.md](./CLAUDE.md).
 
