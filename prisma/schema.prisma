@@ -42,6 +42,21 @@ model User {
   recurrings   Recurring[]
   budgets      Budget[]
   goals        SavingsGoal[]
+  uploads      Upload[]
+}
+
+// Receipt photos. Kept in the database so the app also works on hosts without a
+// persistent disk (Vercel). `id` is the path used in Transaction.attachment: "<userId>/<uuid>.<ext>".
+model Upload {
+  id        String   @id
+  userId    String
+  mediaType String
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Category {

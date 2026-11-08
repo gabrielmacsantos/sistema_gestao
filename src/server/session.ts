@@ -20,7 +20,8 @@ export async function getSession() {
       httpOnly: true,
       sameSite: "lax",
       // Off by default so the app also works over plain HTTP on the local network (e.g. from a phone).
-      secure: process.env.COOKIE_SECURE === "true",
+      // Always on at Vercel, which only serves HTTPS.
+      secure: process.env.COOKIE_SECURE === "true" || process.env.VERCEL === "1",
       maxAge: THIRTY_DAYS,
     },
   });

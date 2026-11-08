@@ -32,13 +32,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 2. Stack
 
-Tudo roda localmente com Node.js. Não depende de Docker nem de banco ou serviço em nuvem, exceto a Claude API para fotos.
+Roda localmente com Node.js (SQLite em arquivo) e, online, na **Vercel** com banco **Turso** (libSQL), por decisão do dono do projeto. Não depende de Docker. Serviços externos: Vercel, Turso, Claude API (fotos) e as páginas da SEFAZ.
 
 | Camada | Tecnologia |
 |---|---|
 | Framework | **Next.js 16** (App Router, Turbopack) + **React 19** + **TypeScript** (`strict`) |
 | UI | **Tailwind CSS 4** + componentes próprios em `src/components/ui` + ícones `lucide-react`. Design system "Sovereign Financial" (`Design-google/`), com tokens em `globals.css` e fontes Plus Jakarta Sans/Inter via `next/font` |
-| Banco | **SQLite** via **Prisma 7** com driver adapter `@prisma/adapter-better-sqlite3` (arquivo `prisma/dev.db`) |
+| Banco | **SQLite** via **Prisma 7**. Local: `@prisma/adapter-better-sqlite3` (arquivo `prisma/dev.db`). Online: `@prisma/adapter-libsql` (Turso). `db.ts` escolhe pelo formato da `DATABASE_URL` |
+| Hospedagem | **Vercel** (região `gru1`, deploy automático a cada push na `main`). O build roda `vercel-build`, que aplica as migrations no Turso via `scripts/db-deploy.mjs` |
 | Autenticação | Sessão própria em cookie criptografado com **iron-session** + senhas com **bcryptjs** |
 | Validação | **Zod 4** (`src/lib/validation.ts`), compartilhado entre formulários e servidor |
 | Formulários | Server Actions + `useActionState` (sem biblioteca de formulário) |
@@ -68,11 +69,12 @@ npm run db:studio           # inspeciona o banco
 
 ### Variáveis de ambiente (`.env`, nunca versionado; mantenha `.env.example` atualizado)
 
-- `DATABASE_URL="file:./prisma/dev.db"`: caminho relativo à raiz do projeto
+- `DATABASE_URL`: local `file:./prisma/dev.db` (relativo à raiz); online, a URL `libsql://...` do Turso
+- `DATABASE_AUTH_TOKEN`: token do Turso (só online)
 - `SESSION_SECRET`: 32 caracteres ou mais
 - `ANTHROPIC_API_KEY`: opcional; sem ela a aba de foto mostra como configurar
 - `ANTHROPIC_MODEL`: modelo de visão para fotos
-- `COOKIE_SECURE=true`: só se o app for servido em HTTPS (por padrão fica desligado para funcionar via HTTP na rede local)
+- `COOKIE_SECURE=true`: só se o app for servido em HTTPS fora da Vercel (por padrão fica desligado para funcionar via HTTP na rede local; na Vercel é ligado automaticamente)
 
 ---
 
@@ -97,7 +99,8 @@ src/
   lib/                  # puro (cliente e servidor): money, dates, recurrence, validation, constants
   generated/prisma/     # Prisma Client gerado (fora do git)
 prisma/                 # schema.prisma, migrations/, dev.db (fora do git)
-storage/                # fotos enviadas, em storage/<userId>/ (fora do git)
+storage/                # legado: fotos antigas, antes de irem para o banco (fora do git)
+scripts/                # online.mjs (túnel local), db-deploy.mjs (migrations local/Turso)
 tests/                  # testes de integração, fixtures e e2e/
 ```
 
@@ -110,7 +113,7 @@ tests/                  # testes de integração, fixtures e e2e/
 - **Pipeline de importação:** `fonte → parser → TransactionDraft (formato único) → markDuplicates → DraftReview (UI única) → confirmImportAction → confirmDrafts`. O servidor revalida tudo com `confirmedDraftSchema`.
 - **Deduplicação:** `@@unique([userId, source, externalId])`. O `externalId` é a chave de acesso da NFC-e, `ofx:<conta>:<FITID>` ou `csv:<hash de data|valor|descrição|nº da ocorrência>`. Uma colisão (P2002) conta como "ignorado".
 - **NFC-e:** o QR traz chave (UF, CNPJ, mês), e os QR offline trazem também dia e valor. A página da SEFAZ só é buscada em hosts `*.gov.br`. `parseStandardPortal` cobre o layout comum dos portais. Uma UF com layout diferente ganha um parser em `parsers/` e entra em `PARSERS_BY_UF` (`draft.ts`), sempre com um HTML de fixture anonimizado em `tests/fixtures/`. Se a leitura falhar, o rascunho usa os dados do QR e mostra avisos. **O fixture atual é sintético**: valide com cupons reais de cada UF.
-- **IA de fotos:** só no servidor. A foto é reduzida no navegador (máximo de 1600px, JPEG) e salva em `storage/` como comprovante. A resposta é validada por Zod (`receiptSchema`) e convertida por `toDraft`, que avisa em vez de inventar. Usa `effort: "low"` e `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`).
+- **IA de fotos:** só no servidor. A foto é reduzida no navegador (máximo de 1600px, JPEG) e salva como comprovante na tabela `Upload` (o disco da Vercel é temporário). `Transaction.attachment` guarda o caminho `<userId>/<uuid>.jpg`, que é o id do `Upload`; arquivos antigos em `storage/` ainda são lidos. A resposta é validada por Zod (`receiptSchema`) e convertida por `toDraft`, que avisa em vez de inventar. Usa `effort: "low"` e `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`).
 - **Mutações:** Server Actions em `actions.ts` de cada rota. `runAction()` converte `DomainError` em mensagem e chama `revalidatePath("/", "layout")`. Em erro de validação, a action devolve `values` para o formulário ser preenchido de novo (o React 19 reseta o formulário depois da action).
 - **Next 16:** `cacheComponents` está **desligado** de propósito (todas as páginas logadas são dinâmicas). `params`/`searchParams` são Promises. Consulte `node_modules/next/dist/docs/` antes de usar uma API do Next.
 
@@ -141,8 +144,8 @@ tests/                  # testes de integração, fixtures e e2e/
 4. **Nunca** expor `ANTHROPIC_API_KEY`, `SESSION_SECRET` ou outro segredo ao navegador (nada de `NEXT_PUBLIC_` para segredos, nenhuma chamada à IA a partir do cliente).
 5. **Nunca** versionar `.env`, `prisma/*.db` ou `storage/`, nem colocar chaves e dados reais em código, testes ou fixtures (anonimize CPF, CNPJ e nomes).
 6. **Nunca** apagar ou resetar `prisma/dev.db` (`prisma migrate reset`, deletar o arquivo), nem editar migrations já aplicadas, sem autorização explícita. Os bancos de teste (`test.db`, `e2e.db`) podem ser recriados.
-7. **Nunca** enviar dados do usuário a serviços externos além da Claude API (só fotos de cupom) e das páginas públicas da SEFAZ (só a URL do QR Code). Nada de analytics, CDNs de tracking ou bancos em nuvem.
-8. **Nunca** adicionar dependência que obrigue Docker, um serviço pago extra ou infraestrutura externa. O projeto precisa rodar com `npm install && npm run dev`.
+7. **Nunca** enviar dados do usuário a serviços externos além da hospedagem escolhida (Vercel + Turso), da Claude API (só fotos de cupom) e das páginas públicas da SEFAZ (só a URL do QR Code). Nada de analytics, CDNs de tracking ou outros bancos em nuvem.
+8. **Nunca** adicionar dependência que obrigue Docker, um serviço pago ou infraestrutura além de Vercel e Turso (planos gratuitos). O projeto precisa continuar rodando localmente com `npm install && npm run dev`.
 9. **Nunca** registrar em log o conteúdo de notas, fotos, extratos, senhas ou tokens.
 10. **Nunca** colocar regra de negócio em componentes de UI ou fazer escrita no Prisma fora da camada de repositories.
 11. **Nunca** alterar ocorrências passadas ao editar um gasto fixo, nem duplicar lançamentos já importados.

@@ -16,12 +16,16 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "online": "node scripts/online.mjs"
+    "online": "node scripts/online.mjs",
+    "vercel-build": "prisma generate && node scripts/db-deploy.mjs && next build",
+    "db:deploy": "node scripts/db-deploy.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
     "@date-fns/tz": "^1.5.0",
+    "@libsql/client": "^0.18.0",
     "@prisma/adapter-better-sqlite3": "^7.10.1",
+    "@prisma/adapter-libsql": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",

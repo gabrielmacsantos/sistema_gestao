@@ -1,12 +1,21 @@
 import "server-only";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@/generated/prisma/client";
 
+const url = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+
+/** Turso (libSQL over the network) when deployed; a local SQLite file otherwise. */
+export const isRemoteDatabase = /^(libsql|https?|wss?):\/\//.test(url);
+
 function createClient() {
-  const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
-  });
-  const client = new PrismaClient({ adapter });
+  if (isRemoteDatabase) {
+    return new PrismaClient({
+      adapter: new PrismaLibSql({ url, authToken: process.env.DATABASE_AUTH_TOKEN }),
+    });
+  }
+
+  const client = new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }) });
   // WAL lets reads run while a write is in progress and makes commits much cheaper.
   // journal_mode is persisted in the file; synchronous=NORMAL is safe under WAL.
   void client
