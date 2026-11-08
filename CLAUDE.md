@@ -54,6 +54,7 @@ Tudo roda localmente com Node.js. Não depende de Docker nem de banco ou serviç
 npm install                 # instala dependências e gera o Prisma Client (postinstall)
 npm run dev                 # http://localhost:3000 (no celular, use o IP da máquina na rede)
 npm run build && npm start  # build de produção local
+npm run online              # build + produção na porta 3001 + link público via Cloudflare Quick Tunnel (scripts/online.mjs)
 npm run lint                # ESLint
 npm run typecheck           # tsc --noEmit
 npm test                    # Vitest (unidade + integração)

@@ -99,7 +99,21 @@ npm run build
 npm start
 ```
 
-O build de produção é bem mais rápido que o modo de desenvolvimento. Para acessar de fora da rede com HTTPS, uma opção é um túnel como o [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) (`cloudflared tunnel --url http://localhost:3000`). Nesse caso, defina `COOKIE_SECURE=true`.
+O build de produção é bem mais rápido que o modo de desenvolvimento.
+
+### 🌐 Online com um comando
+
+```bash
+npm run online                 # build + servidor de produção + link público HTTPS
+npm run online -- --no-build   # reaproveita o último build
+npm run online -- --port=3005  # usa outra porta local (padrão: 3001)
+```
+
+O script gera o build, sobe o servidor e abre um [Cloudflare Quick Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/), mostrando o link `https://...trycloudflare.com` no terminal. O `Ctrl+C` encerra tudo.
+
+- Precisa do `cloudflared` instalado: `winget install --id Cloudflare.cloudflared` no Windows ou `brew install cloudflared` no macOS.
+- O site continua rodando no seu computador, então só fica online enquanto o PC estiver ligado. O link muda a cada execução e pode levar até 1 minuto para abrir.
+- O cadastro fica aberto para quem tiver o link. Os dados de cada conta continuam isolados.
 
 ---
 
