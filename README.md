@@ -71,10 +71,23 @@
 
 **O que funciona online:** painel, lançamentos, gastos fixos automáticos, orçamentos, metas, categorias, importação de extrato OFX/CSV e tema escuro.
 
+### ☁️ Não perca nada: salve no GitHub
+
+Por padrão os dados ficam só no navegador, e limpar o histórico/dados de navegação apaga tudo. Para evitar isso:
+
+1. No site, abra **Backup → Conectar ao GitHub** (no celular, pelo menu ☰).
+2. Clique no link indicado: o GitHub abre já com a permissão **gist** marcada. Escolha *No expiration* e clique em **Generate token**.
+3. Cole o código (`ghp_...`) e **crie uma senha**. Guarde os dois nas suas notas ou no gerenciador de senhas.
+
+Pronto: cada alteração é **criptografada com a sua senha (AES-256)** e salva sozinha num *Gist secreto* da sua conta. O topo do site mostra **"Salvo no GitHub ✓"**.
+
+- **Limpou o navegador ou trocou de aparelho?** Abra o site, clique em **Restaurar do GitHub** e informe o código e a senha.
+- **Celular e computador juntos:** conecte os dois com o mesmo código e senha. Ao abrir o site, ele pega a versão salva por último.
+- **Privacidade:** o GitHub só guarda dados embaralhados. Sem a senha ninguém lê, nem o GitHub. Por isso, **sem a senha o backup não pode ser recuperado**.
+
 **Bom saber:**
-- 🔒 Seus dados ficam **só no navegador** em que você usa. Nada é enviado para servidor nenhum.
-- 💾 Celular e computador não compartilham dados. Use **Backup → Baixar backup** para guardar uma cópia ou levar para outro aparelho.
-- 🧹 Limpar os dados do navegador apaga os lançamentos. Faça backups de vez em quando.
+- 🔒 Sem conectar ao GitHub, nada sai do seu navegador.
+- 💾 Também dá para baixar uma cópia em arquivo em **Backup → Baixar backup**.
 - A versão online é o arquivo [`index.html`](./index.html), publicado pelo GitHub Pages. A leitura de NFC-e por QR Code e de foto de cupom com IA existe só na versão completa, abaixo.
 
 ---
@@ -121,19 +134,6 @@ npm start
 
 O build de produção é bem mais rápido que o modo de desenvolvimento.
 
-### 🌐 Online com um comando
-
-```bash
-npm run online                 # build + servidor de produção + link público HTTPS
-npm run online -- --no-build   # reaproveita o último build
-npm run online -- --port=3005  # usa outra porta local (padrão: 3001)
-```
-
-O script gera o build, sobe o servidor e abre um [Cloudflare Quick Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/), mostrando o link `https://...trycloudflare.com` no terminal. O `Ctrl+C` encerra tudo.
-
-- Precisa do `cloudflared` instalado: `winget install --id Cloudflare.cloudflared` no Windows ou `brew install cloudflared` no macOS.
-- O site continua rodando no seu computador, então só fica online enquanto o PC estiver ligado. O link muda a cada execução e pode levar até 1 minuto para abrir.
-- O cadastro fica aberto para quem tiver o link. Os dados de cada conta continuam isolados.
 
 ---
 

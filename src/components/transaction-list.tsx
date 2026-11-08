@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Banknote, CalendarSync, Paperclip, ReceiptText, ShoppingBag } from "lucide-react";
 import type { listTransactions } from "@/server/repositories/transactions";
+import { SOURCE_LABEL } from "@/lib/constants";
 import { formatDayMonth } from "@/lib/dates";
 import { formatBRL } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -10,16 +11,8 @@ import { StatusBadge } from "./ui/card";
 
 type Row = Awaited<ReturnType<typeof listTransactions>>[number];
 
-const SOURCE_LABEL: Record<string, string> = {
-  MANUAL: "Lançamento manual",
-  RECURRING: "Gasto fixo",
-  NFCE: "NFC-e",
-  RECEIPT_PHOTO: "Foto do cupom",
-  BANK_IMPORT: "Extrato bancário",
-};
-
 function subtitle(t: Row) {
-  return t.merchantName ?? (t.recurringId ? "Gasto fixo" : (SOURCE_LABEL[t.source] ?? ""));
+  return t.merchantName ?? (t.recurringId ? SOURCE_LABEL.RECURRING : SOURCE_LABEL[t.source]);
 }
 
 /** 36px round wash with an icon that hints the origin; tinted with the category color. */

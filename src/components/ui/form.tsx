@@ -13,21 +13,6 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
   return <input className={cn(control, "h-11", className)} {...props} />;
 }
 
-/** Money input with the static "R$" prefix. */
-export function MoneyInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <div className="relative">
-      <span
-        className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-numeric-data text-[#94a3b8]"
-        aria-hidden
-      >
-        R$
-      </span>
-      <input className={cn(control, "h-11 pl-10 tabular-nums", className)} inputMode="decimal" {...props} />
-    </div>
-  );
-}
-
 export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return <select className={cn(control, "h-11", className)} {...props} />;
 }

@@ -9,7 +9,9 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23008378'/%3E%3Cpath d='M9 12h14v10H9z' fill='none' stroke='white' stroke-width='2'/%3E%3Cpath d='M19 17h4' stroke='white' stroke-width='2'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />
+<!-- Fonts load without blocking the first paint; system fonts show until they arrive. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" /></noscript>
 <script>
   // Apply the saved theme before paint (falls back to the system preference).
   try {
@@ -186,9 +188,7 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .badge.nodot::before { display: none; }
 .b-success { background: var(--success-c); color: var(--success); }
 .b-warning { background: var(--warning-c); color: var(--warning); }
-.b-danger { background: var(--danger-c); color: var(--danger); }
 .b-neutral { background: var(--c); color: var(--secondary); }
-.b-primary { background: var(--c-high); color: var(--primary); }
 .cat { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 2px 8px; border-radius: 999px; background: var(--c); color: var(--secondary); font-size: 10px; line-height: 14px; font-weight: 600; letter-spacing: .04em; }
 .dot { width: 8px; height: 8px; border-radius: 99px; flex: none; }
 .empty { border: 1px dashed var(--outline-var); border-radius: 12px; padding: 24px; text-align: center; color: var(--secondary); }
@@ -270,7 +270,7 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 
 /* Forms */
 .field { display: flex; flex-direction: column; gap: 4px; }
-.field label, .lbl-strong { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .02em; }
+.field label { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .02em; }
 .input { width: 100%; height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--outline-var); background: var(--card); color: var(--on); font-size: 16px; }
 textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: vertical; }
 .input:focus { outline: 2px solid var(--primary); outline-offset: 0; border-color: var(--primary); }
@@ -303,6 +303,11 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 @keyframes up { from { transform: translateY(16px); opacity: 0; } }
 .toast { position: fixed; z-index: 70; left: 50%; bottom: 96px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; background: #213145; color: #eaf1ff; box-shadow: var(--shadow-3); font-weight: 500; animation: up .2s; max-width: calc(100% - 32px); }
 @media (min-width: 768px) { .toast { left: auto; right: 24px; bottom: 24px; transform: none; } }
+.sync { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 12px; font-weight: 600; }
+.sync.ok { color: var(--success); } .sync.err { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+.sync .txt { display: none; }
+@media (min-width: 1024px) { .sync .txt { display: inline; } }
+.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; color: var(--on-var); }
 .sheet-nav a { display: flex; align-items: center; gap: 12px; padding: 14px 4px; border-bottom: 1px solid var(--c-low); font-weight: 600; }
 .sheet-nav a:last-child { border-bottom: 0; }
 .review { width: 100%; border-collapse: collapse; }
@@ -364,6 +369,8 @@ const ICONS = {
   edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
   target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
+  github: '<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>',
   sparkles: '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
 };
 const icon = (name, extra = "") => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true" ${extra}>${ICONS[name] || ""}</svg>`;
@@ -435,6 +442,8 @@ const DEFAULT_CATEGORIES = [
 const emptyState = () => ({ version: 1, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c, id: uid() })), transactions: [], recurrings: [], budgets: [], goals: [] });
 let state = load();
 let storageOk = true;
+let needsOccurrences = true;
+let occurrencesMonth = "";
 
 function load() {
   try {
@@ -443,13 +452,37 @@ function load() {
   } catch (e) { /* first run or private mode */ }
   return emptyState();
 }
-function save() {
+/** Writes to this browser only. */
+function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; }
   catch (e) { storageOk = false; toast("Não foi possível salvar no navegador. Exporte um backup."); }
 }
+/** A user change: stamps it, saves locally and schedules the encrypted copy on GitHub. */
+function save() {
+  state.savedAt = Date.now();
+  persist();
+  schedulePush();
+}
+/** Replaces everything (demo, restore, wipe, data from GitHub). */
+function replaceState(next) {
+  state = { ...emptyState(), ...next };
+  needsOccurrences = true;
+}
 const catById = (id) => state.categories.find((c) => c.id === id);
-const visible = () => state.transactions.filter((t) => t.status !== "SKIPPED");
-const ofMonth = (month) => visible().filter((t) => t.date.slice(0, 7) === month);
+// Visible transactions grouped by month; rebuilt once per render instead of rescanning per widget.
+let monthIndex = null;
+function ofMonth(month) {
+  if (!monthIndex) {
+    monthIndex = new Map();
+    for (const t of state.transactions) {
+      if (t.status === "SKIPPED") continue;
+      const m = t.date.slice(0, 7);
+      if (!monthIndex.has(m)) monthIndex.set(m, []);
+      monthIndex.get(m).push(t);
+    }
+  }
+  return (monthIndex.get(month) || []).slice();
+}
 const byDateDesc = (a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (b.createdAt || 0) - (a.createdAt || 0));
 
 /** Months a recurring template is active between from..to (inclusive). */
@@ -476,6 +509,126 @@ function ensureOccurrences() {
 function projected(month) {
   if (month <= currentMonth()) return [];
   return state.recurrings.filter((r) => activeMonths(r, month, month).length).map((r) => ({ type: r.type, amountCents: r.amountCents, recurringId: r.id, description: r.description, date: occurrenceDate(month, r.dayOfMonth), categoryId: r.categoryId }));
+}
+
+// ---------- GitHub backup (secret Gist, encrypted with the user's password) ----------
+// The repository is public, so data never goes there. A secret Gist holds one file with the
+// state encrypted by AES-256-GCM; the key comes from the password via PBKDF2 and never leaves
+// the browser. GitHub only ever sees ciphertext.
+const SYNC_KEY = "minhas-financas:github";
+const GIST_FILE = "minhas-financas.json";
+const API = "https://api.github.com";
+const PBKDF2_ITERATIONS = 310000;
+let sync = loadSync();
+let syncStatus = sync ? "ok" : "off"; // off | ok | saving | error
+let pushTimer = null;
+let pushing = false;
+
+function loadSync() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null"); } catch { return null; } }
+function storeSync(value) { sync = value; try { value ? localStorage.setItem(SYNC_KEY, JSON.stringify(value)) : localStorage.removeItem(SYNC_KEY); } catch {} }
+
+function toB64(bytes) { let s = ""; const a = new Uint8Array(bytes); for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode(...a.subarray(i, i + 0x8000)); return btoa(s); }
+const fromB64 = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+async function deriveKey(password, salt) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+}
+const importKey = (raw) => crypto.subtle.importKey("raw", fromB64(raw), "AES-GCM", false, ["encrypt", "decrypt"]);
+async function encryptState(key, salt) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify(state)));
+  return JSON.stringify({ app: "minhas-financas", format: 1, kdf: "PBKDF2-SHA256", iterations: PBKDF2_ITERATIONS, salt: toB64(salt), iv: toB64(iv), savedAt: state.savedAt || 0, data: toB64(data) });
+}
+async function decryptFile(file, key) {
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(file.iv) }, key, fromB64(file.data));
+  const data = JSON.parse(new TextDecoder().decode(plain));
+  if (!data || data.version !== 1 || !Array.isArray(data.transactions)) throw new Error("Backup inválido.");
+  return data;
+}
+
+async function gh(path, token, options = {}) {
+  let res;
+  try {
+    res = await fetch(API + path, { ...options, headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${token}`, "X-GitHub-Api-Version": "2022-11-28", ...(options.body ? { "Content-Type": "application/json" } : {}) } });
+  } catch { throw new Error("Sem conexão com o GitHub. Verifique a internet."); }
+  if (res.status === 401) throw new Error("Código de acesso inválido ou expirado. Gere um novo no GitHub.");
+  if (res.status === 403 || res.status === 404) throw new Error("O código não tem permissão para gists. Gere um novo marcando a opção “gist”.");
+  if (!res.ok) throw new Error(`O GitHub respondeu com erro (${res.status}). Tente de novo em instantes.`);
+  return res.json();
+}
+/** Reads our file from a gist object, following raw_url when GitHub truncates large content. */
+async function readGistFile(gist) {
+  const f = gist.files?.[GIST_FILE];
+  if (!f) return null;
+  const text = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
+  return JSON.parse(text);
+}
+
+function setSyncStatus(status) {
+  syncStatus = status;
+  const el = document.querySelector(".sync");
+  if (el) el.outerHTML = syncBadge();
+}
+function syncBadge() {
+  if (!sync) return "";
+  const map = { ok: ["ok", "checkCircle", "Salvo no GitHub"], saving: ["", "cloud", "Salvando…"], error: ["err", "alert", "Erro ao salvar"] };
+  const [cls, ic, txt] = map[syncStatus] || map.ok;
+  return `<a class="sync ${cls}" href="${href("backup")}" title="${txt}" aria-label="${txt}">${icon(ic)}<span class="txt">${txt}</span></a>`;
+}
+function schedulePush() {
+  if (!sync) return;
+  clearTimeout(pushTimer);
+  setSyncStatus("saving");
+  pushTimer = setTimeout(pushNow, 1500);
+}
+async function pushNow() {
+  if (!sync) return;
+  clearTimeout(pushTimer); pushTimer = null;
+  if (pushing) { pushTimer = setTimeout(pushNow, 800); return; }
+  pushing = true; setSyncStatus("saving");
+  try {
+    const content = await encryptState(await importKey(sync.key), fromB64(sync.salt));
+    await gh(`/gists/${sync.gistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files: { [GIST_FILE]: { content } } }) });
+    storeSync({ ...sync, lastPush: Date.now() });
+    setSyncStatus("ok");
+  } catch (e) {
+    setSyncStatus("error");
+    toast(e.message);
+  } finally { pushing = false; }
+}
+/** On open / when the tab comes back: take the GitHub copy if it is newer (e.g. saved from the phone). */
+async function pullIfNewer() {
+  if (!sync || pushTimer || pushing) return;
+  try {
+    const file = await readGistFile(await gh(`/gists/${sync.gistId}`, sync.token));
+    if (file && (file.savedAt || 0) > (state.savedAt || 0)) {
+      replaceState(await decryptFile(file, await importKey(sync.key)));
+      persist(); render(); toast("Dados atualizados com o backup do GitHub.");
+    } else if (file && (state.savedAt || 0) > (file.savedAt || 0)) {
+      pushNow();
+    }
+    setSyncStatus("ok");
+  } catch (e) { setSyncStatus("error"); }
+}
+
+/** Connects with a token + password. Finds the existing backup or creates a new secret gist. */
+async function connectGitHub(token, password) {
+  const user = await gh("/user", token);
+  const gists = await gh("/gists?per_page=100", token);
+  const found = gists.find((g) => g.files && g.files[GIST_FILE]);
+  if (found) {
+    const file = await readGistFile(await gh(`/gists/${found.id}`, token));
+    const salt = fromB64(file.salt), key = await deriveKey(password, salt);
+    let remote;
+    try { remote = await decryptFile(file, key); } catch { throw new Error("Senha incorreta para o backup que já existe no GitHub."); }
+    const settings = { token, gistId: found.id, login: user.login, salt: file.salt, key: toB64(await crypto.subtle.exportKey("raw", key)) };
+    return { settings, remote, remoteSavedAt: file.savedAt || 0 };
+  }
+  const salt = crypto.getRandomValues(new Uint8Array(16)), key = await deriveKey(password, salt);
+  if (!state.savedAt) state.savedAt = Date.now();
+  const content = await encryptState(key, salt);
+  const gist = await gh("/gists", token, { method: "POST", body: JSON.stringify({ description: "Backup criptografado do Minhas Finanças (não edite)", public: false, files: { [GIST_FILE]: { content } } }) });
+  return { settings: { token, gistId: gist.id, login: user.login, salt: toB64(salt), key: toB64(await crypto.subtle.exportKey("raw", key)) }, remote: null };
 }
 
 // ---------- Reports ----------
@@ -556,6 +709,7 @@ function shell(r, content) {
       <a class="mob-brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="brand-name truncate">Minhas Finanças</span></a>
       <div class="trail"><span>Visão geral</span>${icon("right", 'style="width:14px;height:14px;color:var(--outline-var)"')}<b>${current.label}</b></div>
       <div class="top-actions">
+        ${syncBadge()}
         <button class="icon-btn" data-act="theme" aria-label="Alternar tema claro/escuro" title="Alternar tema">${icon(document.documentElement.dataset.theme === "dark" ? "sun" : "moon")}</button>
         <button class="icon-btn mob-only" data-act="menu" aria-label="Mais opções">${icon("menu")}</button>
         <button class="btn btn-primary btn-sm desk-only" data-act="new-tx">${icon("plus")} Novo gasto</button>
@@ -624,6 +778,7 @@ function viewPainel(r) {
             <button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Lançar salário</button>
             <button class="btn btn-secondary btn-sm" data-act="new-rec">${icon("calendar")} Cadastrar gasto fixo</button>
             <button class="btn btn-ghost btn-sm" data-act="demo">${icon("sparkles")} Ver com dados de exemplo</button>
+            ${sync ? "" : `<button class="btn btn-ghost btn-sm" data-act="connect">${icon("github")} Restaurar do GitHub</button>`}
           </div>
         </div>
       </div>
@@ -811,8 +966,22 @@ function viewReview() {
 
 function viewBackup() {
   const n = state.transactions.filter((t) => t.status !== "SKIPPED").length;
-  return `${pageHead("Backup e dados", "Seus dados ficam salvos só neste navegador. Exporte um backup para guardar ou levar para outro aparelho.")}
+  const last = sync?.lastPush ? new Date(sync.lastPush).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : null;
+  const github = sync
+    ? `<section class="card" style="grid-column:1/-1;border-color:color-mix(in srgb,var(--success) 35%,transparent)">
+        <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("github")} Salvo no GitHub</h2><span class="badge ${syncStatus === "error" ? "b-warning" : "b-success"}">${syncStatus === "error" ? "Erro no último envio" : syncStatus === "saving" ? "Salvando…" : "Conectado"}</span></div>
+        <p class="muted">Conta <b>@${esc(sync.login)}</b>. Cada alteração é criptografada com a sua senha e salva automaticamente num Gist secreto.${last ? ` Último envio: ${esc(last)}.` : ""}</p>
+        <p class="hint" style="margin-top:6px">Se limpar o navegador ou trocar de aparelho, abra o site, clique em <b>Restaurar do GitHub</b> e informe o código de acesso e a senha.</p>
+        <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="push-now">${icon("cloud")} Salvar agora</button><button class="btn btn-ghost btn-sm" data-act="disconnect">Desconectar este navegador</button></div>
+      </section>`
+    : `<section class="card welcome" style="grid-column:1/-1">
+        <h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("github")} Salvar no GitHub</h2>
+        <p class="muted" style="margin:6px 0 16px">Guarde uma cópia <b>criptografada com sua senha</b> na sua conta do GitHub. Ela é atualizada sozinha a cada alteração e permite recuperar tudo se você limpar o navegador, além de usar no celular e no computador.</p>
+        <button class="btn btn-primary" data-act="connect">${icon("github")} ${state.transactions.length || state.recurrings.length ? "Conectar ao GitHub" : "Conectar ou restaurar do GitHub"}</button>
+      </section>`;
+  return `${pageHead("Backup e dados", "Por padrão, seus dados ficam só neste navegador. Conecte ao GitHub para não perder nada.")}
   <div class="grid-2">
+    ${github}
     <section class="card"><h2 class="h-card">Exportar</h2><p class="muted" style="margin:6px 0 16px">Baixa um arquivo .json com tudo: ${n} lançamentos, ${state.recurrings.length} fixos, ${state.categories.length} categorias, orçamentos e metas.</p><button class="btn btn-primary" data-act="export">${icon("save")} Baixar backup</button></section>
     <section class="card"><h2 class="h-card">Restaurar</h2><p class="muted" style="margin:6px 0 16px">Carrega um backup exportado antes. <b>Substitui</b> os dados atuais deste navegador.</p><label class="btn btn-secondary" for="restore">${icon("upload")} Escolher arquivo</label><input type="file" id="restore" accept=".json,application/json" hidden></section>
     <section class="card"><h2 class="h-card">Dados de exemplo</h2><p class="muted" style="margin:6px 0 16px">Preenche 6 meses de lançamentos fictícios para você explorar o sistema.</p><button class="btn btn-secondary" data-act="demo">${icon("sparkles")} Carregar exemplo</button></section>
@@ -823,7 +992,13 @@ function viewBackup() {
 
 const VIEWS = { painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, orcamentos: viewOrcamentos, categorias: viewCategorias, importar: viewImportar, backup: viewBackup };
 function render() {
-  ensureOccurrences();
+  // Fixed items only need materializing after a change to them, a data swap or a new month.
+  if (needsOccurrences || occurrencesMonth !== currentMonth()) {
+    ensureOccurrences();
+    needsOccurrences = false;
+    occurrencesMonth = currentMonth();
+  }
+  monthIndex = null;
   const r = route();
   document.getElementById("app").innerHTML = shell(r, VIEWS[r.path](r));
   document.title = `${ROUTES.find((x) => x.path === r.path).label} · Minhas Finanças`;
@@ -928,6 +1103,7 @@ function recForm(rec) {
         const data = { type, description: v.description.trim(), amountCents: amount, dayOfMonth: day, categoryId: v.categoryId || null, startMonth: v.startMonth, endMonth: v.endMonth || null };
         if (rec) Object.assign(state.recurrings.find((x) => x.id === rec.id), data);
         else state.recurrings.push({ id: uid(), ...data });
+        needsOccurrences = true;
         save(); closeModal(); render(); toast(rec ? "Gasto fixo atualizado." : "Gasto fixo cadastrado.");
       },
     });
@@ -1010,6 +1186,55 @@ function confirmDialog(title, text, label, onYes) {
 
 function menuSheet() {
   openModal({ title: "Menu", body: `<nav class="sheet-nav">${ROUTES.map((x) => `<a href="${href(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}</nav>` });
+}
+
+function connectForm() {
+  const tokenUrl = "https://github.com/settings/tokens/new?scopes=gist&description=Minhas%20Finan%C3%A7as";
+  openModal({
+    title: "Conectar ao GitHub", sub: "Leva 1 minuto e só precisa ser feito uma vez por aparelho.",
+    body: `<ol class="steps">
+        <li><a class="t-primary" style="font-weight:600;text-decoration:underline" href="${tokenUrl}" target="_blank" rel="noopener">Abra esta página do GitHub</a> (entre na sua conta se pedir). A permissão <b>gist</b> já vem marcada.</li>
+        <li>Em <i>Expiration</i>, escolha <b>No expiration</b>, desça até o fim e clique em <b>Generate token</b>.</li>
+        <li>Copie o código (começa com <code>ghp_</code>) e cole abaixo. <b>Guarde-o</b> nas suas notas ou no gerenciador de senhas.</li>
+      </ol>
+      <div class="form-grid" style="margin-top:20px">
+        ${field("Código de acesso do GitHub", "token", input("token", "", 'type="password" autocomplete="off" placeholder="ghp_..." spellcheck="false"'))}
+        ${field("Senha do backup", "password", input("password", "", 'type="password" autocomplete="new-password"'), "", "Primeira vez: crie uma senha (mínimo 8 caracteres). Restaurando: use a mesma senha de antes.")}
+        ${field("Repita a senha", "password2", input("password2", "", 'type="password" autocomplete="new-password"'), "", "Sem a senha não é possível abrir o backup. Nem o GitHub consegue recuperá-la.")}
+      </div>`,
+    foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="connect-btn">${icon("github")} Conectar</button>`,
+    onSubmit: async () => {
+      const v = formData(), errors = {}, token = v.token.trim();
+      if (!/^(ghp_|github_pat_|gho_)\w{20,}$/.test(token)) errors.token = "Cole o código completo gerado no GitHub (começa com ghp_).";
+      if (v.password.length < 8) errors.password = "Use pelo menos 8 caracteres.";
+      else if (v.password !== v.password2) errors.password2 = "As senhas não são iguais.";
+      if (Object.keys(errors).length) return showErrors(errors);
+      const btn = document.getElementById("connect-btn"); btn.disabled = true; btn.textContent = "Conectando…";
+      try {
+        const { settings, remote, remoteSavedAt } = await connectGitHub(token, v.password);
+        const hasLocal = state.transactions.length || state.recurrings.length;
+        const finish = (useRemote) => {
+          storeSync(settings);
+          if (useRemote) { replaceState(remote); persist(); } else { save(); }
+          syncStatus = "ok"; closeModal(); render();
+          toast(useRemote ? "Backup restaurado do GitHub." : "Conectado! Seus dados agora são salvos no GitHub.");
+        };
+        if (!remote) return finish(false);
+        if (!hasLocal) return finish(true);
+        const when = remoteSavedAt ? new Date(remoteSavedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "data desconhecida";
+        openModal({
+          title: "Já existe um backup no GitHub", sub: `Salvo em ${esc(when)} com ${remote.transactions.filter((t) => t.status !== "SKIPPED").length} lançamentos.`,
+          body: `<p class="muted">Este navegador também tem dados. Qual versão você quer manter? A outra será substituída.</p>`,
+          foot: `<button type="button" class="btn btn-secondary btn-sm" id="keep-local">Manter os deste navegador</button><button type="button" class="btn btn-primary btn-sm" id="use-remote">Usar o backup do GitHub</button>`,
+        });
+        document.getElementById("keep-local").onclick = () => finish(false);
+        document.getElementById("use-remote").onclick = () => finish(true);
+      } catch (e) {
+        btn.disabled = false; btn.innerHTML = `${icon("github")} Conectar`;
+        showErrors(/[Ss]enha/.test(e.message) ? { password: e.message } : { token: e.message });
+      }
+    },
+  });
 }
 
 // ---------- Import (OFX / CSV) ----------
@@ -1105,7 +1330,7 @@ function loadDemo() {
     { id: uid(), type: "EXPENSE", description: "Internet fibra", amountCents: 14900, dayOfMonth: 10, startMonth: start, endMonth: null, categoryId: cat("Assinaturas") },
     { id: uid(), type: "INCOME", description: "Salário", amountCents: 720000, dayOfMonth: 5, startMonth: start, endMonth: null, categoryId: cat("Salário", "INCOME") },
   ];
-  state = fresh; ensureOccurrences();
+  replaceState(fresh); ensureOccurrences();
   const vars = [["Pão de Açúcar", 34280, "Mercado"], ["Posto Ipiranga", 21000, "Transporte"], ["Restaurante", 16850, "Alimentação"], ["Farmácia", 8790, "Saúde"], ["Uber", 4320, "Transporte"], ["Cinema", 6400, "Lazer"]];
   for (let i = 0; i < 6; i++) {
     const m = addMonths(start, i), last = m === cur, maxDay = last ? Math.max(1, today) : 28;
@@ -1124,9 +1349,11 @@ document.addEventListener("click", (e) => {
   const el = e.target.closest("[data-act]"); if (!el) return;
   const act = el.dataset.act, id = el.dataset.id;
   if (act === "close-overlay") { if (e.target === el) closeModal(); return; }
+  // Menu links must keep their default navigation; only the sheet closes.
+  if (act === "close-nav") { closeModal(); return; }
   const actions = {
     "theme": () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem("mf-theme", t); } catch {} render(); },
-    "menu": menuSheet, "close": closeModal, "close-nav": closeModal,
+    "menu": menuSheet, "close": closeModal,
     "new-tx": () => txForm(null, el.dataset.type),
     "edit-tx": () => txForm(state.transactions.find((t) => t.id === id)),
     "tx-type": () => txForm.setType(el.dataset.type),
@@ -1157,6 +1384,9 @@ document.addEventListener("click", (e) => {
     "edit-goal": () => goalForm(state.goals.find((g) => g.id === id)),
     "deposit-goal": () => depositForm(state.goals.find((g) => g.id === id)),
     "del-goal": () => confirmDialog("Excluir meta?", "A meta será removida.", "Excluir", () => { state.goals = state.goals.filter((g) => g.id !== id); save(); toast("Meta excluída."); }),
+    "connect": connectForm,
+    "push-now": pushNow,
+    "disconnect": () => confirmDialog("Desconectar do GitHub?", "Este navegador para de salvar no GitHub. O backup continua guardado lá e pode ser restaurado depois.", "Desconectar", () => { clearTimeout(pushTimer); pushTimer = null; storeSync(null); syncStatus = "off"; toast("Desconectado do GitHub."); }),
     "cancel-import": () => { importDrafts = null; render(); },
     "confirm-import": confirmImport,
     "export": () => {
@@ -1165,7 +1395,7 @@ document.addEventListener("click", (e) => {
       toast("Backup baixado.");
     },
     "demo": () => { if (state.transactions.length || state.recurrings.length) confirmDialog("Carregar dados de exemplo?", "Isso <b>substitui</b> os dados atuais deste navegador. Exporte um backup antes se quiser guardá-los.", "Substituir", loadDemo); else loadDemo(); },
-    "wipe": () => confirmDialog("Apagar todos os dados?", "Tudo deste navegador será removido. Essa ação não pode ser desfeita.", "Apagar tudo", () => { state = emptyState(); save(); location.hash = href("painel"); toast("Dados apagados."); }),
+    "wipe": () => confirmDialog("Apagar todos os dados?", `Tudo deste navegador será removido.${sync ? " O backup no GitHub também será substituído pelos dados vazios." : ""} Essa ação não pode ser desfeita.`, "Apagar tudo", () => { replaceState(emptyState()); save(); location.hash = href("painel"); toast("Dados apagados."); }),
   };
   if (actions[act]) { e.preventDefault(); actions[act](); }
 });
@@ -1182,7 +1412,7 @@ document.addEventListener("change", (e) => {
     file.text().then((text) => {
       const data = JSON.parse(text);
       if (!data || data.version !== 1 || !Array.isArray(data.transactions) || !Array.isArray(data.categories)) throw new Error();
-      confirmDialog("Restaurar backup?", `O arquivo tem ${data.transactions.length} lançamentos. Os dados atuais deste navegador serão substituídos.`, "Restaurar", () => { state = { ...emptyState(), ...data }; save(); toast("Backup restaurado."); });
+      confirmDialog("Restaurar backup?", `O arquivo tem ${data.transactions.length} lançamentos. Os dados atuais deste navegador serão substituídos.`, "Restaurar", () => { replaceState(data); save(); toast("Backup restaurado."); });
     }).catch(() => toast("Arquivo de backup inválido."));
   } else if (t.dataset.draft !== undefined) {
     const d = importDrafts[Number(t.dataset.draft)], k = t.dataset.k;
@@ -1198,9 +1428,13 @@ document.addEventListener("dragover", (e) => { const d = e.target.closest?.("#dr
 document.addEventListener("dragleave", (e) => { const d = e.target.closest?.("#drop"); if (d) d.classList.remove("over"); });
 document.addEventListener("drop", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.remove("over"); handleImportFile(e.dataTransfer.files[0]); } });
 window.addEventListener("hashchange", () => { closeModal(); render(); window.scrollTo(0, 0); });
-window.addEventListener("storage", (e) => { if (e.key === KEY) { state = load(); render(); } });
+window.addEventListener("storage", (e) => { if (e.key === KEY) { replaceState(load()); render(); } });
+
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pullIfNewer(); else if (pushTimer) pushNow(); });
+window.addEventListener("beforeunload", (e) => { if (pushTimer || pushing) { pushNow(); e.preventDefault(); e.returnValue = ""; } });
 
 render();
+pullIfNewer();
 </script>
 </body>
 </html>

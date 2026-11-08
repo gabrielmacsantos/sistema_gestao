@@ -45,8 +45,8 @@ model User {
   uploads      Upload[]
 }
 
-// Receipt photos. Kept in the database so the app also works on hosts without a
-// persistent disk (Vercel). `id` is the path used in Transaction.attachment: "<userId>/<uuid>.<ext>".
+// Receipt photos, kept in the database (older ones may still live in storage/).
+// `id` is the path used in Transaction.attachment: "<userId>/<uuid>.<ext>".
 model Upload {
   id        String   @id
   userId    String

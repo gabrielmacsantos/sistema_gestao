@@ -8,8 +8,6 @@ export const PAYMENT_METHODS = [
   "Débito automático",
 ];
 
-export const TYPE_LABEL = { EXPENSE: "Despesa", INCOME: "Receita" } as const;
-
 export const SOURCE_LABEL = {
   MANUAL: "Manual",
   RECURRING: "Gasto fixo",
