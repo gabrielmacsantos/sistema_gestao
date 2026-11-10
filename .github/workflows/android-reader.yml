@@ -1,6 +1,7 @@
 # Builds the Android notification reader (android/) and, on main with the signing key set, publishes it as a Release.
 # Secrets (Settings > Secrets and variables > Actions): ANDROID_KEYSTORE_BASE64 (the .p12 file in base64) and
 # ANDROID_KEYSTORE_PASSWORD. Without them it builds a debug APK as an artifact only, to check that it compiles.
+# Paste the file contents into the secrets, not the command that prints them (the key is a few thousand characters).
 name: Leitor Android
 
 on:
