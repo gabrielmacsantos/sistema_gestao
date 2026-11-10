@@ -1,7 +1,9 @@
 # Builds the Android app (mobile/, Capacitor around the root index.html).
 # Uses the same signing secrets as the notification reader (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD).
-# On main with the key: signed APK (to install) and AAB (for the Play Store) in the pre-release "app-v<versionName>".
-# Pre-release on purpose, so "releases/latest" keeps pointing at the notification reader.
+# On main with the key: signed APK (to install) and AAB (for the Play Store) in the pre-release "app-latest", replaced
+# on every build. Its notes carry "<!-- build:N sha:... -->"; the app compares N with its versionCode (the run number)
+# to show "Nova versão do app disponível". The "o que mudou" list comes from "App: <texto em pt-BR>" lines in the
+# commit messages since the previous build. Pre-release on purpose, so "releases/latest" stays the notification reader.
 name: App Android
 
 on:
@@ -20,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v5
         with:
@@ -91,9 +95,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=$(sed -n 's/.*versionName "\(.*\)".*/\1/p' mobile/android/app/build.gradle)
-          tag="app-v$version"
-          if ! gh release view "$tag" > /dev/null 2>&1; then
-            gh release create "$tag" --prerelease --target "$GITHUB_SHA" --title "App Minhas Finanças $version (teste)" \
-              --notes "App Android do Minhas Finanças. O .apk instala direto no celular; o .aab é o pacote para a Play Store."
-          fi
-          gh release upload "$tag" out/minhas-financas.apk out/minhas-financas.aab --clobber
+          build="$GITHUB_RUN_NUMBER"
+          # "O que mudou": "App:" lines of the commits since the build now in app-latest.
+          prev=$(gh release view app-latest --json body -q .body 2> /dev/null | sed -n 's/.*sha:\([0-9a-f]\{40\}\).*/\1/p' | head -1)
+          if [ -n "$prev" ] && git cat-file -e "$prev" 2> /dev/null; then range="$prev..$GITHUB_SHA"; else range="-n 20 $GITHUB_SHA"; fi
+          notes=$(git log $range --format=%B | sed -n 's/^App: *\(.*[^ ]\) *$/- \1/p' | head -8)
+          [ -n "$notes" ] || notes="- Melhorias e correções."
+          printf '%s\n\n%s\n\n%s\n' \
+            "Versão de teste do app ($version, build $build). O .apk instala direto no celular; o .aab é o pacote para a Play Store." \
+            "$notes" "<!-- build:$build sha:$GITHUB_SHA -->" > "$RUNNER_TEMP/notes.md"
+          gh release delete app-latest --cleanup-tag --yes 2> /dev/null || true
+          gh release create app-latest --prerelease --target "$GITHUB_SHA" --title "App Minhas Finanças $version (build $build)" \
+            --notes-file "$RUNNER_TEMP/notes.md" out/minhas-financas.apk out/minhas-financas.aab

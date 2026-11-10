@@ -1236,7 +1236,7 @@ function shell(r, content) {
         <button class="btn btn-primary btn-sm desk-only" data-act="new-tx">${icon("plus")} Novo gasto</button>
       </div>
     </div></header>
-    <main id="main">${content}</main>
+    <main id="main">${updateBanner()}${content}</main>
   </div>
   <nav class="bottomnav" aria-label="Principal"><ul>
     ${bottom("painel", "Painel", "dashboard")}${bottom("lancamentos", "Lançamentos", "receipt")}
@@ -1819,24 +1819,23 @@ const NATIVE = !!window.Capacitor?.isNativePlatform?.();
 const NativePlugins = (NATIVE && window.Capacitor.Plugins) || {};
 
 // The app's WebView has no SpeechRecognition, so the native plugin stands in with the same small interface.
+// Final results only: on Android the plugin reports "stopped" before the final text, and with partial results
+// on it drops errors (the call is already resolved), which left the button stuck on "Ouvindo".
 class NativeSpeech {
   start() {
-    const P = NativePlugins.SpeechRecognition, handles = [];
-    this._end = () => {
-      if (this._ended) return;
-      this._ended = true; handles.forEach((h) => h.remove());
-      this.onend?.();
-    };
+    const P = NativePlugins.SpeechRecognition;
+    this._end = () => { if (!this._ended) { this._ended = true; this.onend?.(); } };
     (async () => {
       try {
         const perm = await P.requestPermissions();
-        if (perm.speechRecognition !== "granted") { this.onerror?.({ error: "not-allowed" }); return this._end(); }
-        handles.push(await P.addListener("partialResults", (d) => { const t = d.matches?.[0]; if (t && !this._aborted) this.onresult?.({ results: [[{ transcript: t }]] }); }));
-        handles.push(await P.addListener("listeningState", (d) => { if (d.status === "stopped") this._end(); }));
-        await P.start({ language: "pt-BR", maxResults: 1, partialResults: true, popup: false });
+        if (perm.speechRecognition !== "granted") { this.onerror?.({ error: "not-allowed" }); return; }
+        const r = await P.start({ language: "pt-BR", maxResults: 1, partialResults: false, popup: false });
+        const text = r?.matches?.[0];
+        if (text && !this._aborted) this.onresult?.({ results: [[{ transcript: text }]] });
       } catch (e) {
-        this.onerror?.({ error: /permiss/i.test(String(e?.message)) ? "not-allowed" : "no-speech" }); this._end();
-      }
+        const msg = String(e?.message || e);
+        this.onerror?.({ error: /permission/i.test(msg) ? "not-allowed" : /network/i.test(msg) ? "network" : /audio/i.test(msg) ? "audio-capture" : "no-speech" });
+      } finally { this._end(); }
     })();
   }
   stop() { NativePlugins.SpeechRecognition.stop().catch(() => {}); }
@@ -1847,6 +1846,43 @@ class NativeSpeech {
 async function shareFile(name, text) {
   const { uri } = await NativePlugins.Filesystem.writeFile({ path: name, data: text, directory: "CACHE", encoding: "utf8" });
   await NativePlugins.Share.share({ title: name, url: uri, dialogTitle: "Salvar ou enviar o backup" });
+}
+
+// App updates: CI publishes every Android build as the pre-release "app-latest", with "<!-- build:N -->" in its
+// notes. On open and on return to the app (at most every 6 hours) we compare N with the installed versionCode.
+const APP_RELEASE_API = "https://api.github.com/repos/gabrielmacsantos/sistema_gestao/releases/tags/app-latest";
+const UPDATE_KEY = "mf-app-update";
+const UPDATE_EVERY = 6 * 3600 * 1000;
+let appUpdate = null; // { build, url, notes } while a newer build is waiting
+
+function readUpdateState() { try { return JSON.parse(localStorage.getItem(UPDATE_KEY) || "{}"); } catch { return {}; } }
+function writeUpdateState(s) { try { localStorage.setItem(UPDATE_KEY, JSON.stringify(s)); } catch {} }
+
+async function checkAppUpdate() {
+  if (!NATIVE || !NativePlugins.App?.getInfo) return;
+  const info = await NativePlugins.App.getInfo().catch(() => null);
+  const installed = Number(info?.build) || 0;
+  let s = readUpdateState();
+  if (!s.checkedAt || Date.now() - s.checkedAt > UPDATE_EVERY) {
+    try {
+      const res = await fetch(APP_RELEASE_API, { headers: { Accept: "application/vnd.github+json" } });
+      if (res.ok) {
+        const rel = await res.json(), body = rel.body || "";
+        const url = (rel.assets || []).find((a) => a.name === "minhas-financas.apk")?.browser_download_url;
+        const notes = body.split("\n").filter((l) => /^- /.test(l)).slice(0, 5).map((l) => l.slice(2).trim());
+        s = { ...s, checkedAt: Date.now(), build: Number(/build:(\d+)/.exec(body)?.[1]) || 0, url, notes };
+        writeUpdateState(s);
+      }
+    } catch { /* offline: try again next time */ }
+  }
+  const next = s.build > installed && s.url && s.dismissed !== s.build ? { build: s.build, url: s.url, notes: s.notes || [] } : null;
+  if ((next?.build || 0) !== (appUpdate?.build || 0)) { appUpdate = next; render(); }
+}
+function updateBanner() {
+  if (!appUpdate) return "";
+  return `<div class="notice" style="margin-bottom:16px"><span class="t-primary" style="display:flex">${icon("down")}</span>
+    <div style="flex:1;min-width:180px"><p><b>Nova versão do app disponível</b></p>${appUpdate.notes.length ? `<ul class="hint" style="margin:4px 0 0;padding-left:18px">${appUpdate.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}</div>
+    <span class="actions"><button class="btn btn-ghost btn-sm" data-act="update-later">Agora não</button><button class="btn btn-primary btn-sm" data-act="update-app">Atualizar</button></span></div>`;
 }
 
 if (NATIVE) {
@@ -1864,6 +1900,7 @@ if (NATIVE) {
     else if (canGoBack) history.back();
     else NativePlugins.App.exitApp();
   });
+  NativePlugins.App?.addListener("resume", () => checkAppUpdate());
 }
 
 // ---------- Voice entry ----------
@@ -1872,7 +1909,9 @@ if (NATIVE) {
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || (NativePlugins.SpeechRecognition ? NativeSpeech : null);
 const VOICE_OK_KEY = "mf-voice-ok";
 const VOICE_ERRORS = {
-  "not-allowed": "O microfone está bloqueado. Libere o acesso nas configurações do navegador.",
+  "not-allowed": NATIVE
+    ? "O microfone está bloqueado. Libere em Configurações → Apps → Minhas Finanças → Permissões."
+    : "O microfone está bloqueado. Libere o acesso nas configurações do navegador.",
   "service-not-allowed": "O reconhecimento de voz está bloqueado neste navegador.",
   "audio-capture": "Nenhum microfone encontrado neste aparelho.",
   "network": "O reconhecimento de voz precisa de internet.",
@@ -2430,6 +2469,9 @@ document.addEventListener("click", (e) => {
     "review-inbox": reviewInbox,
     "copy-notif-link": () => { const v = document.getElementById("notif-link").value; navigator.clipboard?.writeText(v).then(() => toast("Endereço copiado."), () => toast("Não foi possível copiar. Selecione e copie o texto.")); },
     "confirm-import": confirmImport,
+    // The browser downloads the .apk and Android installs it over this version (same signing key, data kept).
+    "update-app": () => { if (appUpdate) NativePlugins.Browser?.open({ url: appUpdate.url }); },
+    "update-later": () => { writeUpdateState({ ...readUpdateState(), dismissed: appUpdate?.build }); appUpdate = null; render(); },
     "export": () => {
       if (NATIVE) return shareFile(`minhas-financas-backup-${todayISO()}.json`, JSON.stringify(state, null, 2)).catch(() => toast("Não foi possível salvar o backup."));
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
@@ -2491,6 +2533,7 @@ window.addEventListener("beforeunload", (e) => { if (pushTimer || pushing) { pus
 
 render();
 pullIfNewer();
+checkAppUpdate();
 </script>
 </body>
 </html>

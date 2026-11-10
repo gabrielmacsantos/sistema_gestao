@@ -7,7 +7,21 @@ App feito com [Capacitor](https://capacitorjs.com/) em volta do **mesmo `index.h
 O GitHub Actions (`.github/workflows/mobile-android.yml`) monta o app a cada mudança no `index.html` ou em `mobile/`:
 
 - **Em qualquer branch:** gera o `.apk` como *artifact* da execução.
-- **No `main`, com a chave de assinatura:** publica no pré-release `app-v<versão>` o `.apk` (para instalar direto) e o `.aab` (pacote da Play Store).
+- **No `main`, com a chave de assinatura:** troca o pré-release `app-latest` pelo `.apk` (para instalar direto) e pelo `.aab` (pacote da Play Store) da montagem nova.
+
+Link fixo para instalar a versão mais recente: https://github.com/gabrielmacsantos/sistema_gestao/releases/download/app-latest/minhas-financas.apk
+
+## Aviso de atualização
+
+As notas do `app-latest` terminam com `<!-- build:N sha:... -->`. Ao abrir o app e ao voltar para ele (no máximo a cada 6 horas), `checkAppUpdate()` compara `N` com o `versionCode` instalado (`App.getInfo().build`). Se houver versão mais nova, aparece no topo **"Nova versão do app disponível"**, com **Atualizar** (baixa o `.apk`, e o Android instala por cima, mantendo os dados) e **Agora não** (esconde até sair a próxima). Sem internet, ou se a consulta falhar, nada aparece.
+
+A lista do que mudou sai das linhas `App: <texto em pt-BR>` das mensagens de commit desde a montagem anterior. Sem nenhuma, o aviso diz "Melhorias e correções". Exemplo:
+
+```
+Fix the speech plugin flow on Android
+
+App: A voz agora funciona no Android.
+```
 
 Para montar no seu computador, você precisa de Node 24, JDK 21 e o Android SDK (Android Studio):
 
