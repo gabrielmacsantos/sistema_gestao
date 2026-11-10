@@ -1828,27 +1828,56 @@ if (NATIVE) {
 }
 
 // The app's WebView has no SpeechRecognition, so the native plugin stands in with the same small interface.
-// Final results only: on Android the plugin reports "stopped" before the final text, and with partial results
-// on it drops errors (the call is already resolved), which left the button stuck on "Ouvindo".
+// Partial results show the words while the person speaks, but the Android plugin has two quirks in that mode:
+// it reports "stopped" before the final text, and its errors (nothing heard, no network) never reach us because
+// start() already resolved. So: wait a moment after "stopped" for the final text, stop by ourselves after a
+// silence, and always end within a hard limit, so the button never stays on "Ouvindo".
+const SPEECH_SILENCE_MS = 2500;      // quiet after the last words: done
+const SPEECH_NOTHING_MS = 7000;      // no words at all since the start: give up
+const SPEECH_FINAL_GRACE_MS = 1500;  // after stopping, wait this long for the final text
 class NativeSpeech {
   start() {
-    const P = NativePlugins.SpeechRecognition;
-    this._end = () => { if (!this._ended) { this._ended = true; this.onend?.(); } };
+    const P = NativePlugins.SpeechRecognition, handles = [];
+    let heard = false, stopping = false, quiet = 0, grace = 0;
+    this._end = () => {
+      if (this._ended) return;
+      this._ended = true; clearTimeout(quiet); clearTimeout(grace);
+      handles.forEach((h) => h.remove?.());
+      P.stop().catch(() => {});
+      this.onend?.();
+    };
+    // Ends shortly after stopping; a final text arriving meanwhile ends it sooner.
+    this._finishSoon = (ms = SPEECH_FINAL_GRACE_MS) => { stopping = true; clearTimeout(quiet); clearTimeout(grace); grace = setTimeout(() => this._end(), ms); };
+    const waitQuiet = () => { clearTimeout(quiet); quiet = setTimeout(() => this.stop(), heard ? SPEECH_SILENCE_MS : SPEECH_NOTHING_MS); };
     (async () => {
       try {
         const perm = await P.requestPermissions();
-        if (perm.speechRecognition !== "granted") { this.onerror?.({ error: "not-allowed" }); return; }
-        const r = await P.start({ language: "pt-BR", maxResults: 1, partialResults: false, popup: false });
-        const text = r?.matches?.[0];
-        if (text && !this._aborted) this.onresult?.({ results: [[{ transcript: text }]] });
+        if (perm.speechRecognition !== "granted") { this.onerror?.({ error: "not-allowed" }); return this._end(); }
+        handles.push(await P.addListener("partialResults", (d) => {
+          const t = d.matches?.[0];
+          if (!t || this._aborted || this._ended) return;
+          heard = true;
+          this.onresult?.({ results: [[{ transcript: t }]] });
+          if (stopping) this._finishSoon(400); else waitQuiet();
+        }));
+        handles.push(await P.addListener("listeningState", (d) => {
+          if (d.status === "stopped" && !stopping) this._finishSoon();
+        }));
+        await P.start({ language: "pt-BR", maxResults: 1, partialResults: true, popup: false });
+        if (!this._ended) waitQuiet();
       } catch (e) {
         const msg = String(e?.message || e);
         this.onerror?.({ error: /permission/i.test(msg) ? "not-allowed" : /network/i.test(msg) ? "network" : /audio/i.test(msg) ? "audio-capture" : "no-speech" });
-      } finally { this._end(); }
+        this._end();
+      }
     })();
   }
-  stop() { NativePlugins.SpeechRecognition.stop().catch(() => {}); }
-  abort() { this._aborted = true; this.stop(); this._end?.(); }
+  stop() {
+    if (this._ended) return;
+    NativePlugins.SpeechRecognition.stop().catch(() => {});
+    this._finishSoon?.();
+  }
+  abort() { this._aborted = true; this._end?.(); }
 }
 
 // Files (backup) cannot be downloaded from the WebView: save to the app cache and open the share sheet.
@@ -1858,10 +1887,10 @@ async function shareFile(name, text) {
 }
 
 // App updates: CI publishes every Android build as the pre-release "app-latest", with "<!-- build:N -->" in its
-// notes. On open and on return to the app (at most every 6 hours) we compare N with the installed versionCode.
+// notes. On open and on return to the app (at most once an hour) we compare N with the installed versionCode.
 const APP_RELEASE_API = "https://api.github.com/repos/gabrielmacsantos/sistema_gestao/releases/tags/app-latest";
 const UPDATE_KEY = "mf-app-update";
-const UPDATE_EVERY = 6 * 3600 * 1000;
+const UPDATE_EVERY = 3600 * 1000;
 let appUpdate = null; // { build, url, notes } while a newer build is waiting
 
 function readUpdateState() { try { return JSON.parse(localStorage.getItem(UPDATE_KEY) || "{}"); } catch { return {}; } }

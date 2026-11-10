@@ -104,7 +104,7 @@ jobs:
           # "O que mudou": "App:" lines of the commits since the build now in app-latest.
           prev=$(gh release view app-latest --json body -q .body 2> /dev/null | sed -n 's/.*sha:\([0-9a-f]\{40\}\).*/\1/p' | head -1)
           if [ -n "$prev" ] && git cat-file -e "$prev" 2> /dev/null; then range="$prev..$GITHUB_SHA"; else range="-n 20 $GITHUB_SHA"; fi
-          notes=$(git log $range --format=%B | sed -n 's/^App: *\(.*[^ ]\) *$/- \1/p' | head -8)
+          notes=$(git log $range --format=%B | sed -n 's/^App: *\(.*[^ ]\) *$/- \1/p' | awk '!seen[$0]++' | head -8)
           [ -n "$notes" ] || notes="- Melhorias e correções."
           printf '%s\n\n%s\n\n%s\n' \
             "Versão de teste do app ($version, build $build). O .apk instala direto no celular; o .aab é o pacote para a Play Store." \
