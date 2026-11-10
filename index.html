@@ -1456,6 +1456,7 @@ function viewCategorias() {
 let importDrafts = null;
 let importInboxIds = null; // inbox entries under review; they leave the inbox when the review is confirmed
 const NOTIF_GUIDE = "https://github.com/gabrielmacsantos/sistema_gestao#-receber-as-notificações-do-banco";
+const READER_APK = "https://github.com/gabrielmacsantos/sistema_gestao/releases/latest/download/minhas-financas-leitor.apk";
 const notifLink = () => `${location.origin}${location.pathname}#/notificacao?t=`;
 function inboxNotice() {
   const n = state.inbox.length; if (!n) return "";
@@ -1472,9 +1473,10 @@ function viewImportar() {
     <textarea class="input" id="notif-text" rows="5" style="margin-top:12px" placeholder="Você recebeu um Pix de R$ 150,00 de Fulano&#10;&#10;Compra aprovada de R$ 52,30 em MERCADO X"></textarea>
     <div class="actions" style="margin-top:12px"><button class="btn btn-primary btn-sm" data-act="read-notifs">${icon("check")} Ler notificações</button></div>
     <details style="margin-top:16px"><summary class="hint" style="cursor:pointer"><b>Receber sozinho no Android</b> (ou com Apple Pay no iPhone)</summary>
-      <p class="hint" style="margin-top:8px">Um app de automação (MacroDroid, grátis) abre este endereço com o texto da notificação no fim. Ela cai na fila acima e você só confirma.</p>
+      <p class="hint" style="margin-top:8px">Instale o <b>leitor de notificações</b>: um app pequeno, sem acesso à internet, que junta as notificações dos seus bancos e carteiras e as entrega aqui com um toque. Você só confirma.</p>
+      <div class="actions" style="margin-top:8px"><a class="btn btn-primary btn-sm" href="${READER_APK}">${icon("down")} Baixar o leitor (Android)</a><a class="btn btn-ghost btn-sm" href="${NOTIF_GUIDE}" target="_blank" rel="noopener">Como instalar</a></div>
+      <p class="hint" style="margin-top:12px">Para o Atalhos do iPhone ou outro app de automação, use este endereço com o texto da notificação no fim:</p>
       <div style="display:flex;gap:8px;margin-top:8px"><input class="input input-sm" id="notif-link" readonly value="${esc(notifLink())}" aria-label="Endereço para a automação"><button class="btn btn-secondary btn-sm" data-act="copy-notif-link">${icon("copy")} Copiar</button></div>
-      <p class="hint" style="margin-top:8px"><a class="t-primary" href="${NOTIF_GUIDE}" target="_blank" rel="noopener">Passo a passo com o MacroDroid e o Atalhos do iPhone</a></p>
     </details>
   </section>
   <section class="card">

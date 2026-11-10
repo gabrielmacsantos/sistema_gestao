@@ -92,11 +92,25 @@ Na tela de login, clique em **"Usar sem conta (só neste aparelho)"** e depois e
 
 ## 🔔 Receber as notificações do banco
 
-Um site não consegue ler as notificações de outros apps: o celular não deixa. Então um app de automação faz a ponte e entrega o texto ao site. As notificações caem numa fila (**"3 notificações do banco para revisar"** no Painel) e **só viram lançamento quando você confirma**. Avisos de saldo, de fatura a vencer e códigos são ignorados.
+Um site não consegue ler as notificações de outros apps: o celular não deixa. Então um app no celular faz a ponte e entrega o texto ao site. As notificações caem numa fila (**"3 notificações do banco para revisar"** no Painel) e **só viram lançamento quando você confirma**. Avisos de saldo, de fatura a vencer e códigos são ignorados.
 
-Antes de começar, abra o site no celular, entre na sua conta e copie o seu endereço em **Importar → Receber sozinho no Android → Copiar**. Ele termina em `#/notificacao?t=`.
+### Android, com o leitor do Minhas Finanças
 
-### Android, com o MacroDroid (grátis)
+O **leitor** é um app pequeno, feito para isto e publicado aqui no GitHub. Ele não tem permissão de internet: só junta as notificações dos seus bancos e carteiras e, com um toque, abre o site com elas.
+
+1. **Baixe** no celular: [minhas-financas-leitor.apk](https://github.com/gabrielmacsantos/sistema_gestao/releases/latest/download/minhas-financas-leitor.apk) (ou em **Importar → Receber sozinho no Android → Baixar o leitor**).
+2. **Instale** abrindo o arquivo baixado. Como ele não vem da Play Store, o Android pede para **permitir instalar apps desta fonte** (o navegador) e pode mostrar um alerta do Play Protect. Toque em *Instalar mesmo assim*.
+3. **Abra o leitor** e toque em **Dar acesso às notificações**. Na lista, ative **Minhas Finanças: leitor**.
+   - **A opção aparece cinza ou bloqueada?** É uma proteção do Android 13 ou mais novo para apps de fora da Play Store. Volte ao leitor, toque em **Abrir informações do app**, depois no menu **⋮** (canto de cima) e em **Permitir configurações restritas**. Tente o passo 3 de novo.
+4. Em **Bancos e carteiras**, confira os apps marcados. Os bancos mais comuns e a Carteira do Google ou Samsung Wallet já vêm marcados, se você os tiver.
+5. Pronto. Quando chegar um Pix, uma compra ou um depósito, aparece a notificação **"1 movimentação para enviar"**. Toque nela: o site abre com tudo pronto para conferir (entre na sua conta, se ele pedir).
+
+Quando a carteira e o banco do cartão avisam a mesma compra, a segunda vem desmarcada como **"possível duplicado"**: a compra entra uma vez só. Algumas marcas (Xiaomi, Motorola, Samsung) fecham apps em segundo plano para economizar bateria. Se as movimentações pararem de chegar, coloque o leitor como **"sem restrições"** em *Configurações → Apps → Minhas Finanças: leitor → Bateria*.
+
+<details>
+<summary><b>Prefere o MacroDroid (ou outro app de automação)?</b></summary>
+
+Copie o seu endereço em **Importar → Receber sozinho no Android → Copiar** (ele termina em `#/notificacao?t=`).
 
 1. Instale o **MacroDroid** pela Play Store, abra e, quando ele pedir, permita o **acesso às notificações**.
 2. Toque em **Adicionar macro**.
@@ -104,20 +118,19 @@ Antes de começar, abra o site no celular, entre na sua conta e copie o seu ende
 4. **Ação:** *Aplicações → Abrir site/URL*. Cole o endereço copiado e, logo depois dele, use o botão de **texto mágico** (`…`) para inserir o **título** e o **texto da notificação**.
 5. Dê um nome (ex.: "Minhas Finanças") e salve.
 
-A cada notificação de banco, o navegador abre o site com a notificação pronta para conferir. Quando a carteira e o banco do cartão avisam a mesma compra, a segunda vem desmarcada como **"possível duplicado"**: a compra entra uma vez só. Os nomes das opções podem variar um pouco conforme a versão do MacroDroid.
-
-**Prefere não abrir o navegador a cada notificação?** Troque a ação do passo 4 por *Variáveis → Definir variável*: acrescente ao fim de uma variável de texto (ex.: `fila`) uma linha `---`, a data no formato dia/mês/ano e o texto da notificação. Depois crie um segundo macro com o gatilho *Atalho na tela inicial*. Ele deve abrir o endereço seguido da variável `fila` e, em seguida, limpar a variável. Assim, um toque no atalho manda tudo de uma vez, cada notificação com a data em que chegou.
+A cada notificação de banco, o navegador abre o site com a notificação pronta para conferir. Os nomes das opções podem variar um pouco conforme a versão do MacroDroid.
+</details>
 
 ### iPhone
 
 O iPhone não deixa nenhum app ler notificações de outros apps. O que dá para fazer:
 
 - **Pix e o resto:** copie o texto da notificação (muitos bancos mostram as notificações dentro do próprio app) e cole em **Importar → Notificações do banco**. Dá para colar várias de uma vez, separadas por uma linha em branco.
-- **Compras com Apple Pay:** no app **Atalhos**, crie uma *Automação → Carteira (Transação)*, escolha seus cartões e *Executar imediatamente*. A ação deve ser **Abrir URLs**, com o seu endereço seguido de `Compra aprovada de ` + *Quantia* + ` em ` + *Comerciante*.
+- **Compras com Apple Pay:** copie o seu endereço em **Importar → Receber sozinho → Copiar**. No app **Atalhos**, crie uma *Automação → Carteira (Transação)*, escolha seus cartões e *Executar imediatamente*. A ação deve ser **Abrir URLs**, com o seu endereço seguido de `Compra aprovada de ` + *Quantia* + ` em ` + *Comerciante*.
 
 ### Privacidade
 
-O texto vai no fim do endereço, depois do `#`. Essa parte não é enviada ao GitHub: fica só no navegador, que a apaga do endereço assim que lê. O MacroDroid e o Atalhos rodam no próprio celular.
+O texto vai no fim do endereço, depois do `#`. Essa parte não é enviada ao GitHub: fica só no navegador, que a apaga do endereço assim que lê. O leitor não tem permissão de internet, e a fila dele fica só no celular. O MacroDroid e o Atalhos também rodam no próprio celular.
 
 ---
 
@@ -180,7 +193,7 @@ Pode, pelo botão **"Usar sem conta"** na tela de login. Os dados ficam só naqu
 | 📊 **Painel completo** | Entradas, total gasto, fixos comprometidos, gastos variáveis e saldo livre previsto, com fluxo de caixa de 6 meses e distribuição por categoria. |
 | 🔁 **Gastos fixos automáticos** | Aluguel, contas e assinaturas geram um lançamento pendente por mês, sozinhos. Editar um fixo nunca altera o passado. |
 | ✈️ **Viagens** | Uma aba só para viagens: crie a viagem (datas e orçamento) e lance nela passagens, hotel e passeios. Esses gastos ficam **separados** da gestão do mês, e uma chave em cada viagem decide se eles devem ser **somados** ou não. |
-| 🔔 **Notificações do banco** | Pix recebido, compra aprovada, depósito: cole a notificação ou, no Android, receba sozinho com o MacroDroid. Tudo cai numa fila para você confirmar, com aviso de possível duplicado. |
+| 🔔 **Notificações do banco** | Pix recebido, compra aprovada, depósito: cole a notificação ou, no Android, receba sozinho com o leitor (app do próprio projeto). Tudo cai numa fila para você confirmar, com aviso de possível duplicado. |
 | 🎤 **Lançar falando** | Toque no microfone e fale o gasto: o formulário é preenchido (valor, data, categoria, tipo) para você conferir e salvar. |
 | 📷 **Foto do comprovante** | Tire uma foto pelo celular (ou escolha da galeria) e anexe ao lançamento. Ela é reduzida no aparelho e salva criptografada no seu GitHub. |
 | 🏦 **Extrato OFX/CSV** | Importe o extrato do banco, revise antes de salvar e sem duplicar o que já foi importado. |
