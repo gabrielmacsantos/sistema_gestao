@@ -330,6 +330,15 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .thumb { width: 64px; height: 64px; padding: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--hairline); background: var(--c-low); flex: none; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .clip { display: inline-flex; vertical-align: -3px; margin-right: 4px; color: var(--primary); }
+.voice-btn { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; border: 1px dashed var(--outline-var); background: var(--c-low); color: var(--on); text-align: left; }
+.voice-btn > svg.i { width: 40px; height: 40px; padding: 10px; border-radius: 999px; background: var(--primary); color: var(--on-primary); }
+.voice-btn > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.voice-btn.on { border-style: solid; border-color: var(--primary); }
+.voice-btn.on > svg.i { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary) 22%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .voice-btn.on > svg.i { animation: none; } }
+.voice-note { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--hairline); background: var(--c-low); font-size: 14px; }
+.input.voice-filled { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
 .clip svg.i { width: 15px; height: 15px; }
 .viewer { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgb(2 6 23 / .85); animation: fade .15s; cursor: zoom-out; }
 .viewer img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: var(--shadow-3); }
@@ -415,6 +424,7 @@ const ICONS = {
   target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
   camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/>',
   paperclip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
   plane: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
   arrowLeft: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
@@ -477,6 +487,156 @@ function monthLabel(month) { const [y, m] = month.split("-").map(Number); const 
 const monthShort = (month) => MONTHS[Number(month.slice(5, 7)) - 1].slice(0, 3);
 const dayMonth = (date) => `${date.slice(8, 10)} ${monthShort(date.slice(0, 7))}`;
 const formatDate = (date) => `${date.slice(8, 10)}/${date.slice(5, 7)}/${date.slice(0, 4)}`;
+
+// <voice-parser> Self-contained: tests/voice-parser.test.ts loads this block from the file.
+/**
+ * Spoken pt-BR sentence -> transaction fields ("gastei 52,30 no mercado ontem").
+ * Only fills the form; a field it is unsure about comes back null. Money stays in integer cents.
+ */
+const parseSpokenTransaction = (() => {
+  const UNITS = { zero: 0, um: 1, uma: 1, dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, onze: 11, doze: 12, treze: 13, quatorze: 14, catorze: 14, quinze: 15, dezesseis: 16, dezessete: 17, dezoito: 18, dezenove: 19 };
+  const TENS = { vinte: 20, trinta: 30, quarenta: 40, cinquenta: 50, sessenta: 60, setenta: 70, oitenta: 80, noventa: 90 };
+  const HUNDREDS = { cem: 100, cento: 100, duzentos: 200, duzentas: 200, trezentos: 300, trezentas: 300, quatrocentos: 400, quatrocentas: 400, quinhentos: 500, quinhentas: 500, seiscentos: 600, seiscentas: 600, setecentos: 700, setecentas: 700, oitocentos: 800, oitocentas: 800, novecentos: 900, novecentas: 900 };
+  const MONTH_NAMES = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const CURRENCY = /^(reais|real|conto|contos|pila|pilas)$/;
+  const INCOME = new Set(["recebi", "ganhei", "receita", "entrada", "salario", "pagaram", "depositaram", "reembolso", "rendimento", "rendimentos", "vendi"]);
+  const EXPENSE = new Set(["gastei", "paguei", "comprei", "gasto", "despesa", "custou", "saida"]);
+  // Dropped from the description; "salário" or "reembolso" stay because they describe the entry.
+  const VERBS = new Set(["gastei", "paguei", "comprei", "recebi", "ganhei", "custou", "pagaram", "depositaram", "gasto", "despesa", "entrada", "receita", "saida"]);
+  const EDGE = new Set(["de", "do", "da", "dos", "das", "no", "na", "nos", "nas", "em", "com", "pra", "pro", "para", "o", "a", "os", "as", "um", "uma", "e", "foi", "deu", "eu", "que", "hoje", "agora"]);
+  // Common words for the default categories, keyed by the normalized category name.
+  const HINTS = {
+    "alimentacao": ["almoco", "almocei", "jantar", "jantei", "lanche", "lanchonete", "restaurante", "ifood", "cafe", "padaria", "pizza", "hamburguer", "comida", "marmita"],
+    "mercado": ["supermercado", "feira", "hortifruti", "acougue", "sacolao", "atacadao"],
+    "transporte": ["uber", "99", "taxi", "onibus", "metro", "gasolina", "combustivel", "estacionamento", "pedagio", "passagem", "trem", "etanol"],
+    "saude": ["farmacia", "remedio", "remedios", "medico", "consulta", "dentista", "exame", "exames", "hospital", "plano"],
+    "moradia": ["aluguel", "condominio", "iptu", "reforma"],
+    "contas e servicos": ["luz", "energia", "agua", "internet", "telefone", "celular", "gas", "conta"],
+    "assinaturas": ["netflix", "spotify", "assinatura", "streaming", "prime", "youtube"],
+    "lazer": ["cinema", "show", "bar", "cerveja", "passeio", "teatro", "jogo", "balada"],
+    "educacao": ["escola", "faculdade", "curso", "livro", "livros", "mensalidade", "material"],
+    "compras": ["roupa", "roupas", "sapato", "tenis", "presente", "loja", "shopping"],
+    "salario": ["salario"],
+    "renda extra": ["freela", "freelance", "bico", "venda", "vendi", "extra"],
+    "investimentos": ["rendimento", "rendimentos", "dividendos", "juros"],
+  };
+  const norm = (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const wordValue = (w) => (w in UNITS ? [UNITS[w], 1] : w in TENS ? [TENS[w], 2] : w in HUNDREDS ? [HUNDREDS[w], w === "cem" ? 9 : 3] : w === "mil" ? [1000, 4] : null);
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const validDate = (y, m, d) => { const dt = new Date(Date.UTC(y, m - 1, d)); return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d; };
+  const iso = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
+  const shiftDays = (date, n) => { const [y, m, d] = date.split("-").map(Number); const dt = new Date(Date.UTC(y, m - 1, d + n)); return iso(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()); };
+
+  return function parseSpokenTransaction(text, categories, today) {
+    const tokens = String(text ?? "").replace(/R\$/gi, " R$ ").split(/\s+/).filter(Boolean).map((raw) => {
+      const clean = raw === "R$" ? raw : raw.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+      return { raw: clean, n: norm(clean), used: false };
+    }).filter((t) => t.raw);
+    const at = (i) => (tokens[i] && !tokens[i].used ? tokens[i] : null);
+    const use = (from, to) => { for (let i = from; i < to; i++) tokens[i].used = true; };
+
+    // A number starting at token i: digits ("52,30", "1.200", "2 mil") or words ("cento e vinte").
+    function readNumber(i) {
+      const t = at(i); if (!t) return null;
+      const m = /^(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?$/.exec(t.n) || /^(\d+)\.(\d{1,2})$/.exec(t.n);
+      if (m) {
+        let cents = Number(m[1].replace(/\./g, "")) * 100 + Number(((m[2] || "") + "00").slice(0, 2)), end = i + 1;
+        if (at(end)?.n === "mil") { cents *= 1000; end++; }
+        return { cents, end, digits: true, decimal: m[2] !== undefined, lone: false };
+      }
+      let total = 0, group = 0, rank = 10, count = 0, end = i;
+      for (;;) {
+        let k = end;
+        if (count && at(k)?.n === "e") k++;
+        const wv = at(k) && wordValue(at(k).n); if (!wv) break;
+        const [v, r] = wv;
+        if (r === 4) { if (total) break; total = (group || 1) * 1000; group = 0; rank = 4; }
+        else { if (r >= rank) break; group += v; rank = r === 9 ? 0 : r; }
+        count++; end = k + 1;
+      }
+      if (!count) return null;
+      return { cents: (total + group) * 100, end, digits: false, decimal: false, lone: count === 1 && /^uma?$/.test(t.n) };
+    }
+
+    // Date: "hoje", "ontem", "anteontem", "dia 5", "dia 5 de março", "5/3".
+    let date = null;
+    for (let i = 0; i < tokens.length && !date; i++) {
+      const w = at(i)?.n; if (!w) continue;
+      if (w === "hoje") { date = today; use(i, i + 1); }
+      else if (w === "ontem") { date = shiftDays(today, -1); use(i, i + 1); }
+      else if (w === "anteontem") { date = shiftDays(today, -2); use(i, i + 1); }
+      else if (w === "antes" && at(i + 1)?.n === "de" && at(i + 2)?.n === "ontem") { date = shiftDays(today, -2); use(i, i + 3); }
+      else if (/^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/.test(w)) {
+        const [d, m, y] = w.split("/").map(Number), year = y ? (y < 100 ? 2000 + y : y) : Number(today.slice(0, 4));
+        if (validDate(year, m, d)) { date = iso(year, m, d); use(i, i + 1); }
+      } else if (w === "dia") {
+        const num = at(i + 1)?.n === "primeiro" ? { cents: 100, end: i + 2, decimal: false } : readNumber(i + 1);
+        if (!num || num.decimal || num.cents % 100) continue;
+        let y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7)), end = num.end;
+        const mi = MONTH_NAMES.indexOf(at(end)?.n === "de" ? at(end + 1)?.n : at(end)?.n);
+        if (mi >= 0) { m = mi + 1; end += at(end).n === "de" ? 2 : 1; }
+        if (validDate(y, m, num.cents / 100)) { date = iso(y, m, num.cents / 100); use(i, end); }
+      }
+    }
+
+    // Status: only "pendente", "a pagar" or "a receber" change it.
+    let status = null;
+    for (let i = 0; i < tokens.length; i++) {
+      if (at(i)?.n === "pendente") { status = "PENDING"; use(i, i + 1); }
+      else if (at(i)?.n === "a" && /^(pagar|receber)$/.test(at(i + 1)?.n || "")) { status = "PENDING"; use(i, i + 2); }
+    }
+
+    // Amount: "R$ 52,30", "52 reais e 30 centavos", "dois e cinquenta", "cinquenta centavos".
+    const found = [];
+    for (let i = 0; i < tokens.length; i++) {
+      let start = i, marked = false;
+      if (at(i)?.raw === "R$") { marked = true; i++; }
+      const a = readNumber(i);
+      if (!a) { i = start; continue; }
+      let cents = a.cents, end = a.end;
+      if (CURRENCY.test(at(end)?.n || "")) { marked = true; end++; }
+      if (/^centavos?$/.test(at(end)?.n || "")) { cents = a.cents / 100; marked = true; end++; }
+      else if (!a.decimal && at(end)?.n === "e") {
+        const b = readNumber(end + 1), centWord = b && /^centavos?$/.test(at(b.end)?.n || "");
+        if (b && !b.decimal && b.cents < 10000 && (centWord || !b.lone)) {
+          cents += b.cents / 100; end = b.end;
+          if (centWord) end++;
+          if (CURRENCY.test(at(end)?.n || "")) end++;
+          marked = true;
+        }
+      }
+      found.push({ cents, start, end, marked, digits: a.digits, lone: a.lone && !marked });
+      i = end - 1;
+    }
+    const amount = found.find((c) => c.marked) || found.find((c) => c.digits) || found.find((c) => !c.lone);
+    if (amount) use(amount.start, amount.end);
+
+    // Type: income only when the sentence says so and has no expense word.
+    const words = tokens.filter((t) => !t.used).map((t) => t.n);
+    const hasIncome = words.some((w) => INCOME.has(w)), hasExpense = words.some((w) => EXPENSE.has(w));
+    let type = hasIncome && !hasExpense ? "INCOME" : "EXPENSE";
+
+    // Category: the user's own category name first (longest wins), then common words.
+    const phrase = ` ${words.join(" ")} `;
+    const pick = (t) => {
+      const list = (categories || []).filter((c) => c.type === t);
+      const byName = list.filter((c) => phrase.includes(` ${norm(c.name)} `)).sort((x, y) => y.name.length - x.name.length)[0];
+      return byName || list.find((c) => (HINTS[norm(c.name)] || []).some((h) => phrase.includes(` ${h} `))) || null;
+    };
+    let category = pick(type);
+    if (!category && !hasIncome && !hasExpense) { const inc = pick("INCOME"); if (inc) { category = inc; type = "INCOME"; } }
+
+    // Description: what is left, without verbs and loose words at the edges.
+    const rest = tokens.filter((t) => !t.used && !VERBS.has(t.n));
+    while (rest.length && EDGE.has(rest[0].n)) rest.shift();
+    while (rest.length && EDGE.has(rest[rest.length - 1].n)) rest.pop();
+    let description = rest.map((t) => t.raw).join(" ").slice(0, 120).trim() || category?.name || null;
+    if (description) description = description[0].toUpperCase() + description.slice(1);
+
+    return { type, description, amountCents: amount && amount.cents > 0 ? amount.cents : null, date, categoryId: category?.id || null, status };
+  };
+})();
+// </voice-parser>
 
 // ---------- Store ----------
 const KEY = "minhas-financas:v1";
@@ -1353,7 +1513,7 @@ function openModal({ title, sub = "", body, foot, wide = false, onSubmit }) {
   const first = document.querySelector("#modal [autofocus]") || document.querySelector("#modal .modal-body input, #modal .modal-body select");
   if (first && matchMedia("(min-width: 640px)").matches) first.focus();
 }
-const closeModal = () => { document.getElementById("layer").innerHTML = ""; modalSubmit = null; };
+const closeModal = () => { stopVoice(); document.getElementById("layer").innerHTML = ""; modalSubmit = null; };
 let toastTimer;
 function toast(msg) {
   clearTimeout(toastTimer);
@@ -1412,6 +1572,7 @@ function txForm(tx, presetType, presetTrip) {
       sub: tx?.recurringId ? "Ocorrência de um gasto fixo. Alterar aqui não muda os outros meses." : "Preencha os detalhes do lançamento.",
       body: `<div class="form-grid two">
         <div class="tabs full" role="tablist"><button type="button" class="${type === "EXPENSE" ? "on exp" : ""}" data-act="tx-type" data-type="EXPENSE">Despesa</button><button type="button" class="${type === "INCOME" ? "on inc" : ""}" data-act="tx-type" data-type="INCOME">Receita</button></div>
+        ${!tx && SpeechRec ? `<div class="full" id="voice-slot" aria-live="polite"></div>` : ""}
         ${field("Descrição", "description", input("description", d.description ?? tx?.description ?? "", 'placeholder="Ex.: Mercado, Uber, Salário" maxlength="120" autofocus'), "full")}
         ${field("Valor", "amount", moneyInput("amount", d.amount ? parseMoneyToCents(d.amount) : tx?.amountCents))}
         ${field("Data", "date", input("date", d.date ?? tx?.date ?? defaultDate, 'type="date"'))}
@@ -1443,9 +1604,93 @@ function txForm(tx, presetType, presetTrip) {
       },
     });
   };
-  txForm.setType = (t) => { type = t; draw(); renderPhotoSlot(); };
+  txForm.setType = (t) => { type = t; draw(); renderPhotoSlot(); renderVoiceSlot(); };
+  txForm.getType = () => type;
+  stopVoice();
+  voiceUi = { mode: "idle", text: "" };
   draw();
   renderPhotoSlot();
+  renderVoiceSlot();
+}
+
+// ---------- Voice entry ----------
+// The browser's speech service (Google in Chrome/Android, Apple in Safari) turns the audio into text;
+// parseSpokenTransaction only fills the form, and nothing is saved until the user taps Salvar.
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+const VOICE_OK_KEY = "mf-voice-ok";
+const VOICE_ERRORS = {
+  "not-allowed": "O microfone está bloqueado. Libere o acesso nas configurações do navegador.",
+  "service-not-allowed": "O reconhecimento de voz está bloqueado neste navegador.",
+  "audio-capture": "Nenhum microfone encontrado neste aparelho.",
+  "network": "O reconhecimento de voz precisa de internet.",
+  "language-not-supported": "Este navegador não reconhece fala em português.",
+};
+let voice = null; // { rec, text, error } while listening
+let voiceUi = { mode: "idle", text: "" }; // idle | consent | listening | done
+
+function renderVoiceSlot() {
+  const slot = document.getElementById("voice-slot"); if (!slot) return;
+  const { mode, text } = voiceUi;
+  if (mode === "consent") {
+    slot.innerHTML = `<div class="voice-note"><p><b>Antes de falar:</b> quem transforma sua fala em texto é o serviço de voz do navegador (Google no Chrome e no Android, Apple no Safari), que recebe o áudio. Os campos são só preenchidos: nada é salvo sem você conferir.</p>
+      <div class="actions"><button type="button" class="btn btn-secondary btn-sm" data-act="voice-cancel">Agora não</button><button type="button" class="btn btn-primary btn-sm" data-act="voice-accept">${icon("mic")} Entendi, falar</button></div></div>`;
+    return;
+  }
+  const listening = mode === "listening";
+  const hint = listening ? text || "Fale o gasto, o valor e quando foi…" : mode === "done" ? `Ouvi: “${text}”. Confira os campos antes de salvar.` : "Ex.: “gastei 52,30 no mercado ontem”";
+  slot.innerHTML = `<button type="button" class="voice-btn ${listening ? "on" : ""}" data-act="voice" aria-pressed="${listening}">${icon("mic")}<span><b>${listening ? "Ouvindo… toque para parar" : mode === "done" ? "Falar de novo" : "Falar o lançamento"}</b><span class="hint voice-text">${esc(hint)}</span></span></button>`;
+}
+
+function voiceButton() {
+  if (voice) { try { voice.rec.stop(); } catch {} return; }
+  let ok = false; try { ok = localStorage.getItem(VOICE_OK_KEY) === "1"; } catch {}
+  if (ok) startVoice(); else { voiceUi = { mode: "consent", text: "" }; renderVoiceSlot(); }
+}
+
+function startVoice() {
+  let rec;
+  try { rec = new SpeechRec(); } catch { return toast("Não foi possível usar o microfone neste navegador."); }
+  rec.lang = "pt-BR"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+  const session = { rec, text: "", error: "" };
+  rec.onresult = (e) => {
+    if (voice !== session) return;
+    session.text = Array.from(e.results, (r) => r[0].transcript).join(" ").replace(/\s+/g, " ").trim();
+    const el = document.querySelector("#voice-slot .voice-text"); if (el) el.textContent = session.text;
+  };
+  rec.onerror = (e) => { session.error = e.error; };
+  rec.onend = () => { if (voice === session) { voice = null; finishVoice(session); } };
+  voice = session;
+  voiceUi = { mode: "listening", text: "" }; renderVoiceSlot();
+  try { rec.start(); } catch { voice = null; voiceUi = { mode: "idle", text: "" }; renderVoiceSlot(); toast("Não foi possível usar o microfone neste navegador."); }
+}
+
+// Ends listening without filling anything (form closed or type switched by hand).
+function stopVoice() {
+  if (!voice) return;
+  const s = voice; voice = null; voiceUi = { mode: "idle", text: "" };
+  try { s.rec.abort(); } catch {}
+}
+
+function finishVoice(session) {
+  if (!document.getElementById("voice-slot")) return;
+  if (!session.text) {
+    voiceUi = { mode: "idle", text: "" }; renderVoiceSlot();
+    if (session.error !== "aborted") toast(VOICE_ERRORS[session.error] || "Não ouvi nada. Toque no microfone e fale de novo.");
+    return;
+  }
+  const p = parseSpokenTransaction(session.text, state.categories, todayISO());
+  voiceUi = { mode: "done", text: session.text };
+  if (p.type !== txForm.getType()) txForm.setType(p.type); else renderVoiceSlot();
+  const fill = (name, value) => {
+    const el = document.querySelector(`#modal [name="${name}"]`); if (!el || value == null) return;
+    el.value = value; el.classList.add("voice-filled"); el.removeAttribute("aria-invalid");
+    el.closest(".field")?.querySelector(".err")?.remove();
+  };
+  fill("description", p.description);
+  fill("amount", p.amountCents ? centsToInput(p.amountCents) : null);
+  fill("date", p.date);
+  fill("categoryId", p.categoryId);
+  fill("status", p.status);
 }
 
 function recForm(rec) {
@@ -1793,7 +2038,10 @@ document.addEventListener("click", (e) => {
     "menu": menuSheet, "close": closeModal,
     "new-tx": () => txForm(null, el.dataset.type),
     "edit-tx": () => txForm(state.transactions.find((t) => t.id === id)),
-    "tx-type": () => txForm.setType(el.dataset.type),
+    "tx-type": () => { stopVoice(); txForm.setType(el.dataset.type); },
+    "voice": voiceButton,
+    "voice-accept": () => { try { localStorage.setItem(VOICE_OK_KEY, "1"); } catch {} startVoice(); },
+    "voice-cancel": () => { voiceUi = { mode: "idle", text: "" }; renderVoiceSlot(); },
     "toggle": () => { const t = state.transactions.find((x) => x.id === id); t.status = t.status === "PAID" ? "PENDING" : "PAID"; save(); render(); },
     "del-tx": () => { const t = state.transactions.find((x) => x.id === id); confirmDialog("Excluir lançamento?", `"${esc(t.description)}" será removido.`, "Excluir", () => {
       // Removed fixed occurrences become tombstones so they are not generated again.

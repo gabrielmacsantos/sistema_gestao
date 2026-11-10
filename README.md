@@ -75,6 +75,7 @@ Abra o link, preencha **Usuário do GitHub** e **Senha** e clique em **Entrar**.
 
 - Lance gastos, marque contas como pagas e acompanhe o painel. Tudo é salvo sozinho: o topo mostra **"Salvo no GitHub ✓"**.
 - **Viagens:** em **✈ Viagens** (no menu lateral ou, no celular, em ☰), crie a viagem e use **Novo gasto da viagem**. O painel avisa quanto ficou separado em viagens no mês. Para que os gastos de uma viagem entrem nos totais do mês, ligue **"Somar os gastos desta viagem à gestão do mês"** na página dela.
+- **Lançar falando:** em **Novo gasto**, toque em **🎤 Falar o lançamento** e diga, por exemplo, *"gastei 52,30 no mercado ontem"* ou *"recebi o salário de 3.500 reais dia 5"*. Descrição, valor, data, categoria e tipo são preenchidos; você confere e toca em **Salvar**. Funciona no Chrome, Edge e Safari (no Firefox o botão não aparece).
 - **Comprovante:** no lançamento, toque em **Anexar comprovante** e tire a foto (ou escolha da galeria). O lançamento ganha um 📎 na lista e a foto abre com um toque. Valor e descrição você digita.
 - No celular, use **"Adicionar à tela inicial"** no menu do navegador para abrir como um app.
 
@@ -127,6 +128,12 @@ No seu aparelho e, com conta, num segundo arquivo do seu GitHub (*"Minhas Finan�
 </details>
 
 <details>
+<summary><b>Para onde vai o áudio quando lanço falando?</b></summary>
+
+Para o serviço de voz do próprio navegador (Google no Chrome e no Android, Apple no Safari), que devolve o texto. O site não grava o áudio nem o envia para outro lugar, e o lançamento só é salvo quando você toca em **Salvar**. O aviso aparece na primeira vez que você usa.
+</details>
+
+<details>
 <summary><b>Posso usar sem conta?</b></summary>
 
 Pode, pelo botão **"Usar sem conta"** na tela de login. Os dados ficam só naquele navegador: limpar os dados de navegação apaga tudo, e eles não aparecem em outros aparelhos.
@@ -141,6 +148,7 @@ Pode, pelo botão **"Usar sem conta"** na tela de login. Os dados ficam só naqu
 | 📊 **Painel completo** | Entradas, total gasto, fixos comprometidos, gastos variáveis e saldo livre previsto, com fluxo de caixa de 6 meses e distribuição por categoria. |
 | 🔁 **Gastos fixos automáticos** | Aluguel, contas e assinaturas geram um lançamento pendente por mês, sozinhos. Editar um fixo nunca altera o passado. |
 | ✈️ **Viagens** | Uma aba só para viagens: crie a viagem (datas e orçamento) e lance nela passagens, hotel e passeios. Esses gastos ficam **separados** da gestão do mês, e uma chave em cada viagem decide se eles devem ser **somados** ou não. |
+| 🎤 **Lançar falando** | Toque no microfone e fale o gasto: o formulário é preenchido (valor, data, categoria, tipo) para você conferir e salvar. |
 | 📷 **Foto do comprovante** | Tire uma foto pelo celular (ou escolha da galeria) e anexe ao lançamento. Ela é reduzida no aparelho e salva criptografada no seu GitHub. |
 | 🏦 **Extrato OFX/CSV** | Importe o extrato do banco, revise antes de salvar e sem duplicar o que já foi importado. |
 | 🎯 **Orçamentos e metas** | Limite mensal por categoria, com alerta a partir de 80%, e metas de economia. |
@@ -189,6 +197,7 @@ O site é o arquivo [`index.html`](./index.html): um único arquivo HTML/JS, sem
 - **Contas sem servidor:** no cadastro, a pessoa informa um token do GitHub (escopo `gist`) e cria uma senha. O site grava na conta dela um Gist com um único arquivo, `minhas-financas.json`, que guarda os dados **e o token**, criptografados com AES-256-GCM. A chave é derivada da senha com PBKDF2-SHA256 (310 mil iterações) e nunca sai do aparelho.
 - **Login com usuário + senha:** o site lista os gists públicos do usuário (API pública do GitHub), baixa o arquivo, decifra com a senha e recupera o token de dentro dele para continuar salvando. Por isso o Gist é **público**: só o texto cifrado fica exposto, e a senha mínima é de 10 caracteres.
 - **Fotos de comprovante:** reduzidas no aparelho (até 1600px, JPEG), guardadas no IndexedDB e, com conta, cifradas com a mesma chave e enviadas como um arquivo por foto num segundo Gist (`comprovantes`), para o arquivo principal continuar pequeno. Outros aparelhos baixam pela URL *raw* do Gist só quando a foto é aberta.
+- **Lançamento por voz:** usa a Web Speech API do navegador (`SpeechRecognition`, `pt-BR`), que manda o áudio ao serviço de voz do Google ou da Apple. Isso é avisado antes do primeiro uso. O texto passa por `parseSpokenTransaction` (bloco `// <voice-parser>` no `index.html`, testado em `tests/voice-parser.test.ts`), que só preenche o formulário.
 - **Por que não neste repositório:** ele é público e compartilhado. Cada pessoa grava só na própria conta.
 - **Por que não um botão "Entrar com GitHub":** o OAuth do GitHub exige um servidor para guardar o *client secret*, e o GitHub Pages não executa código no servidor.
 - **Requisito para publicar:** em *Settings → Pages*, deixe *Source: Deploy from a branch*, *Branch: `main` / `(root)`*.
