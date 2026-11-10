@@ -1467,7 +1467,7 @@ function viewImportar() {
   return `${pageHead("Importar", "Traga as transações do seu banco por notificação ou extrato (OFX ou CSV). Você revisa tudo antes de salvar.")}
   <div style="display:flex;flex-direction:column;gap:16px;max-width:720px">
   ${inboxNotice()}
-  <section class="card" id="leitor" style="border-color:color-mix(in srgb,var(--primary) 35%,transparent)">
+  ${BankNotif() ? notifAppCard() : NATIVE ? "" : `<section class="card" id="leitor" style="border-color:color-mix(in srgb,var(--primary) 35%,transparent)">
     <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("down")} Leitor de notificações para Android</h2><span class="badge b-success">Grátis</span></div>
     <p class="muted">Um app pequeno que faz seus lançamentos quase sozinho, a partir das notificações do banco:</p>
     <ul class="muted" style="margin:10px 0 0;padding-left:20px;display:grid;gap:6px">
@@ -1478,7 +1478,7 @@ function viewImportar() {
     </ul>
     <div class="actions" style="margin-top:16px"><a class="btn btn-primary btn-sm" href="${READER_APK}">${icon("down")} Baixar o leitor (Android)</a><a class="btn btn-ghost btn-sm" href="${NOTIF_GUIDE}" target="_blank" rel="noopener">Como instalar</a></div>
     <p class="hint" style="margin-top:12px">Como ele não vem da Play Store, o Android pede para permitir a instalação e pode mostrar um alerta. No Android 13 ou mais novo, o acesso às notificações precisa de <b>Permitir configurações restritas</b>; o passo a passo mostra onde. No iPhone, use o campo abaixo para colar as notificações.</p>
-  </section>
+  </section>`}
   <section class="card">
     <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("bell")} Notificações do banco</h2></div>
     <p class="muted">Cole o texto de uma ou mais notificações (Pix recebido, compra aprovada, depósito…). Separe cada uma com uma linha em branco.</p>
@@ -1822,7 +1822,7 @@ const NativePlugins = {};
 if (NATIVE) {
   const cap = window.Capacitor, register = cap.registerPlugin || window.capacitorExports?.registerPlugin;
   const shipped = new Set((cap.PluginHeaders || []).map((h) => h.name));
-  for (const name of ["App", "Browser", "Filesystem", "Share", "SpeechRecognition"]) {
+  for (const name of ["App", "BankNotifications", "Browser", "Filesystem", "Share", "SpeechRecognition"]) {
     if (register && shipped.has(name)) NativePlugins[name] = register(name);
   }
 }
@@ -1938,7 +1938,9 @@ if (NATIVE) {
     else if (canGoBack) history.back();
     else NativePlugins.App.exitApp();
   });
-  NativePlugins.App?.addListener("resume", () => checkAppUpdate());
+  NativePlugins.App?.addListener("resume", () => { checkAppUpdate(); onAppForeground(); });
+  // A bank notification arrived while the app is open: bring it in right away.
+  NativePlugins.BankNotifications?.addListener("queued", () => pullNativeNotifications());
 }
 
 // ---------- Voice entry ----------
@@ -2402,7 +2404,8 @@ function hasIncoming() {
   if (pendingIncoming) return true;
   try { return !!sessionStorage.getItem(INCOMING_KEY); } catch { return false; }
 }
-async function flushIncoming() {
+// quiet: nothing to say when nothing new arrived (the app checks its native queue on every open).
+async function flushIncoming({ quiet = false } = {}) {
   if (flushingIncoming || !hasIncoming() || !(sync || isLocalMode())) return;
   flushingIncoming = true;
   try {
@@ -2410,17 +2413,149 @@ async function flushIncoming() {
     await pullIfNewer();
     const text = takeIncoming(); if (!text) return;
     const known = new Set([...state.inbox.map(notifKey), ...state.transactions.map((t) => t.externalId).filter(Boolean)]);
-    let added = 0;
+    const fresh = [];
     for (const e of splitNotifications(text, todayISO())) {
       const key = notifKey(e);
       // Balances, bill reminders and codes never become transactions, so they do not wait in the queue.
       if (known.has(key) || parseBankNotification(e.text, e.date).kind === "IGNORE") continue;
-      known.add(key); state.inbox.push({ id: uid(), text: e.text, date: e.date, at: Date.now() }); added++;
+      known.add(key); fresh.push(e);
     }
-    if (!added) { render(); return toast("Nada novo: a notificação já estava na fila, já foi lançada ou era só aviso (saldo, fatura, código)."); }
-    save(); reviewInbox();
-    toast(`${added} ${added === 1 ? "notificação recebida" : "notificações recebidas"}. Confira e confirme.`);
+    if (!fresh.length) {
+      render();
+      if (!quiet) toast("Nada novo: a notificação já estava na fila, já foi lançada ou era só aviso (saldo, fatura, código).");
+      return;
+    }
+    // Automatic mode (the user's own choice in the app): what was read with certainty is saved right away,
+    // anything unclear or possibly duplicated still waits for review.
+    const auto = notifAutoMode() ? notificationDrafts(fresh).filter((d) => d.include) : [];
+    const autoKeys = new Set(auto.map((d) => d.externalId));
+    for (const d of auto) {
+      state.transactions.push({ id: uid(), type: d.type, description: d.description, amountCents: d.amountCents, date: d.date, status: "PAID", categoryId: d.categoryId || null, source: "NOTIFICATION", externalId: d.externalId, recurringId: null, period: null, notes: "", createdAt: Date.now() });
+    }
+    const queued = fresh.filter((e) => !autoKeys.has(notifKey(e)));
+    for (const e of queued) state.inbox.push({ id: uid(), text: e.text, date: e.date, at: Date.now() });
+    save();
+    const savedMsg = auto.length ? `${auto.length} ${auto.length === 1 ? "lançamento adicionado" : "lançamentos adicionados"} das notificações` : "";
+    if (queued.length) {
+      reviewInbox();
+      toast(`${savedMsg ? `${savedMsg}. ` : ""}${queued.length} ${queued.length === 1 ? "notificação para conferir" : "notificações para conferir"}.`);
+    } else { render(); toast(`${savedMsg}.`); }
   } finally { flushingIncoming = false; }
+}
+
+// ---------- Bank notifications inside the Android app ----------
+// The app reads notifications natively (BankListener, mobile/android) only after the user says yes here, and they
+// choose whether clear ones are saved right away or everything waits for review. Both choices live on this phone.
+const NOTIF_ASKED_KEY = "mf-notif-asked";
+const NOTIF_AUTO_KEY = "mf-notif-auto";
+let notifStatus = null; // { access, watching, apps, pending, readerInstalled } from the native side
+const BankNotif = () => NativePlugins.BankNotifications;
+function notifAutoMode() { try { return localStorage.getItem(NOTIF_AUTO_KEY) === "1"; } catch { return false; } }
+function setNotifAutoMode(on) { try { localStorage.setItem(NOTIF_AUTO_KEY, on ? "1" : "0"); } catch {} }
+function notifAsked() { try { return localStorage.getItem(NOTIF_ASKED_KEY) === "1"; } catch { return true; } }
+function setNotifAsked() { try { localStorage.setItem(NOTIF_ASKED_KEY, "1"); } catch {} }
+const dayOf = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+
+async function refreshNotifStatus() {
+  if (!BankNotif()) return;
+  const before = JSON.stringify(notifStatus);
+  notifStatus = await BankNotif().status().catch(() => notifStatus);
+  if (JSON.stringify(notifStatus) !== before && route().path === "importar" && !importDrafts) render();
+}
+
+// Takes what the native side collected and sends it through the usual path (pull, inbox or auto, review).
+async function pullNativeNotifications() {
+  if (!BankNotif() || !notifStatus?.watching || !(sync || isLocalMode())) return;
+  const { items = [] } = await BankNotif().takeQueue().catch(() => ({}));
+  if (!items.length) return;
+  pendingIncoming = joinIncoming(pendingIncoming, items.map((i) => `[${dayOf(i.at)}] ${i.text}`).join("\n---\n"));
+  flushIncoming({ quiet: true });
+}
+
+async function onAppForeground() {
+  await refreshNotifStatus();
+  await pullNativeNotifications();
+  maybeAskNotifications();
+}
+
+// Asked once, on its own, when the app opens; afterwards only from the card in Importar.
+function maybeAskNotifications() {
+  if (!BankNotif() || notifAsked() || notifStatus?.watching || !(sync || isLocalMode())) return;
+  if (AUTH_PAGES.includes(route().path) || document.querySelector(".overlay")) return;
+  askNotifications();
+}
+
+function askNotifications() {
+  let auto = notifAutoMode();
+  const draw = () => openModal({
+    title: "Ler as notificações do banco?",
+    sub: "Você decide. Dá para mudar quando quiser em Importar.",
+    body: `<div class="form-grid">
+      <ul class="muted" style="margin:0;padding-left:20px;display:grid;gap:6px">
+        <li>O app passa a ler as notificações dos <b>bancos e carteiras que você marcar</b> (Pix, compras, depósitos), só as que têm valor em R$.</li>
+        <li>As outras notificações são ignoradas e nunca guardadas.</li>
+        <li>O texto lido fica neste celular até virar lançamento nos seus dados, que só você acessa.</li>
+        <li>Depois, o Android vai pedir para você ativar o <b>acesso às notificações</b> do Minhas Finanças.</li>
+      </ul>
+      <div class="field"><span class="field-label">Quando chegar uma movimentação</span>
+        <div class="tabs" role="radiogroup"><button type="button" class="${auto ? "" : "on"}" data-act="notif-ask-mode" data-mode="review" role="radio" aria-checked="${!auto}">Revisar antes</button><button type="button" class="${auto ? "on" : ""}" data-act="notif-ask-mode" data-mode="auto" role="radio" aria-checked="${auto}">Lançar sozinho</button></div>
+        <span class="hint">${auto ? "O que for lido com certeza vira lançamento na hora. O que estiver confuso ou parecer repetido espera a sua conferência." : "Tudo espera a sua conferência: um toque em “Importar” salva. Recomendado no começo."}</span>
+      </div>
+    </div>`,
+    foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="notif-not-now">Agora não</button><button type="submit" class="btn btn-primary btn-sm">${icon("bell")} Habilitar</button>`,
+    onSubmit: () => enableNotifications(auto),
+  });
+  askNotifications.setMode = (m) => { auto = m === "auto"; draw(); };
+  draw();
+}
+
+async function enableNotifications(auto) {
+  setNotifAsked(); setNotifAutoMode(auto); closeModal();
+  await BankNotif().setWatching({ on: true });
+  await BankNotif().requestPermissions().catch(() => {}); // to show "movimentações do banco"
+  await refreshNotifStatus();
+  if (!notifStatus?.access) {
+    toast("Na próxima tela, ative “Minhas Finanças” na lista.");
+    setTimeout(() => BankNotif().openAccessSettings(), 1200);
+  } else toast("Leitura de notificações ligada.");
+  render();
+}
+
+async function chooseNotifApps() {
+  const { apps = [] } = await BankNotif().listApps().catch(() => ({}));
+  openModal({
+    title: "Bancos e carteiras",
+    sub: "Só as notificações destes apps são lidas.",
+    body: `<div style="display:grid;gap:10px">${apps.map((a) => `<label style="display:flex;align-items:center;gap:10px"><input type="checkbox" name="app" value="${esc(a.id)}" ${a.checked ? "checked" : ""} style="width:18px;height:18px;accent-color:var(--primary)">${esc(a.label)}</label>`).join("") || `<p class="muted">Nenhum app encontrado.</p>`}</div>`,
+    foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm">${icon("check")} Salvar</button>`,
+    onSubmit: async () => {
+      const ids = [...document.querySelectorAll('#modal input[name="app"]:checked')].map((i) => i.value);
+      await BankNotif().setApps({ ids }); closeModal(); await refreshNotifStatus(); render();
+      toast(`${ids.length} ${ids.length === 1 ? "app marcado" : "apps marcados"}.`);
+    },
+  });
+}
+
+function notifAppCard() {
+  const s = notifStatus || {}, auto = notifAutoMode();
+  const head = `<div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("bell")} Notificações do banco neste celular</h2><span class="badge ${s.watching ? (s.access ? "b-success" : "b-warning") : ""}">${s.watching ? (s.access ? "Ligado" : "Falta o acesso") : "Desligado"}</span></div>`;
+  if (!s.watching) {
+    return `<section class="card" id="leitor">${head}
+      <p class="muted">O app pode ler as notificações de Pix, compras e depósitos dos seus bancos e carteiras e trazer as movimentações para cá. Nada liga sem você pedir.</p>
+      <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="notif-ask">${icon("bell")} Habilitar</button></div></section>`;
+  }
+  return `<section class="card" id="leitor" style="border-color:color-mix(in srgb,var(--primary) 35%,transparent)">${head}
+    ${s.access ? "" : `<p class="muted">Falta ativar o <b>acesso às notificações</b> do Minhas Finanças no Android.</p>
+      <div class="actions" style="margin-top:8px"><button class="btn btn-primary btn-sm" data-act="notif-access">Dar acesso às notificações</button><button class="btn btn-ghost btn-sm" data-act="notif-app-details">Abrir informações do app</button></div>
+      <p class="hint" style="margin-top:8px">Se a opção aparecer cinza, toque em “Abrir informações do app”, no menu ⋮ e em <b>Permitir configurações restritas</b>. Volte e tente de novo.</p>`}
+    <div class="field" style="margin-top:16px"><span class="field-label">Quando chegar uma movimentação</span>
+      <div class="tabs" role="radiogroup"><button type="button" class="${auto ? "" : "on"}" data-act="notif-mode" data-mode="review" role="radio" aria-checked="${!auto}">Revisar antes</button><button type="button" class="${auto ? "on" : ""}" data-act="notif-mode" data-mode="auto" role="radio" aria-checked="${auto}">Lançar sozinho</button></div>
+      <span class="hint">${auto ? "O que for lido com certeza vira lançamento na hora; o resto espera a sua conferência." : "Tudo espera a sua conferência antes de virar lançamento."}</span>
+    </div>
+    <div class="actions" style="margin-top:16px"><button class="btn btn-secondary btn-sm" data-act="notif-apps">Bancos e carteiras (${s.apps || 0})</button><button class="btn btn-ghost btn-sm" data-act="notif-off">Desligar</button></div>
+    ${s.readerInstalled ? `<p class="hint" style="margin-top:12px">O <b>leitor de notificações</b> separado também está instalado. Com o app lendo, você pode desinstalá-lo para não receber cada movimentação duas vezes.</p>` : ""}
+    <p class="hint" style="margin-top:12px">Se as movimentações pararem de chegar, deixe o app como “sem restrições” em Configurações → Apps → Minhas Finanças → Bateria.</p>
+  </section>`;
 }
 
 // ---------- Demo data ----------
@@ -2512,6 +2647,14 @@ document.addEventListener("click", (e) => {
     "confirm-import": confirmImport,
     // The browser downloads the .apk and Android installs it over this version (same signing key, data kept).
     "update-app": () => { if (appUpdate) NativePlugins.Browser?.open({ url: appUpdate.url }); },
+    "notif-ask": askNotifications,
+    "notif-ask-mode": () => askNotifications.setMode(el.dataset.mode),
+    "notif-not-now": () => { setNotifAsked(); closeModal(); toast("Tudo bem. Se mudar de ideia, é só ir em Importar."); },
+    "notif-mode": () => { setNotifAutoMode(el.dataset.mode === "auto"); render(); },
+    "notif-apps": chooseNotifApps,
+    "notif-access": () => BankNotif().openAccessSettings(),
+    "notif-app-details": () => BankNotif().openAppDetails(),
+    "notif-off": async () => { await BankNotif().setWatching({ on: false }); await refreshNotifStatus(); render(); toast("Leitura de notificações desligada."); },
     "update-later": () => { writeUpdateState({ ...readUpdateState(), dismissed: appUpdate?.build }); appUpdate = null; render(); },
     "export": () => {
       if (NATIVE) return shareFile(`minhas-financas-backup-${todayISO()}.json`, JSON.stringify(state, null, 2)).catch(() => toast("Não foi possível salvar o backup."));
@@ -2575,6 +2718,7 @@ window.addEventListener("beforeunload", (e) => { if (pushTimer || pushing) { pus
 render();
 pullIfNewer();
 checkAppUpdate(true);
+if (NATIVE) onAppForeground();
 </script>
 </body>
 </html>

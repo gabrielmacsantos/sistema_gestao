@@ -44,6 +44,17 @@ No `index.html`, a seção "Native app (Capacitor)" só liga quando `window.Capa
 | Backup baixado como arquivo | Salvo no cache e entregue à tela **Compartilhar** (salvar no Drive, mandar por e-mail…) |
 | Links externos na mesma aba | Navegador dentro do app (`@capacitor/browser`) |
 | — | Botão **voltar** do Android fecha a janela aberta, depois volta a página, depois sai |
+| Cartão "Leitor de notificações para Android" (baixar o app separado) | **Notificações do banco neste celular**: o próprio app lê as notificações (plugin `BankNotifications`), só depois de a pessoa habilitar, com o modo "Revisar antes" ou "Lançar sozinho" |
+
+### Notificações do banco no app
+
+A parte nativa fica em `android/app/src/main/java/io/github/gabrielmacsantos/minhasfinancas/`:
+
+- `BankListener`: recebe as notificações do Android e guarda só as dos apps marcados que têm valor em R$, e só com a leitura ligada.
+- `NotificationQueue`: a fila, o liga/desliga e os apps marcados, em `SharedPreferences`. Ela também mostra a notificação "N movimentações do banco", que abre o app.
+- `BankNotificationsPlugin`: `status`, `setWatching`, `openAccessSettings`, `openAppDetails`, `listApps`, `setApps`, `takeQueue` e o evento `queued`.
+
+O `index.html` pergunta antes de ligar (uma vez ao abrir, depois só em Importar), pega a fila ao abrir ou voltar para o app e usa a mesma revisão do site. Instalado fora da Play Store, o Android 13 ou mais novo exige **Permitir configurações restritas** antes de liberar o acesso às notificações.
 
 Os dados ficam no armazenamento do próprio app. Com conta, eles sincronizam pelo Gist como no site. O backup automático do Android está **desligado** (`allowBackup="false"`), porque copiaria para o Google Drive o token do GitHub guardado no aparelho.
 

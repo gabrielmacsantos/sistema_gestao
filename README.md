@@ -92,9 +92,16 @@ Na tela de login, clique em **"Usar sem conta (só neste aparelho)"** e depois e
 
 ## 🔔 Receber as notificações do banco
 
-Um site não consegue ler as notificações de outros apps: o celular não deixa. Então um app no celular faz a ponte e entrega o texto ao site. As notificações caem numa fila (**"3 notificações do banco para revisar"** no Painel) e **só viram lançamento quando você confirma**. Avisos de saldo, de fatura a vencer e códigos são ignorados.
+Um site não consegue ler as notificações de outros apps: o celular não deixa. Então um app no celular faz a ponte e entrega o texto ao site. As notificações caem numa fila (**"3 notificações do banco para revisar"** no Painel) e **só viram lançamento quando você confirma**. No app, você pode escolher que o que estiver claro seja lançado sozinho. Avisos de saldo, de fatura a vencer e códigos são ignorados.
 
-### Android, com o leitor do Minhas Finanças
+### Android, com o app Minhas Finanças
+
+Se você usa o **app** ([instalar](https://github.com/gabrielmacsantos/sistema_gestao/releases/download/app-latest/minhas-financas.apk)), ele mesmo lê as notificações, sem o leitor separado. Na primeira vez que abrir, o app pergunta se você quer habilitar. Depois, dá para ligar, desligar e escolher os bancos em **Importar → Notificações do banco neste celular**. Você também escolhe o que acontece quando chega uma movimentação:
+
+- **Revisar antes** (recomendado): tudo espera a sua conferência, e um toque em "Importar" salva.
+- **Lançar sozinho:** o que foi lido com certeza vira lançamento na hora. O que estiver confuso ou parecer repetido continua esperando a conferência.
+
+### Android, com o leitor do Minhas Finanças (para quem usa só o site)
 
 O **leitor** é um app pequeno, feito para isto e publicado aqui no GitHub. Ele não tem permissão de internet: só junta as notificações dos seus bancos e carteiras e, com um toque, abre o site com elas.
 
