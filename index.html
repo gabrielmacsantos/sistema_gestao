@@ -1816,7 +1816,16 @@ function txForm(tx, presetType, presetTrip) {
 // mobile/ bundles this same file into the Android/iOS app. Everything below only switches on there;
 // in a browser NATIVE is false and the site behaves as before.
 const NATIVE = !!window.Capacitor?.isNativePlatform?.();
-const NativePlugins = (NATIVE && window.Capacitor.Plugins) || {};
+// Native plugins are reachable only through Capacitor.registerPlugin, which comes from capacitor.js; the app copy
+// loads it (mobile/scripts/copy-web.mjs). Only plugins the app actually ships (PluginHeaders) are registered.
+const NativePlugins = {};
+if (NATIVE) {
+  const cap = window.Capacitor, register = cap.registerPlugin || window.capacitorExports?.registerPlugin;
+  const shipped = new Set((cap.PluginHeaders || []).map((h) => h.name));
+  for (const name of ["App", "Browser", "Filesystem", "Share", "SpeechRecognition"]) {
+    if (register && shipped.has(name)) NativePlugins[name] = register(name);
+  }
+}
 
 // The app's WebView has no SpeechRecognition, so the native plugin stands in with the same small interface.
 // Final results only: on Android the plugin reports "stopped" before the final text, and with partial results
@@ -1906,7 +1915,10 @@ if (NATIVE) {
 // ---------- Voice entry ----------
 // The browser's speech service (Google in Chrome/Android, Apple in Safari) turns the audio into text;
 // parseSpokenTransaction only fills the form, and nothing is saved until the user taps Salvar.
-const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || (NativePlugins.SpeechRecognition ? NativeSpeech : null);
+// In the app always the native plugin: the Android WebView exposes webkitSpeechRecognition, but it never hears anything.
+const SpeechRec = NATIVE
+  ? (NativePlugins.SpeechRecognition ? NativeSpeech : null)
+  : window.SpeechRecognition || window.webkitSpeechRecognition;
 const VOICE_OK_KEY = "mf-voice-ok";
 const VOICE_ERRORS = {
   "not-allowed": NATIVE

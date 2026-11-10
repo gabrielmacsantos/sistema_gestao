@@ -34,6 +34,8 @@ cd android && ./gradlew assembleDebug
 
 ## O que muda dentro do app
 
+O `copy-web` também copia o `capacitor.js` (do `@capacitor/core`) para `www/` e o carrega na cópia do `index.html` do app. Ele fornece o `Capacitor.registerPlugin`; sem isso, o site não alcança os plugins nativos. O site do GitHub Pages não o carrega.
+
 No `index.html`, a seção "Native app (Capacitor)" só liga quando `window.Capacitor.isNativePlatform()` é verdadeiro:
 
 | No site | No app |
