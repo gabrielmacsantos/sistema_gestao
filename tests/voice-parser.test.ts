@@ -14,7 +14,7 @@ type Parsed = {
 type Parse = (text: string, categories: Category[], today: string) => Parsed;
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const block = /\/\/ <voice-parser>.*\n([\s\S]*?)\/\/ <\/voice-parser>/.exec(html)?.[1];
+const block = /\/\/ <voice-parser>.*\r?\n([\s\S]*?)\/\/ <\/voice-parser>/.exec(html)?.[1];
 if (!block) throw new Error("voice-parser block not found in index.html");
 const parse = new Function(`${block}\nreturn parseSpokenTransaction;`)() as Parse;
 

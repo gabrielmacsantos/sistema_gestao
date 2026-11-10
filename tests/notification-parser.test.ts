@@ -11,7 +11,7 @@ type Parsers = {
 };
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const block = /\/\/ <notification-parser>.*\n([\s\S]*?)\/\/ <\/notification-parser>/.exec(html)?.[1];
+const block = /\/\/ <notification-parser>.*\r?\n([\s\S]*?)\/\/ <\/notification-parser>/.exec(html)?.[1];
 if (!block) throw new Error("notification-parser block not found in index.html");
 const { parseBankNotification, splitNotifications } = new Function(
   `${block}\nreturn { parseBankNotification, splitNotifications };`,
