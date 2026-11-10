@@ -1,0 +1,99 @@
+# Builds the Android app (mobile/, Capacitor around the root index.html).
+# Uses the same signing secrets as the notification reader (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD).
+# On main with the key: signed APK (to install) and AAB (for the Play Store) in the pre-release "app-v<versionName>".
+# Pre-release on purpose, so "releases/latest" keeps pointing at the notification reader.
+name: App Android
+
+on:
+  push:
+    paths:
+      - "index.html"
+      - "mobile/**"
+      - ".github/workflows/mobile-android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Copiar o site para o app
+        working-directory: mobile
+        run: |
+          npm ci --no-audit --no-fund
+          npm run sync:android
+
+      - name: Chave de assinatura
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            clean=$(printf '%s' "$KEYSTORE" | tr -d ' \r\n\t')
+            if ! printf '%s' "$clean" | base64 -d > "$RUNNER_TEMP/app.p12" 2> /dev/null; then
+              echo "::error::ANDROID_KEYSTORE_BASE64 não é um base64 válido (${#clean} caracteres)."
+              exit 1
+            fi
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/app.p12" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Sem a chave de assinatura: gerando só um APK de teste."
+          fi
+
+      - name: Montar
+        working-directory: mobile/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -o pipefail
+          chmod +x gradlew
+          mkdir -p ../../out
+          if [ -n "$ANDROID_KEYSTORE_FILE" ]; then
+            ANDROID_KEYSTORE_PASSWORD=$(printf '%s' "$ANDROID_KEYSTORE_PASSWORD" | tr -d '\r\n')
+            export ANDROID_KEYSTORE_PASSWORD
+            tasks="assembleRelease bundleRelease"
+          else
+            tasks="assembleDebug"
+          fi
+          # Build errors also become annotations, readable on the run page.
+          if ! ./gradlew $tasks --no-daemon --stacktrace 2>&1 | tee "$RUNNER_TEMP/build.log"; then
+            grep -E "error:|What went wrong|Exception|> " "$RUNNER_TEMP/build.log" | head -30 | while IFS= read -r line; do echo "::error::$line"; done
+            exit 1
+          fi
+          if [ -n "$ANDROID_KEYSTORE_FILE" ]; then
+            cp app/build/outputs/apk/release/app-release.apk ../../out/minhas-financas.apk
+            cp app/build/outputs/bundle/release/app-release.aab ../../out/minhas-financas.aab
+          else
+            cp app/build/outputs/apk/debug/app-debug.apk ../../out/minhas-financas.apk
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: minhas-financas-app
+          path: out/
+
+      - name: Publicar no Releases
+        if: github.ref == 'refs/heads/main' && env.ANDROID_KEYSTORE_FILE != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -n 's/.*versionName "\(.*\)".*/\1/p' mobile/android/app/build.gradle)
+          tag="app-v$version"
+          if ! gh release view "$tag" > /dev/null 2>&1; then
+            gh release create "$tag" --prerelease --target "$GITHUB_SHA" --title "App Minhas Finanças $version (teste)" \
+              --notes "App Android do Minhas Finanças. O .apk instala direto no celular; o .aab é o pacote para a Play Store."
+          fi
+          gh release upload "$tag" out/minhas-financas.apk out/minhas-financas.aab --clobber

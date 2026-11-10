@@ -90,7 +90,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .rail .btn-new .lbl { display: none; }
 .rail-foot { border-top: 1px solid var(--hairline); padding-top: 16px; margin-top: 24px; display: flex; flex-direction: column; gap: 4px; }
 .page { min-height: 100dvh; display: flex; flex-direction: column; }
-.topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--card) 82%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--hairline); }
+.topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--card) 82%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--hairline); padding-top: env(safe-area-inset-top); }
 .topbar-in { max-width: 1280px; margin: 0 auto; height: 64px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .trail { display: none; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--secondary); }
 .trail b { color: var(--primary); font-weight: 600; }
@@ -290,7 +290,7 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .tabs button.on.exp { color: var(--danger); } .tabs button.on.inc { color: var(--success); }
 
 /* Modal + toast */
-.overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: var(--scrim); backdrop-filter: blur(2px); animation: fade .15s; }
+.overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: var(--scrim); backdrop-filter: blur(2px); animation: fade .15s; padding-top: env(safe-area-inset-top); }
 @media (min-width: 640px) { .overlay { align-items: center; padding: 16px; } }
 .modal { width: 100%; max-width: 520px; max-height: 92dvh; display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--hairline); border-radius: 20px 20px 0 0; box-shadow: var(--shadow-3); animation: up .2s; }
 @media (min-width: 640px) { .modal { border-radius: 20px; } }
@@ -308,7 +308,7 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .sync .txt { display: none; }
 @media (min-width: 1024px) { .sync .txt { display: inline; } }
 .steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; color: var(--on-var); }
-main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: 32px 16px; background: var(--c-low); }
+main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: calc(32px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom)); background: var(--c-low); }
 .auth-box { width: 100%; max-width: 420px; }
 .auth-brand { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px; }
 .auth-card { padding: 24px; box-shadow: var(--shadow-3); }
@@ -1812,10 +1812,64 @@ function txForm(tx, presetType, presetTrip) {
   renderVoiceSlot();
 }
 
+// ---------- Native app (Capacitor) ----------
+// mobile/ bundles this same file into the Android/iOS app. Everything below only switches on there;
+// in a browser NATIVE is false and the site behaves as before.
+const NATIVE = !!window.Capacitor?.isNativePlatform?.();
+const NativePlugins = (NATIVE && window.Capacitor.Plugins) || {};
+
+// The app's WebView has no SpeechRecognition, so the native plugin stands in with the same small interface.
+class NativeSpeech {
+  start() {
+    const P = NativePlugins.SpeechRecognition, handles = [];
+    this._end = () => {
+      if (this._ended) return;
+      this._ended = true; handles.forEach((h) => h.remove());
+      this.onend?.();
+    };
+    (async () => {
+      try {
+        const perm = await P.requestPermissions();
+        if (perm.speechRecognition !== "granted") { this.onerror?.({ error: "not-allowed" }); return this._end(); }
+        handles.push(await P.addListener("partialResults", (d) => { const t = d.matches?.[0]; if (t && !this._aborted) this.onresult?.({ results: [[{ transcript: t }]] }); }));
+        handles.push(await P.addListener("listeningState", (d) => { if (d.status === "stopped") this._end(); }));
+        await P.start({ language: "pt-BR", maxResults: 1, partialResults: true, popup: false });
+      } catch (e) {
+        this.onerror?.({ error: /permiss/i.test(String(e?.message)) ? "not-allowed" : "no-speech" }); this._end();
+      }
+    })();
+  }
+  stop() { NativePlugins.SpeechRecognition.stop().catch(() => {}); }
+  abort() { this._aborted = true; this.stop(); this._end?.(); }
+}
+
+// Files (backup) cannot be downloaded from the WebView: save to the app cache and open the share sheet.
+async function shareFile(name, text) {
+  const { uri } = await NativePlugins.Filesystem.writeFile({ path: name, data: text, directory: "CACHE", encoding: "utf8" });
+  await NativePlugins.Share.share({ title: name, url: uri, dialogTitle: "Salvar ou enviar o backup" });
+}
+
+if (NATIVE) {
+  // Links to other sites open in the in-app browser instead of replacing the app.
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest?.("a[href]");
+    if (!a || !/^https?:/.test(a.href) || a.origin === location.origin) return;
+    e.preventDefault(); NativePlugins.Browser?.open({ url: a.href });
+  }, true);
+  // Android back button: close what is open first, then go back, then leave the app.
+  NativePlugins.App?.addListener("backButton", ({ canGoBack }) => {
+    const viewer = document.querySelector(".viewer");
+    if (viewer) viewer.click();
+    else if (document.querySelector(".overlay")) closeModal();
+    else if (canGoBack) history.back();
+    else NativePlugins.App.exitApp();
+  });
+}
+
 // ---------- Voice entry ----------
 // The browser's speech service (Google in Chrome/Android, Apple in Safari) turns the audio into text;
 // parseSpokenTransaction only fills the form, and nothing is saved until the user taps Salvar.
-const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || (NativePlugins.SpeechRecognition ? NativeSpeech : null);
 const VOICE_OK_KEY = "mf-voice-ok";
 const VOICE_ERRORS = {
   "not-allowed": "O microfone está bloqueado. Libere o acesso nas configurações do navegador.",
@@ -2377,6 +2431,7 @@ document.addEventListener("click", (e) => {
     "copy-notif-link": () => { const v = document.getElementById("notif-link").value; navigator.clipboard?.writeText(v).then(() => toast("Endereço copiado."), () => toast("Não foi possível copiar. Selecione e copie o texto.")); },
     "confirm-import": confirmImport,
     "export": () => {
+      if (NATIVE) return shareFile(`minhas-financas-backup-${todayISO()}.json`, JSON.stringify(state, null, 2)).catch(() => toast("Não foi possível salvar o backup."));
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `minhas-financas-backup-${todayISO()}.json`; a.click(); URL.revokeObjectURL(a.href);
       toast("Backup baixado.");

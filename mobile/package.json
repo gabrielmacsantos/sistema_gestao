@@ -1,0 +1,23 @@
+{
+  "name": "minhas-financas-mobile",
+  "private": true,
+  "type": "module",
+  "description": "Android and iOS app for Minhas Finanças: wraps the root index.html with Capacitor.",
+  "scripts": {
+    "copy-web": "node scripts/copy-web.mjs",
+    "sync": "npm run copy-web && cap sync",
+    "sync:android": "npm run copy-web && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3",
+    "@capacitor-community/speech-recognition": "7.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}

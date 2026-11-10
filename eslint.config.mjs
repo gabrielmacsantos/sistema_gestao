@@ -11,6 +11,9 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    // Native apps (Capacitor and the notification reader) have their own toolchains.
+    "mobile/**",
+    "android/**",
     "next-env.d.ts",
   ]),
 ]);
