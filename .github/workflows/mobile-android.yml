@@ -36,6 +36,9 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      # Caches Gradle and Android dependencies between builds, so a slow dl.google.com matters less.
+      - uses: gradle/actions/setup-gradle@v4
+
       - name: Copiar o site para o app
         working-directory: mobile
         run: |
@@ -73,7 +76,9 @@ jobs:
             tasks="assembleDebug"
           fi
           # Build errors also become annotations, readable on the run page.
-          if ! ./gradlew $tasks --no-daemon --stacktrace 2>&1 | tee "$RUNNER_TEMP/build.log"; then
+          # Longer timeouts and more retries: dl.google.com sometimes stalls ("Read timed out").
+          net="-Dorg.gradle.internal.http.connectionTimeout=120000 -Dorg.gradle.internal.http.socketTimeout=120000 -Dorg.gradle.internal.repository.max.retries=6"
+          if ! ./gradlew $tasks $net --no-daemon --stacktrace 2>&1 | tee "$RUNNER_TEMP/build.log"; then
             grep -E "error:|What went wrong|Exception|> " "$RUNNER_TEMP/build.log" | head -30 | while IFS= read -r line; do echo "::error::$line"; done
             exit 1
           fi
