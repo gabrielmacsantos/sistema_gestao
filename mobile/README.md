@@ -13,7 +13,7 @@ Link fixo para instalar a versão mais recente: https://github.com/gabrielmacsan
 
 ## Aviso de atualização
 
-As notas do `app-latest` terminam com `<!-- build:N sha:... -->`. Ao abrir o app e ao voltar para ele (no máximo uma vez por hora), `checkAppUpdate()` compara `N` com o `versionCode` instalado (`App.getInfo().build`). Se houver versão mais nova, aparece no topo **"Nova versão do app disponível"**, com **Atualizar** (baixa o `.apk`, e o Android instala por cima, mantendo os dados) e **Agora não** (esconde até sair a próxima). Sem internet, ou se a consulta falhar, nada aparece.
+As notas do `app-latest` terminam com `<!-- build:N sha:... -->`. Toda vez que o app abre, e ao voltar para ele no máximo uma vez por hora, `checkAppUpdate()` compara `N` com o `versionCode` instalado (`App.getInfo().build`). Se houver versão mais nova, aparece no topo **"Nova versão do app disponível"**, com **Atualizar** (baixa o `.apk`, e o Android instala por cima, mantendo os dados) e **Agora não** (esconde até sair a próxima). Sem internet, ou se a consulta falhar, nada aparece.
 
 A lista do que mudou sai das linhas `App: <texto em pt-BR>` das mensagens de commit desde a montagem anterior. Sem nenhuma, o aviso diz "Melhorias e correções". Exemplo:
 

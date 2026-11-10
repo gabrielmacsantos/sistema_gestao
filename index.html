@@ -1887,7 +1887,7 @@ async function shareFile(name, text) {
 }
 
 // App updates: CI publishes every Android build as the pre-release "app-latest", with "<!-- build:N -->" in its
-// notes. On open and on return to the app (at most once an hour) we compare N with the installed versionCode.
+// notes. Every time the app opens, and on return to it at most once an hour, we compare N with the installed versionCode.
 const APP_RELEASE_API = "https://api.github.com/repos/gabrielmacsantos/sistema_gestao/releases/tags/app-latest";
 const UPDATE_KEY = "mf-app-update";
 const UPDATE_EVERY = 3600 * 1000;
@@ -1896,12 +1896,12 @@ let appUpdate = null; // { build, url, notes } while a newer build is waiting
 function readUpdateState() { try { return JSON.parse(localStorage.getItem(UPDATE_KEY) || "{}"); } catch { return {}; } }
 function writeUpdateState(s) { try { localStorage.setItem(UPDATE_KEY, JSON.stringify(s)); } catch {} }
 
-async function checkAppUpdate() {
+async function checkAppUpdate(onOpen = false) {
   if (!NATIVE || !NativePlugins.App?.getInfo) return;
   const info = await NativePlugins.App.getInfo().catch(() => null);
   const installed = Number(info?.build) || 0;
   let s = readUpdateState();
-  if (!s.checkedAt || Date.now() - s.checkedAt > UPDATE_EVERY) {
+  if (onOpen || !s.checkedAt || Date.now() - s.checkedAt > UPDATE_EVERY) {
     try {
       const res = await fetch(APP_RELEASE_API, { headers: { Accept: "application/vnd.github+json" } });
       if (res.ok) {
@@ -2574,7 +2574,7 @@ window.addEventListener("beforeunload", (e) => { if (pushTimer || pushing) { pus
 
 render();
 pullIfNewer();
-checkAppUpdate();
+checkAppUpdate(true);
 </script>
 </body>
 </html>
