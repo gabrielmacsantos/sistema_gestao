@@ -1467,15 +1467,25 @@ function viewImportar() {
   return `${pageHead("Importar", "Traga as transações do seu banco por notificação ou extrato (OFX ou CSV). Você revisa tudo antes de salvar.")}
   <div style="display:flex;flex-direction:column;gap:16px;max-width:720px">
   ${inboxNotice()}
+  <section class="card" id="leitor" style="border-color:color-mix(in srgb,var(--primary) 35%,transparent)">
+    <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("down")} Leitor de notificações para Android</h2><span class="badge b-success">Grátis</span></div>
+    <p class="muted">Um app pequeno que faz seus lançamentos quase sozinho, a partir das notificações do banco:</p>
+    <ul class="muted" style="margin:10px 0 0;padding-left:20px;display:grid;gap:6px">
+      <li>Lê as notificações dos seus <b>bancos e carteiras digitais</b> (Pix recebido ou enviado, compras, depósitos), só as que têm valor em R$.</li>
+      <li>Junta tudo numa fila no celular e avisa: <b>“1 movimentação para enviar”</b>.</li>
+      <li>Um toque abre este site com as movimentações prontas. Você <b>confere e confirma</b>; nada é salvo sozinho.</li>
+      <li><b>Não tem acesso à internet</b>: o app não envia nada para ninguém, só entrega a fila ao seu navegador.</li>
+    </ul>
+    <div class="actions" style="margin-top:16px"><a class="btn btn-primary btn-sm" href="${READER_APK}">${icon("down")} Baixar o leitor (Android)</a><a class="btn btn-ghost btn-sm" href="${NOTIF_GUIDE}" target="_blank" rel="noopener">Como instalar</a></div>
+    <p class="hint" style="margin-top:12px">Como ele não vem da Play Store, o Android pede para permitir a instalação e pode mostrar um alerta. No Android 13 ou mais novo, o acesso às notificações precisa de <b>Permitir configurações restritas</b>; o passo a passo mostra onde. No iPhone, use o campo abaixo para colar as notificações.</p>
+  </section>
   <section class="card">
     <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("bell")} Notificações do banco</h2></div>
     <p class="muted">Cole o texto de uma ou mais notificações (Pix recebido, compra aprovada, depósito…). Separe cada uma com uma linha em branco.</p>
     <textarea class="input" id="notif-text" rows="5" style="margin-top:12px" placeholder="Você recebeu um Pix de R$ 150,00 de Fulano&#10;&#10;Compra aprovada de R$ 52,30 em MERCADO X"></textarea>
     <div class="actions" style="margin-top:12px"><button class="btn btn-primary btn-sm" data-act="read-notifs">${icon("check")} Ler notificações</button></div>
-    <details style="margin-top:16px"><summary class="hint" style="cursor:pointer"><b>Receber sozinho no Android</b> (ou com Apple Pay no iPhone)</summary>
-      <p class="hint" style="margin-top:8px">Instale o <b>leitor de notificações</b>: um app pequeno, sem acesso à internet, que junta as notificações dos seus bancos e carteiras e as entrega aqui com um toque. Você só confirma.</p>
-      <div class="actions" style="margin-top:8px"><a class="btn btn-primary btn-sm" href="${READER_APK}">${icon("down")} Baixar o leitor (Android)</a><a class="btn btn-ghost btn-sm" href="${NOTIF_GUIDE}" target="_blank" rel="noopener">Como instalar</a></div>
-      <p class="hint" style="margin-top:12px">Para o Atalhos do iPhone ou outro app de automação, use este endereço com o texto da notificação no fim:</p>
+    <details style="margin-top:16px"><summary class="hint" style="cursor:pointer"><b>Usar o Atalhos do iPhone ou outro app de automação</b></summary>
+      <p class="hint" style="margin-top:8px">Use este endereço com o texto da notificação no fim:</p>
       <div style="display:flex;gap:8px;margin-top:8px"><input class="input input-sm" id="notif-link" readonly value="${esc(notifLink())}" aria-label="Endereço para a automação"><button class="btn btn-secondary btn-sm" data-act="copy-notif-link">${icon("copy")} Copiar</button></div>
     </details>
   </section>

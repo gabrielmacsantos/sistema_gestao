@@ -98,7 +98,7 @@ Um site não consegue ler as notificações de outros apps: o celular não deixa
 
 O **leitor** é um app pequeno, feito para isto e publicado aqui no GitHub. Ele não tem permissão de internet: só junta as notificações dos seus bancos e carteiras e, com um toque, abre o site com elas.
 
-1. **Baixe** no celular: [minhas-financas-leitor.apk](https://github.com/gabrielmacsantos/sistema_gestao/releases/latest/download/minhas-financas-leitor.apk) (ou em **Importar → Receber sozinho no Android → Baixar o leitor**).
+1. **Baixe** no celular: [minhas-financas-leitor.apk](https://github.com/gabrielmacsantos/sistema_gestao/releases/latest/download/minhas-financas-leitor.apk) (ou no site, em **Importar → Leitor de notificações para Android → Baixar o leitor**).
 2. **Instale** abrindo o arquivo baixado. Como ele não vem da Play Store, o Android pede para **permitir instalar apps desta fonte** (o navegador) e pode mostrar um alerta do Play Protect. Toque em *Instalar mesmo assim*.
 3. **Abra o leitor** e toque em **Dar acesso às notificações**. Na lista, ative **Minhas Finanças: leitor**.
    - **A opção aparece cinza ou bloqueada?** É uma proteção do Android 13 ou mais novo para apps de fora da Play Store. Volte ao leitor, toque em **Abrir informações do app**, depois no menu **⋮** (canto de cima) e em **Permitir configurações restritas**. Tente o passo 3 de novo.
@@ -110,7 +110,7 @@ Quando a carteira e o banco do cartão avisam a mesma compra, a segunda vem desm
 <details>
 <summary><b>Prefere o MacroDroid (ou outro app de automação)?</b></summary>
 
-Copie o seu endereço em **Importar → Receber sozinho no Android → Copiar** (ele termina em `#/notificacao?t=`).
+Copie o seu endereço em **Importar → Notificações do banco → Usar o Atalhos do iPhone ou outro app de automação → Copiar** (ele termina em `#/notificacao?t=`).
 
 1. Instale o **MacroDroid** pela Play Store, abra e, quando ele pedir, permita o **acesso às notificações**.
 2. Toque em **Adicionar macro**.
@@ -126,7 +126,7 @@ A cada notificação de banco, o navegador abre o site com a notificação pront
 O iPhone não deixa nenhum app ler notificações de outros apps. O que dá para fazer:
 
 - **Pix e o resto:** copie o texto da notificação (muitos bancos mostram as notificações dentro do próprio app) e cole em **Importar → Notificações do banco**. Dá para colar várias de uma vez, separadas por uma linha em branco.
-- **Compras com Apple Pay:** copie o seu endereço em **Importar → Receber sozinho → Copiar**. No app **Atalhos**, crie uma *Automação → Carteira (Transação)*, escolha seus cartões e *Executar imediatamente*. A ação deve ser **Abrir URLs**, com o seu endereço seguido de `Compra aprovada de ` + *Quantia* + ` em ` + *Comerciante*.
+- **Compras com Apple Pay:** copie o seu endereço em **Importar → Notificações do banco → Usar o Atalhos do iPhone ou outro app de automação → Copiar**. No app **Atalhos**, crie uma *Automação → Carteira (Transação)*, escolha seus cartões e *Executar imediatamente*. A ação deve ser **Abrir URLs**, com o seu endereço seguido de `Compra aprovada de ` + *Quantia* + ` em ` + *Comerciante*.
 
 ### Privacidade
 
