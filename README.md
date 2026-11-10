@@ -96,7 +96,7 @@ Um site não consegue ler as notificações de outros apps: o celular não deixa
 
 ### Android, com o app Minhas Finanças
 
-Se você usa o **app** ([instalar](https://github.com/gabrielmacsantos/sistema_gestao/releases/download/app-latest/minhas-financas.apk)), ele mesmo lê as notificações, sem o leitor separado. Na primeira vez que abrir, o app pergunta se você quer habilitar. Depois, dá para ligar, desligar e escolher os bancos em **Importar → Notificações do banco neste celular**. Você também escolhe o que acontece quando chega uma movimentação:
+Se você usa o **app** ([instalar](https://github.com/gabrielmacsantos/sistema_gestao/releases/download/app-latest/minhas-financas.apk)), ele mesmo lê as notificações, sem o leitor separado. Na primeira vez que abrir, o app pergunta se você quer habilitar. Depois, dá para ligar, desligar e escolher os bancos em **Configurações → Notificações do banco neste celular**. Você também escolhe o que acontece quando chega uma movimentação:
 
 - **Revisar antes** (recomendado): tudo espera a sua conferência, e um toque em "Importar" salva.
 - **Lançar sozinho:** o que foi lido com certeza vira lançamento na hora. O que estiver confuso ou parecer repetido continua esperando a conferência.
@@ -105,7 +105,7 @@ Se você usa o **app** ([instalar](https://github.com/gabrielmacsantos/sistema_g
 
 O **leitor** é um app pequeno, feito para isto e publicado aqui no GitHub. Ele não tem permissão de internet: só junta as notificações dos seus bancos e carteiras e, com um toque, abre o site com elas.
 
-1. **Baixe** no celular: [minhas-financas-leitor.apk](https://github.com/gabrielmacsantos/sistema_gestao/releases/latest/download/minhas-financas-leitor.apk) (ou no site, em **Importar → Leitor de notificações para Android → Baixar o leitor**).
+1. **Baixe** no celular: [minhas-financas-leitor.apk](https://github.com/gabrielmacsantos/sistema_gestao/releases/latest/download/minhas-financas-leitor.apk) (ou no site, em **Configurações → Leitor de notificações para Android → Baixar o leitor**).
 2. **Instale** abrindo o arquivo baixado. Como ele não vem da Play Store, o Android pede para **permitir instalar apps desta fonte** (o navegador) e pode mostrar um alerta do Play Protect. Toque em *Instalar mesmo assim*.
 3. **Abra o leitor** e toque em **Dar acesso às notificações**. Na lista, ative **Minhas Finanças: leitor**.
    - **A opção aparece cinza ou bloqueada?** É uma proteção do Android 13 ou mais novo para apps de fora da Play Store. Volte ao leitor, toque em **Abrir informações do app**, depois no menu **⋮** (canto de cima) e em **Permitir configurações restritas**. Tente o passo 3 de novo.

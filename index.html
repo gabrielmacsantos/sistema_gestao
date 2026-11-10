@@ -426,6 +426,7 @@ const ICONS = {
   target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
   camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
   bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/>',
@@ -1194,6 +1195,7 @@ const ROUTES = [
   { path: "viagens", label: "Viagens", icon: "plane" },
   { path: "categorias", label: "Categorias", icon: "tag" },
   { path: "importar", label: "Importar", icon: "upload" },
+  { path: "configuracoes", label: "Configurações", icon: "settings" },
   { path: "backup", label: "Backup", icon: "save" },
 ];
 const AUTH_PAGES = ["entrar", "cadastro"];
@@ -1467,18 +1469,7 @@ function viewImportar() {
   return `${pageHead("Importar", "Traga as transações do seu banco por notificação ou extrato (OFX ou CSV). Você revisa tudo antes de salvar.")}
   <div style="display:flex;flex-direction:column;gap:16px;max-width:720px">
   ${inboxNotice()}
-  ${BankNotif() ? notifAppCard() : NATIVE ? "" : `<section class="card" id="leitor" style="border-color:color-mix(in srgb,var(--primary) 35%,transparent)">
-    <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("down")} Leitor de notificações para Android</h2><span class="badge b-success">Grátis</span></div>
-    <p class="muted">Um app pequeno que faz seus lançamentos quase sozinho, a partir das notificações do banco:</p>
-    <ul class="muted" style="margin:10px 0 0;padding-left:20px;display:grid;gap:6px">
-      <li>Lê as notificações dos seus <b>bancos e carteiras digitais</b> (Pix recebido ou enviado, compras, depósitos), só as que têm valor em R$.</li>
-      <li>Junta tudo numa fila no celular e avisa: <b>“1 movimentação para enviar”</b>.</li>
-      <li>Um toque abre este site com as movimentações prontas. Você <b>confere e confirma</b>; nada é salvo sozinho.</li>
-      <li><b>Não tem acesso à internet</b>: o app não envia nada para ninguém, só entrega a fila ao seu navegador.</li>
-    </ul>
-    <div class="actions" style="margin-top:16px"><a class="btn btn-primary btn-sm" href="${READER_APK}">${icon("down")} Baixar o leitor (Android)</a><a class="btn btn-ghost btn-sm" href="${NOTIF_GUIDE}" target="_blank" rel="noopener">Como instalar</a></div>
-    <p class="hint" style="margin-top:12px">Como ele não vem da Play Store, o Android pede para permitir a instalação e pode mostrar um alerta. No Android 13 ou mais novo, o acesso às notificações precisa de <b>Permitir configurações restritas</b>; o passo a passo mostra onde. No iPhone, use o campo abaixo para colar as notificações.</p>
-  </section>`}
+  <p class="hint" style="margin:0">Para receber as movimentações do banco sem colar nada, veja <a class="t-primary" href="${href("configuracoes")}">Configurações → Notificações do banco</a>.</p>
   <section class="card">
     <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("bell")} Notificações do banco</h2></div>
     <p class="muted">Cole o texto de uma ou mais notificações (Pix recebido, compra aprovada, depósito…). Separe cada uma com uma linha em branco.</p>
@@ -1505,6 +1496,38 @@ function viewImportar() {
   </div>
   <p class="kbd-note">Lançamentos já importados antes são detectados e desmarcados automaticamente.</p>`;
 }
+// Site only: the separate Android reader app, since a browser cannot read other apps' notifications.
+function readerCard() {
+  return `<section class="card" id="leitor" style="border-color:color-mix(in srgb,var(--primary) 35%,transparent)">
+    <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("down")} Leitor de notificações para Android</h2><span class="badge b-success">Grátis</span></div>
+    <p class="muted">Um app pequeno que faz seus lançamentos quase sozinho, a partir das notificações do banco:</p>
+    <ul class="muted" style="margin:10px 0 0;padding-left:20px;display:grid;gap:6px">
+      <li>Lê as notificações dos seus <b>bancos e carteiras digitais</b> (Pix recebido ou enviado, compras, depósitos), só as que têm valor em R$.</li>
+      <li>Junta tudo numa fila no celular e avisa: <b>“1 movimentação para enviar”</b>.</li>
+      <li>Um toque abre este site com as movimentações prontas. Você <b>confere e confirma</b>; nada é salvo sozinho.</li>
+      <li><b>Não tem acesso à internet</b>: o app não envia nada para ninguém, só entrega a fila ao seu navegador.</li>
+    </ul>
+    <div class="actions" style="margin-top:16px"><a class="btn btn-primary btn-sm" href="${READER_APK}">${icon("down")} Baixar o leitor (Android)</a><a class="btn btn-ghost btn-sm" href="${NOTIF_GUIDE}" target="_blank" rel="noopener">Como instalar</a></div>
+    <p class="hint" style="margin-top:12px">Como ele não vem da Play Store, o Android pede para permitir a instalação e pode mostrar um alerta. No Android 13 ou mais novo, o acesso às notificações precisa de <b>Permitir configurações restritas</b>; o passo a passo mostra onde. No iPhone, use o campo abaixo para colar as notificações.</p>
+  </section>`;
+}
+
+// ---------- Configurações ----------
+function viewConfiguracoes() {
+  const dark = document.documentElement.dataset.theme === "dark";
+  const notif = BankNotif() ? notifAppCard() : NATIVE ? `<section class="card"><h2 class="h-card">Notificações do banco</h2><p class="muted" style="margin-top:8px">Este aparelho não deixa um app ler as notificações de outros apps. Cole as notificações em <a class="t-primary" href="${href("importar")}">Importar</a>.</p></section>` : readerCard();
+  return `${pageHead("Configurações", "Preferências deste aparelho: notificações do banco, aparência e versão.")}
+  <div style="display:flex;flex-direction:column;gap:16px;max-width:720px">
+    ${notif}
+    <section class="card">
+      <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon(dark ? "moon" : "sun")} Aparência</h2></div>
+      <p class="muted">Tema ${dark ? "escuro" : "claro"} neste aparelho.</p>
+      <div class="actions" style="margin-top:12px"><button class="btn btn-secondary btn-sm" data-act="theme">${icon(dark ? "sun" : "moon")} Usar tema ${dark ? "claro" : "escuro"}</button></div>
+    </section>
+    ${NATIVE ? `<section class="card"><h2 class="h-card">Sobre o app</h2><p class="muted" style="margin-top:8px">Versão ${esc(appVersion || "—")}. O app avisa sozinho quando sai uma versão nova.</p></section>` : ""}
+  </div>`;
+}
+
 function viewReview() {
   const cats = (type, sel) => `<option value="">Sem categoria</option>` + state.categories.filter((c) => c.type === type).map((c) => `<option value="${c.id}" ${c.id === sel ? "selected" : ""}>${esc(c.name)}</option>`).join("");
   const n = importDrafts.filter((d) => d.include).length;
@@ -1678,7 +1701,7 @@ function deleteTripDialog(trip) {
   document.getElementById("trip-keep")?.addEventListener("click", () => finish(true));
 }
 
-const VIEWS = { painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, orcamentos: viewOrcamentos, viagens: viewViagens, categorias: viewCategorias, importar: viewImportar, backup: viewBackup };
+const VIEWS = { painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, orcamentos: viewOrcamentos, viagens: viewViagens, categorias: viewCategorias, importar: viewImportar, configuracoes: viewConfiguracoes, backup: viewBackup };
 function render() {
   // Fixed items only need materializing after a change to them, a data swap or a new month.
   if (needsOccurrences || occurrencesMonth !== currentMonth()) {
@@ -1892,6 +1915,7 @@ const APP_RELEASE_API = "https://api.github.com/repos/gabrielmacsantos/sistema_g
 const UPDATE_KEY = "mf-app-update";
 const UPDATE_EVERY = 3600 * 1000;
 let appUpdate = null; // { build, url, notes } while a newer build is waiting
+let appVersion = ""; // "1.0.0 (build 8)" inside the app
 
 function readUpdateState() { try { return JSON.parse(localStorage.getItem(UPDATE_KEY) || "{}"); } catch { return {}; } }
 function writeUpdateState(s) { try { localStorage.setItem(UPDATE_KEY, JSON.stringify(s)); } catch {} }
@@ -1900,6 +1924,7 @@ async function checkAppUpdate(onOpen = false) {
   if (!NATIVE || !NativePlugins.App?.getInfo) return;
   const info = await NativePlugins.App.getInfo().catch(() => null);
   const installed = Number(info?.build) || 0;
+  if (info?.version) appVersion = `${info.version} (build ${info.build})`;
   let s = readUpdateState();
   if (onOpen || !s.checkedAt || Date.now() - s.checkedAt > UPDATE_EVERY) {
     try {
@@ -2460,7 +2485,7 @@ async function refreshNotifStatus() {
   if (!BankNotif()) return;
   const before = JSON.stringify(notifStatus);
   notifStatus = await BankNotif().status().catch(() => notifStatus);
-  if (JSON.stringify(notifStatus) !== before && route().path === "importar" && !importDrafts) render();
+  if (JSON.stringify(notifStatus) !== before && route().path === "configuracoes") render();
 }
 
 // Takes what the native side collected and sends it through the usual path (pull, inbox or auto, review).
@@ -2485,11 +2510,13 @@ function maybeAskNotifications() {
   askNotifications();
 }
 
+const NOTIF_HINT_AUTO = "O que for lido com certeza vira lançamento na hora. O que estiver confuso ou parecer repetido espera a sua conferência.";
+const NOTIF_HINT_REVIEW = "Tudo espera a sua conferência: um toque em “Importar” salva. Recomendado no começo.";
 function askNotifications() {
   let auto = notifAutoMode();
-  const draw = () => openModal({
+  openModal({
     title: "Ler as notificações do banco?",
-    sub: "Você decide. Dá para mudar quando quiser em Importar.",
+    sub: "Você decide. Dá para mudar quando quiser em Configurações.",
     body: `<div class="form-grid">
       <ul class="muted" style="margin:0;padding-left:20px;display:grid;gap:6px">
         <li>O app passa a ler as notificações dos <b>bancos e carteiras que você marcar</b> (Pix, compras, depósitos), só as que têm valor em R$.</li>
@@ -2499,14 +2526,22 @@ function askNotifications() {
       </ul>
       <div class="field"><span class="field-label">Quando chegar uma movimentação</span>
         <div class="tabs" role="radiogroup"><button type="button" class="${auto ? "" : "on"}" data-act="notif-ask-mode" data-mode="review" role="radio" aria-checked="${!auto}">Revisar antes</button><button type="button" class="${auto ? "on" : ""}" data-act="notif-ask-mode" data-mode="auto" role="radio" aria-checked="${auto}">Lançar sozinho</button></div>
-        <span class="hint">${auto ? "O que for lido com certeza vira lançamento na hora. O que estiver confuso ou parecer repetido espera a sua conferência." : "Tudo espera a sua conferência: um toque em “Importar” salva. Recomendado no começo."}</span>
+        <span class="hint" id="notif-ask-hint">${auto ? NOTIF_HINT_AUTO : NOTIF_HINT_REVIEW}</span>
       </div>
     </div>`,
     foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="notif-not-now">Agora não</button><button type="submit" class="btn btn-primary btn-sm">${icon("bell")} Habilitar</button>`,
     onSubmit: () => enableNotifications(auto),
   });
-  askNotifications.setMode = (m) => { auto = m === "auto"; draw(); };
-  draw();
+  askNotifications.setMode = (m) => { auto = m === "auto"; paintModeTabs("notif-ask-mode", "notif-ask-hint", auto); };
+}
+// Marks the chosen mode button and swaps the hint without redrawing anything.
+function paintModeTabs(act, hintId, auto) {
+  document.querySelectorAll(`[data-act="${act}"]`).forEach((b) => {
+    const on = (b.dataset.mode === "auto") === auto;
+    b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on));
+  });
+  const hint = document.getElementById(hintId);
+  if (hint) hint.textContent = auto ? NOTIF_HINT_AUTO : NOTIF_HINT_REVIEW;
 }
 
 async function enableNotifications(auto) {
@@ -2550,7 +2585,7 @@ function notifAppCard() {
       <p class="hint" style="margin-top:8px">Se a opção aparecer cinza, toque em “Abrir informações do app”, no menu ⋮ e em <b>Permitir configurações restritas</b>. Volte e tente de novo.</p>`}
     <div class="field" style="margin-top:16px"><span class="field-label">Quando chegar uma movimentação</span>
       <div class="tabs" role="radiogroup"><button type="button" class="${auto ? "" : "on"}" data-act="notif-mode" data-mode="review" role="radio" aria-checked="${!auto}">Revisar antes</button><button type="button" class="${auto ? "on" : ""}" data-act="notif-mode" data-mode="auto" role="radio" aria-checked="${auto}">Lançar sozinho</button></div>
-      <span class="hint">${auto ? "O que for lido com certeza vira lançamento na hora; o resto espera a sua conferência." : "Tudo espera a sua conferência antes de virar lançamento."}</span>
+      <span class="hint" id="notif-mode-hint">${auto ? NOTIF_HINT_AUTO : NOTIF_HINT_REVIEW}</span>
     </div>
     <div class="actions" style="margin-top:16px"><button class="btn btn-secondary btn-sm" data-act="notif-apps">Bancos e carteiras (${s.apps || 0})</button><button class="btn btn-ghost btn-sm" data-act="notif-off">Desligar</button></div>
     ${s.readerInstalled ? `<p class="hint" style="margin-top:12px">O <b>leitor de notificações</b> separado também está instalado. Com o app lendo, você pode desinstalá-lo para não receber cada movimentação duas vezes.</p>` : ""}
@@ -2649,8 +2684,8 @@ document.addEventListener("click", (e) => {
     "update-app": () => { if (appUpdate) NativePlugins.Browser?.open({ url: appUpdate.url }); },
     "notif-ask": askNotifications,
     "notif-ask-mode": () => askNotifications.setMode(el.dataset.mode),
-    "notif-not-now": () => { setNotifAsked(); closeModal(); toast("Tudo bem. Se mudar de ideia, é só ir em Importar."); },
-    "notif-mode": () => { setNotifAutoMode(el.dataset.mode === "auto"); render(); },
+    "notif-not-now": () => { setNotifAsked(); closeModal(); toast("Tudo bem. Se mudar de ideia, é só ir em Configurações."); },
+    "notif-mode": () => { const auto = el.dataset.mode === "auto"; setNotifAutoMode(auto); paintModeTabs("notif-mode", "notif-mode-hint", auto); },
     "notif-apps": chooseNotifApps,
     "notif-access": () => BankNotif().openAccessSettings(),
     "notif-app-details": () => BankNotif().openAppDetails(),
