@@ -76,6 +76,7 @@ Abra o link, preencha **Usuário do GitHub** e **Senha** e clique em **Entrar**.
 - Lance gastos, marque contas como pagas e acompanhe o painel. Tudo é salvo sozinho: o topo mostra **"Salvo no GitHub ✓"**.
 - **Viagens:** em **✈ Viagens** (no menu lateral ou, no celular, em ☰), crie a viagem e use **Novo gasto da viagem**. O painel avisa quanto ficou separado em viagens no mês. Para que os gastos de uma viagem entrem nos totais do mês, ligue **"Somar os gastos desta viagem à gestão do mês"** na página dela.
 - **Lançar falando:** em **Novo gasto**, toque em **🎤 Falar o lançamento** e diga, por exemplo, *"gastei 52,30 no mercado ontem"* ou *"recebi o salário de 3.500 reais dia 5"*. Descrição, valor, data, categoria e tipo são preenchidos; você confere e toca em **Salvar**. Funciona no Chrome, Edge e Safari (no Firefox o botão não aparece).
+- **Notificações do banco:** em **Importar**, cole o texto de notificações como *"Você recebeu um Pix de R$ 150,00 de Fulano"* ou *"Compra aprovada de R$ 52,30 em MERCADO X"*. Entradas e gastos aparecem para você conferir e confirmar. No Android dá para receber sozinho: veja [Receber as notificações do banco](#-receber-as-notificações-do-banco).
 - **Comprovante:** no lançamento, toque em **Anexar comprovante** e tire a foto (ou escolha da galeria). O lançamento ganha um 📎 na lista e a foto abre com um toque. Valor e descrição você digita.
 - No celular, use **"Adicionar à tela inicial"** no menu do navegador para abrir como um app.
 
@@ -86,6 +87,37 @@ Clique em **Sair** (no menu lateral ou, no celular, em **☰**). O site salva tu
 ### Quer só conhecer antes?
 
 Na tela de login, clique em **"Usar sem conta (só neste aparelho)"** e depois em **"Ver com dados de exemplo"**. Sem conta, os dados ficam só naquele navegador. Se depois você criar uma conta, o que já lançou vai junto.
+
+---
+
+## 🔔 Receber as notificações do banco
+
+Um site não consegue ler as notificações de outros apps: o celular não deixa. Então um app de automação faz a ponte e entrega o texto ao site. As notificações caem numa fila (**"3 notificações do banco para revisar"** no Painel) e **só viram lançamento quando você confirma**. Avisos de saldo, de fatura a vencer e códigos são ignorados.
+
+Antes de começar, abra o site no celular, entre na sua conta e copie o seu endereço em **Importar → Receber sozinho no Android → Copiar**. Ele termina em `#/notificacao?t=`.
+
+### Android, com o MacroDroid (grátis)
+
+1. Instale o **MacroDroid** pela Play Store, abra e, quando ele pedir, permita o **acesso às notificações**.
+2. Toque em **Adicionar macro**.
+3. **Gatilho:** *Notificação → Notificação recebida*. Marque os apps dos seus bancos (Nubank, Itaú, Inter, Bradesco, Caixa, Banco do Brasil, C6, Santander, PicPay, Mercado Pago…) e, se você paga por aproximação com o celular, também a **Carteira do Google (Google Wallet)** ou a **Samsung Wallet**. Em texto, deixe *qualquer*.
+4. **Ação:** *Aplicações → Abrir site/URL*. Cole o endereço copiado e, logo depois dele, use o botão de **texto mágico** (`…`) para inserir o **título** e o **texto da notificação**.
+5. Dê um nome (ex.: "Minhas Finanças") e salve.
+
+A cada notificação de banco, o navegador abre o site com a notificação pronta para conferir. Quando a carteira e o banco do cartão avisam a mesma compra, a segunda vem desmarcada como **"possível duplicado"**: a compra entra uma vez só. Os nomes das opções podem variar um pouco conforme a versão do MacroDroid.
+
+**Prefere não abrir o navegador a cada notificação?** Troque a ação do passo 4 por *Variáveis → Definir variável*: acrescente ao fim de uma variável de texto (ex.: `fila`) uma linha `---`, a data no formato dia/mês/ano e o texto da notificação. Depois crie um segundo macro com o gatilho *Atalho na tela inicial*. Ele deve abrir o endereço seguido da variável `fila` e, em seguida, limpar a variável. Assim, um toque no atalho manda tudo de uma vez, cada notificação com a data em que chegou.
+
+### iPhone
+
+O iPhone não deixa nenhum app ler notificações de outros apps. O que dá para fazer:
+
+- **Pix e o resto:** copie o texto da notificação (muitos bancos mostram as notificações dentro do próprio app) e cole em **Importar → Notificações do banco**. Dá para colar várias de uma vez, separadas por uma linha em branco.
+- **Compras com Apple Pay:** no app **Atalhos**, crie uma *Automação → Carteira (Transação)*, escolha seus cartões e *Executar imediatamente*. A ação deve ser **Abrir URLs**, com o seu endereço seguido de `Compra aprovada de ` + *Quantia* + ` em ` + *Comerciante*.
+
+### Privacidade
+
+O texto vai no fim do endereço, depois do `#`. Essa parte não é enviada ao GitHub: fica só no navegador, que a apaga do endereço assim que lê. O MacroDroid e o Atalhos rodam no próprio celular.
 
 ---
 
@@ -148,6 +180,7 @@ Pode, pelo botão **"Usar sem conta"** na tela de login. Os dados ficam só naqu
 | 📊 **Painel completo** | Entradas, total gasto, fixos comprometidos, gastos variáveis e saldo livre previsto, com fluxo de caixa de 6 meses e distribuição por categoria. |
 | 🔁 **Gastos fixos automáticos** | Aluguel, contas e assinaturas geram um lançamento pendente por mês, sozinhos. Editar um fixo nunca altera o passado. |
 | ✈️ **Viagens** | Uma aba só para viagens: crie a viagem (datas e orçamento) e lance nela passagens, hotel e passeios. Esses gastos ficam **separados** da gestão do mês, e uma chave em cada viagem decide se eles devem ser **somados** ou não. |
+| 🔔 **Notificações do banco** | Pix recebido, compra aprovada, depósito: cole a notificação ou, no Android, receba sozinho com o MacroDroid. Tudo cai numa fila para você confirmar, com aviso de possível duplicado. |
 | 🎤 **Lançar falando** | Toque no microfone e fale o gasto: o formulário é preenchido (valor, data, categoria, tipo) para você conferir e salvar. |
 | 📷 **Foto do comprovante** | Tire uma foto pelo celular (ou escolha da galeria) e anexe ao lançamento. Ela é reduzida no aparelho e salva criptografada no seu GitHub. |
 | 🏦 **Extrato OFX/CSV** | Importe o extrato do banco, revise antes de salvar e sem duplicar o que já foi importado. |
@@ -197,6 +230,7 @@ O site é o arquivo [`index.html`](./index.html): um único arquivo HTML/JS, sem
 - **Contas sem servidor:** no cadastro, a pessoa informa um token do GitHub (escopo `gist`) e cria uma senha. O site grava na conta dela um Gist com um único arquivo, `minhas-financas.json`, que guarda os dados **e o token**, criptografados com AES-256-GCM. A chave é derivada da senha com PBKDF2-SHA256 (310 mil iterações) e nunca sai do aparelho.
 - **Login com usuário + senha:** o site lista os gists públicos do usuário (API pública do GitHub), baixa o arquivo, decifra com a senha e recupera o token de dentro dele para continuar salvando. Por isso o Gist é **público**: só o texto cifrado fica exposto, e a senha mínima é de 10 caracteres.
 - **Fotos de comprovante:** reduzidas no aparelho (até 1600px, JPEG), guardadas no IndexedDB e, com conta, cifradas com a mesma chave e enviadas como um arquivo por foto num segundo Gist (`comprovantes`), para o arquivo principal continuar pequeno. Outros aparelhos baixam pela URL *raw* do Gist só quando a foto é aberta.
+- **Notificações do banco:** `parseBankNotification` e `splitNotifications` (bloco `// <notification-parser>` no `index.html`, testado em `tests/notification-parser.test.ts`) leem o texto pelo vocabulário comum dos bancos (Pix recebido/enviado, compra aprovada, depósito, saque, boleto, estorno), sem um layout por banco. O que chega por `#/notificacao?t=<texto>` vai para `state.inbox` depois de buscar a versão mais recente do Gist, e tudo passa pela tela de revisão. Os lançamentos ganham `source: "NOTIFICATION"` e `externalId` `notif:<hash do texto|data>`.
 - **Lançamento por voz:** usa a Web Speech API do navegador (`SpeechRecognition`, `pt-BR`), que manda o áudio ao serviço de voz do Google ou da Apple. Isso é avisado antes do primeiro uso. O texto passa por `parseSpokenTransaction` (bloco `// <voice-parser>` no `index.html`, testado em `tests/voice-parser.test.ts`), que só preenche o formulário.
 - **Por que não neste repositório:** ele é público e compartilhado. Cada pessoa grava só na própria conta.
 - **Por que não um botão "Entrar com GitHub":** o OAuth do GitHub exige um servidor para guardar o *client secret*, e o GitHub Pages não executa código no servidor.

@@ -338,6 +338,8 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 @keyframes pulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary) 22%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .voice-btn.on > svg.i { animation: none; } }
 .voice-note { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--hairline); background: var(--c-low); font-size: 14px; }
+.notice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent); background: var(--c-low); }
+.notice p { flex: 1; min-width: 160px; }
 .input.voice-filled { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
 .clip svg.i { width: 15px; height: 15px; }
 .viewer { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgb(2 6 23 / .85); animation: fade .15s; cursor: zoom-out; }
@@ -424,6 +426,8 @@ const ICONS = {
   target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
   camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/>',
   paperclip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
   plane: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
@@ -527,7 +531,14 @@ const parseSpokenTransaction = (() => {
   const iso = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
   const shiftDays = (date, n) => { const [y, m, d] = date.split("-").map(Number); const dt = new Date(Date.UTC(y, m - 1, d + n)); return iso(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()); };
 
-  return function parseSpokenTransaction(text, categories, today) {
+  // The user's own category name first (longest wins), then common words. phrase is " normalized words ".
+  const pickCategory = (phrase, categories, t) => {
+    const list = (categories || []).filter((c) => c.type === t);
+    const byName = list.filter((c) => phrase.includes(` ${norm(c.name)} `)).sort((x, y) => y.name.length - x.name.length)[0];
+    return byName || list.find((c) => (HINTS[norm(c.name)] || []).some((h) => phrase.includes(` ${h} `))) || null;
+  };
+
+  function parseSpokenTransaction(text, categories, today) {
     const tokens = String(text ?? "").replace(/R\$/gi, " R$ ").split(/\s+/).filter(Boolean).map((raw) => {
       const clean = raw === "R$" ? raw : raw.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
       return { raw: clean, n: norm(clean), used: false };
@@ -616,15 +627,9 @@ const parseSpokenTransaction = (() => {
     const hasIncome = words.some((w) => INCOME.has(w)), hasExpense = words.some((w) => EXPENSE.has(w));
     let type = hasIncome && !hasExpense ? "INCOME" : "EXPENSE";
 
-    // Category: the user's own category name first (longest wins), then common words.
     const phrase = ` ${words.join(" ")} `;
-    const pick = (t) => {
-      const list = (categories || []).filter((c) => c.type === t);
-      const byName = list.filter((c) => phrase.includes(` ${norm(c.name)} `)).sort((x, y) => y.name.length - x.name.length)[0];
-      return byName || list.find((c) => (HINTS[norm(c.name)] || []).some((h) => phrase.includes(` ${h} `))) || null;
-    };
-    let category = pick(type);
-    if (!category && !hasIncome && !hasExpense) { const inc = pick("INCOME"); if (inc) { category = inc; type = "INCOME"; } }
+    let category = pickCategory(phrase, categories, type);
+    if (!category && !hasIncome && !hasExpense) { const inc = pickCategory(phrase, categories, "INCOME"); if (inc) { category = inc; type = "INCOME"; } }
 
     // Description: what is left, without verbs and loose words at the edges.
     const rest = tokens.filter((t) => !t.used && !VERBS.has(t.n));
@@ -634,9 +639,159 @@ const parseSpokenTransaction = (() => {
     if (description) description = description[0].toUpperCase() + description.slice(1);
 
     return { type, description, amountCents: amount && amount.cents > 0 ? amount.cents : null, date, categoryId: category?.id || null, status };
-  };
+  }
+  /** Best category of the given type for a free text such as a store name ("IFOOD *PIZZARIA" -> Alimentação). */
+  parseSpokenTransaction.guessCategory = (text, categories, type) =>
+    pickCategory(` ${norm(text).replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `, categories, type)?.id || null;
+  return parseSpokenTransaction;
 })();
 // </voice-parser>
+
+// <notification-parser> Self-contained: tests/notification-parser.test.ts loads this block from the file.
+/**
+ * Bank app notifications ("Você recebeu um Pix de R$ 150,00 de Fulano", "Compra aprovada de R$ 52,30 em MERCADO X")
+ * -> draft fields. Uses wording shared by most banks instead of one layout per bank. kind is null when unclear,
+ * and "IGNORE" for balances, bill reminders, scheduled payments and codes. Money stays in integer cents.
+ */
+const { parseBankNotification, splitNotifications } = (() => {
+  const norm = (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const validDate = (y, m, d) => { const dt = new Date(Date.UTC(y, m - 1, d)); return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d; };
+  const iso = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
+  const fullYear = (y) => (y < 100 ? 2000 + y : y);
+
+  const REFUND = /\b(estorn|reembols|cashback|devolucao|devolvid)/;
+  const STRONG_EXPENSE = /\b(voce (enviou|pagou|fez|transferiu|comprou|sacou|gastou)|pix enviado|transferencia enviada|ted enviada|recebeu (seu|sua)|compra (aprovada|realizada|efetuada|confirmada|no|na|de|em)|pagamento (realizado|efetuado|aprovado|confirmado|feito)|debitad|debito (de|automatico|em conta)|saque)/;
+  const INCOME = /\b(recebeu|recebido|recebida|recebimento|deposit|creditad|credito em (sua )?conta|caiu|entrou|te enviou|te mandou|enviou (um pix |uma transferencia )?para voce|salario|rendimento)/;
+  const IGNORE = /\b(vence|vencimento|venceu|fatura (fechou|fechada|disponivel|aberta|atual)|lembrete|agendad|programad|seu saldo|saldo (atual|disponivel|em conta|de)|codigo|token|senha|limite disponivel)/;
+  // Tap-to-pay wallets (Google Wallet, Samsung Wallet) often say only "R$ 52,30 com Visa •••• 1234" under the store name.
+  const WALLET = /(google wallet|google pay|samsung wallet|samsung pay|\bcarteira\b|\bwallet\b|\bpago com\b|\b(visa|master|mastercard|elo|amex|hipercard|cartao|card)\s*(final\s*)?[•·*.x]*\s*\d{4}\b|[•·*]{2,}\s*\d{4}\b)/;
+  const WALLET_WORDS = /google wallet|google pay|samsung wallet|samsung pay|carteira( do google)?|wallet|pagamento (conclu[ií]do|feito|efetuado|aprovado)|compra( aprovada)?|voc[eê] pagou/giu;
+  const WEAK_EXPENSE = /\b(compra|pagamento|pago|paga|pix|transferencia|debito|boleto|enviou|enviado|enviada|gastou|cobranca|tarifa|assinatura)/;
+  const NOT_AMOUNT = /(saldo|limite|disponivel|total da fatura|fatura atual)[^0-9]{0,30}$/;
+  const MONEY = /(?:R\$|BRL)\s*-?\s*(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{2}))?/gi;
+  const BARE_MONEY = /\b(\d{1,3}(?:\.\d{3})+|\d+),(\d{2})\b/g;
+  // Words that start a phrase which is not a person or store ("no cartão final 1234", "em sua conta").
+  const NOT_NAME = /^(r\$|brl|\d|sua\b|seu\b|voce|conta|cartao|credito|debito|valor|pix|dia\b|hoje|ontem|andamento|processamento|analise|instantes|breve|seguida|um\b|uma\b|forma|modo|nome|transferencia|compra|pagamento|aprovad|realizad|vista\b|prazo\b|partir\b|pagar\b|receber\b)/;
+  const CUT = /\s+(?:em|no|na|as|às|ao|com|via|pelo|pela|para|pra|foi|final|valor|dia|hoje|aprovad\S*|realizad\S*|confirmad\S*|R\$.*|\d{1,2}\/\d{1,2}.*|\d{1,2}[:h]\d{2}.*|[-–—|].*)(?:\s.*)?$/iu;
+  const titleCase = (s) => (s === s.toUpperCase() && /\p{L}{2}/u.test(s) ? s.toLowerCase().replace(/(^|[\s(/*-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()) : s);
+
+  function amountOf(text) {
+    const n = norm(text);
+    const found = [];
+    for (const re of [MONEY, BARE_MONEY]) {
+      re.lastIndex = 0;
+      for (let m; (m = re.exec(text)); ) found.push({ index: m.index, cents: Number(m[1].replace(/\./g, "")) * 100 + Number(m[2] || 0) });
+      if (found.length) break;
+    }
+    const usable = found.filter((f) => !NOT_AMOUNT.test(n.slice(Math.max(0, f.index - 40), f.index)));
+    return { cents: usable[0]?.cents ?? null, index: usable[0]?.index ?? -1, onlyBalance: found.length > 0 && !usable.length };
+  }
+
+  function counterpartOf(text, kind) {
+    const preps = kind === "INCOME"
+      ? "de|do|da|remetente:?|pagador:?|enviad[oa] por|por"
+      : "em|no|na|para|pra|a|à|estabelecimento:?|loja:|favorecido:?|benefici[aá]rio:?|destinat[aá]rio:?|recebedor:?";
+    const re = new RegExp(`(?:^|[\\s(])(?:${preps})\\s+([^\\n.,;!()]{2,80})`, "giu");
+    for (let m; (m = re.exec(text)); ) {
+      const c = cleanName(m[1]);
+      if (c) return c;
+      // Rejected ("à vista em LOJA"): look again inside it, so "em LOJA" still counts.
+      re.lastIndex = m.index + m[0].length - m[1].length;
+    }
+    return null;
+  }
+  function cleanName(s) {
+    if (NOT_NAME.test(norm(s.trim()))) return null;
+    const c = ` ${s}`.replace(CUT, "").replace(/[\s:*-]+$/, "").trim();
+    return c.length >= 2 && /\p{L}/u.test(c) && !NOT_NAME.test(norm(c)) ? titleCase(c).slice(0, 80) : null;
+  }
+
+  function dateOf(text, fallback) {
+    const m = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/.exec(text);
+    if (!m) return fallback;
+    const d = Number(m[1]), mo = Number(m[2]), fy = Number(fallback.slice(0, 4));
+    let y = m[3] ? fullYear(Number(m[3])) : fy;
+    if (!validDate(y, mo, d)) return fallback;
+    // Without a year, a day after the reference date belongs to last year (a December purchase seen in January).
+    if (!m[3] && iso(y, mo, d) > fallback) y--;
+    return validDate(y, mo, d) ? iso(y, mo, d) : fallback;
+  }
+
+  function labelOf(n, kind) {
+    if (kind === "INCOME") {
+      if (REFUND.test(n)) return /cashback/.test(n) ? "Cashback" : "Estorno";
+      if (/\bpix\b/.test(n)) return "Pix recebido";
+      if (/\b(transferencia|ted|doc)\b/.test(n)) return "Transferência recebida";
+      if (/deposit/.test(n)) return "Depósito";
+      if (/salario/.test(n)) return "Salário";
+      if (/rendimento/.test(n)) return "Rendimento";
+      return "Entrada";
+    }
+    if (/\bpix\b/.test(n)) return "Pix enviado";
+    if (/\b(transferencia|ted|doc)\b/.test(n)) return "Transferência enviada";
+    if (/\bsaque|sacou\b/.test(n)) return "Saque";
+    if (/fatura/.test(n)) return "Pagamento de fatura";
+    if (/boleto/.test(n)) return "Boleto";
+    if (/tarifa/.test(n)) return "Tarifa bancária";
+    if (/compra/.test(n) || WALLET.test(n)) return "Compra";
+    return "Pagamento";
+  }
+
+  function parseBankNotification(text, fallbackDate) {
+    const raw = String(text ?? "").replace(/\s+/g, " ").trim(), n = norm(raw);
+    const { cents, index, onlyBalance } = amountOf(raw), wallet = WALLET.test(n);
+    let kind = null;
+    if (REFUND.test(n)) kind = "INCOME";
+    else if (STRONG_EXPENSE.test(n)) kind = "EXPENSE";
+    else if (INCOME.test(n)) kind = "INCOME";
+    else if (IGNORE.test(n) || onlyBalance) kind = "IGNORE";
+    else if (WEAK_EXPENSE.test(n) || wallet) kind = "EXPENSE";
+    if (kind !== "IGNORE" && onlyBalance) kind = "IGNORE";
+    if (kind === "IGNORE" || !kind || !cents) {
+      return { kind: kind === "IGNORE" ? "IGNORE" : null, amountCents: cents, date: dateOf(raw, fallbackDate), description: null, cardBill: false };
+    }
+    const label = labelOf(n, kind);
+    // A refund names the store it came from ("estorno da compra em LOJA"); a cash withdrawal names no one.
+    let who = label === "Saque" ? null : counterpartOf(raw, label === "Estorno" || label === "Cashback" ? "EXPENSE" : kind);
+    // Wallet notifications put the store in the title, before the amount ("Mercado X R$ 52,30 com Visa •••• 1234").
+    if (!who && wallet && kind === "EXPENSE" && index > 0) {
+      const head = raw.slice(0, index).replace(WALLET_WORDS, " ").replace(/[\s:|•·–—-]+/g, " ").replace(/\b(de|no valor de)\s*$/i, "").trim();
+      if (/\p{L}{2}/u.test(head) && !NOT_NAME.test(norm(head))) who = titleCase(head).slice(0, 80);
+      // ...or right after it ("Pagamento concluído R$ 18,50 Lanchonete X").
+      else who = cleanName(raw.slice(index).replace(/^(?:R\$|BRL)?\s*-?\s*[\d.,]+\s*/i, ""));
+    }
+    let description = label;
+    if (who) {
+      if (/^(Pix|Transferência)/.test(label)) description = `${label.split(" ")[0]} ${kind === "INCOME" ? "de" : "para"} ${who}`;
+      else if (label === "Estorno" || label === "Cashback") description = `${label}: ${who}`;
+      else description = who;
+    }
+    return { kind, amountCents: cents, date: dateOf(raw, fallbackDate), description: description.slice(0, 120), cardBill: kind === "EXPENSE" && /fatura/.test(n) };
+  }
+
+  /**
+   * Pasted or linked text -> one entry per notification. Notifications are separated by a blank line or a
+   * line with "---"; each may start with the day it arrived ("[2026-11-09]", "09/11/2026 14:32 -").
+   */
+  function splitNotifications(input, today) {
+    const PREFIX = /^\s*\[?\s*(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4})(?:[ T,]+\d{1,2}:\d{2}(?::\d{2})?)?\s*\]?\s*[-–:|]?\s*/;
+    return String(input ?? "").replace(/\r/g, "").split(/\n\s*(?:-{3,}\s*)?\n|\n-{3,}\n?/).map((chunk) => {
+      let text = chunk.trim(), date = today;
+      const m = PREFIX.exec(text);
+      if (m && text.length > m[0].length) {
+        let y, mo, d;
+        if (m[1].includes("-")) [y, mo, d] = m[1].split("-").map(Number);
+        else { [d, mo, y] = m[1].split("/").map(Number); y = fullYear(y); }
+        if (validDate(y, mo, d)) { date = iso(y, mo, d); text = text.slice(m[0].length).trim(); }
+      }
+      return { text: text.replace(/\s+/g, " "), date };
+    }).filter((e) => e.text.length >= 8);
+  }
+
+  return { parseBankNotification, splitNotifications };
+})();
+// </notification-parser>
 
 // ---------- Store ----------
 const KEY = "minhas-financas:v1";
@@ -648,7 +803,7 @@ const DEFAULT_CATEGORIES = [
   ["INCOME", "Salário", "#22c55e"], ["INCOME", "Renda extra", "#10b981"], ["INCOME", "Investimentos", "#0d9488"], ["INCOME", "Outros", "#64748b"],
 ].map(([type, name, color]) => ({ id: uid(), type, name, color }));
 
-const emptyState = () => ({ version: 1, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c, id: uid() })), transactions: [], recurrings: [], budgets: [], goals: [], trips: [] });
+const emptyState = () => ({ version: 1, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c, id: uid() })), transactions: [], recurrings: [], budgets: [], goals: [], trips: [], inbox: [] });
 let state = load();
 let storageOk = true;
 let needsOccurrences = true;
@@ -1038,7 +1193,7 @@ const ROUTES = [
   { path: "orcamentos", label: "Orçamentos", icon: "piggy" },
   { path: "viagens", label: "Viagens", icon: "plane" },
   { path: "categorias", label: "Categorias", icon: "tag" },
-  { path: "importar", label: "Importar extrato", icon: "upload" },
+  { path: "importar", label: "Importar", icon: "upload" },
   { path: "backup", label: "Backup", icon: "save" },
 ];
 const AUTH_PAGES = ["entrar", "cadastro"];
@@ -1101,10 +1256,10 @@ const catChip = (c) => c ? `<span class="cat"><span class="dot" style="backgroun
 
 function ledgerRow(t, { toggle = false, inTrip = false } = {}) {
   const c = catById(t.categoryId);
-  const ic = t.type === "INCOME" ? "banknote" : t.recurringId ? "calendar" : t.source === "BANK_IMPORT" ? "file" : "bag";
+  const ic = t.type === "INCOME" ? "banknote" : t.recurringId ? "calendar" : t.source === "BANK_IMPORT" ? "file" : t.source === "NOTIFICATION" ? "bell" : "bag";
   const color = t.type === "INCOME" ? "var(--success)" : c?.color || "var(--secondary)";
   const trip = !inTrip && t.tripId && tripById(t.tripId);
-  const sub = trip ? `Viagem: ${esc(trip.name)}` : t.recurringId ? "Gasto fixo" : t.source === "BANK_IMPORT" ? "Extrato bancário" : "Lançamento manual";
+  const sub = trip ? `Viagem: ${esc(trip.name)}` : t.recurringId ? "Gasto fixo" : t.source === "BANK_IMPORT" ? "Extrato bancário" : t.source === "NOTIFICATION" ? "Notificação do banco" : "Lançamento manual";
   return `<li class="${t.type === "INCOME" ? "income" : ""}">
     ${toggle ? `<button class="toggle ${t.status === "PAID" ? "on" : ""}" data-act="toggle" data-id="${t.id}" aria-label="${t.status === "PAID" ? "Marcar como pendente" : t.type === "INCOME" ? "Marcar como recebido" : "Marcar como pago"}">${icon("check")}</button>` : ""}
     <button class="row-main" data-act="edit-tx" data-id="${t.id}">
@@ -1155,6 +1310,7 @@ function viewPainel(r) {
     ${pageHead("Gestão financeira e despesas", "Acompanhe seu fluxo de caixa, compromissos fixos e gastos do mês.",
       `${monthPicker("painel", m)}<span class="actions desk-only"><button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Nova entrada</button><button class="btn btn-secondary btn-sm" data-act="new-rec"><span class="t-primary" style="display:flex">${icon("calendar")}</span> Cadastrar fixo</button><button class="btn btn-primary btn-sm" data-act="new-tx">${icon("plusCircle")} Novo gasto</button></span>`)}
     ${welcome}
+    ${inboxNotice()}
     <section class="grid-kpi" aria-label="Resumo do mês">
       ${metric({ label: "Entradas no mês", ic: "down", chip: "background:var(--success-c);color:var(--success)", value: fmt(s.income), valueCls: "t-income",
         pill: delta !== null ? pill("background:var(--success-c);color:var(--success)", delta >= 0 ? "trendUp" : "trendDown", `${delta >= 0 ? "+" : ""}${fmtPct(delta)} vs. anterior`) : s.incomePending ? pill("background:var(--c);color:var(--secondary)", "", `${fmt(s.incomePending)} a receber`) : "",
@@ -1298,10 +1454,30 @@ function viewCategorias() {
 }
 
 let importDrafts = null;
+let importInboxIds = null; // inbox entries under review; they leave the inbox when the review is confirmed
+const NOTIF_GUIDE = "https://github.com/gabrielmacsantos/sistema_gestao#-receber-as-notificações-do-banco";
+const notifLink = () => `${location.origin}${location.pathname}#/notificacao?t=`;
+function inboxNotice() {
+  const n = state.inbox.length; if (!n) return "";
+  return `<div class="notice"><span class="t-primary" style="display:flex">${icon("bell")}</span><p><b>${n} ${n === 1 ? "notificação do banco" : "notificações do banco"}</b> para revisar.</p><button class="btn btn-primary btn-sm" data-act="review-inbox">Revisar</button></div>`;
+}
 function viewImportar() {
   if (importDrafts) return viewReview();
-  return `${pageHead("Importar extrato", "Traga as transações do seu banco (OFX ou CSV). Você revisa tudo antes de salvar.")}
-  <section class="card" style="max-width:720px">
+  return `${pageHead("Importar", "Traga as transações do seu banco por notificação ou extrato (OFX ou CSV). Você revisa tudo antes de salvar.")}
+  <div style="display:flex;flex-direction:column;gap:16px;max-width:720px">
+  ${inboxNotice()}
+  <section class="card">
+    <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("bell")} Notificações do banco</h2></div>
+    <p class="muted">Cole o texto de uma ou mais notificações (Pix recebido, compra aprovada, depósito…). Separe cada uma com uma linha em branco.</p>
+    <textarea class="input" id="notif-text" rows="5" style="margin-top:12px" placeholder="Você recebeu um Pix de R$ 150,00 de Fulano&#10;&#10;Compra aprovada de R$ 52,30 em MERCADO X"></textarea>
+    <div class="actions" style="margin-top:12px"><button class="btn btn-primary btn-sm" data-act="read-notifs">${icon("check")} Ler notificações</button></div>
+    <details style="margin-top:16px"><summary class="hint" style="cursor:pointer"><b>Receber sozinho no Android</b> (ou com Apple Pay no iPhone)</summary>
+      <p class="hint" style="margin-top:8px">Um app de automação (MacroDroid, grátis) abre este endereço com o texto da notificação no fim. Ela cai na fila acima e você só confirma.</p>
+      <div style="display:flex;gap:8px;margin-top:8px"><input class="input input-sm" id="notif-link" readonly value="${esc(notifLink())}" aria-label="Endereço para a automação"><button class="btn btn-secondary btn-sm" data-act="copy-notif-link">${icon("copy")} Copiar</button></div>
+      <p class="hint" style="margin-top:8px"><a class="t-primary" href="${NOTIF_GUIDE}" target="_blank" rel="noopener">Passo a passo com o MacroDroid e o Atalhos do iPhone</a></p>
+    </details>
+  </section>
+  <section class="card">
     <label class="drop" id="drop" for="file">
       <span class="chip" style="background:var(--c-high);color:var(--primary);width:44px;height:44px">${icon("upload")}</span>
       <b>Clique para escolher ou arraste o arquivo aqui</b>
@@ -1314,16 +1490,25 @@ function viewImportar() {
       <span class="hint">O CSV precisa ter colunas de data, descrição e valor (ex.: Data;Descrição;Valor).</span>
     </div>
   </section>
+  </div>
   <p class="kbd-note">Lançamentos já importados antes são detectados e desmarcados automaticamente.</p>`;
 }
 function viewReview() {
   const cats = (type, sel) => `<option value="">Sem categoria</option>` + state.categories.filter((c) => c.type === type).map((c) => `<option value="${c.id}" ${c.id === sel ? "selected" : ""}>${esc(c.name)}</option>`).join("");
   const n = importDrafts.filter((d) => d.include).length;
-  return `${pageHead("Revisar importação", `${importDrafts.length} transações encontradas. Confira, ajuste e confirme.`, `<button class="btn btn-ghost btn-sm" data-act="cancel-import">Cancelar</button><button class="btn btn-primary btn-sm" data-act="confirm-import">${icon("check")} Importar ${n} selecionada(s)</button>`)}
+  const flags = (d) => [
+    d.duplicate && "já importado",
+    d.maybeDuplicate && "possível duplicado",
+    d.unclear && "não entendi: confira",
+    d.cardBill && "fatura: pode repetir as compras do cartão",
+  ].filter(Boolean).map((f) => `<span class="badge b-warning" style="margin-top:4px;white-space:normal">${f}</span>`).join(" ");
+  const sub = importInboxIds ? "Confira, ajuste e confirme. As notificações não marcadas são descartadas." : `${importDrafts.length} transações encontradas. Confira, ajuste e confirme.`;
+  return `${pageHead("Revisar importação", sub, `<button class="btn btn-ghost btn-sm" data-act="cancel-import">Cancelar</button><button class="btn btn-primary btn-sm" data-act="confirm-import">${icon("check")} Importar ${n} selecionada(s)</button>`)}
+  ${importDrafts.length ? "" : `<p class="muted">Nenhum lançamento nessas notificações (eram avisos de saldo, fatura ou código). Confirme para limpar a fila.</p>`}
   <section class="card card-flush"><div style="overflow-x:auto"><table class="review"><thead><tr><th></th><th>Descrição</th><th>Valor</th><th>Data</th><th>Tipo</th><th>Categoria</th></tr></thead><tbody>
   ${importDrafts.map((d, i) => `<tr class="${d.include ? "" : "off"}">
     <td><input type="checkbox" data-draft="${i}" data-k="include" ${d.include ? "checked" : ""} style="width:18px;height:18px;accent-color:var(--primary)" aria-label="Importar"></td>
-    <td style="min-width:200px"><input class="input input-sm" data-draft="${i}" data-k="description" value="${esc(d.description)}">${d.duplicate ? '<span class="badge b-warning" style="margin-top:4px">já importado</span>' : ""}</td>
+    <td style="min-width:200px"><input class="input input-sm" data-draft="${i}" data-k="description" value="${esc(d.description)}">${flags(d)}${d.original ? `<p class="hint" style="margin-top:4px;max-width:320px">${esc(d.original)}</p>` : ""}</td>
     <td style="min-width:120px"><input class="input input-sm num" data-draft="${i}" data-k="amount" value="${centsToInput(d.amountCents)}" inputmode="decimal"></td>
     <td style="min-width:150px"><input class="input input-sm" type="date" data-draft="${i}" data-k="date" value="${esc(d.date || "")}"></td>
     <td style="min-width:120px"><select class="input input-sm" data-draft="${i}" data-k="type"><option value="EXPENSE" ${d.type === "EXPENSE" ? "selected" : ""}>Saída</option><option value="INCOME" ${d.type === "INCOME" ? "selected" : ""}>Entrada</option></select></td>
@@ -1490,6 +1675,7 @@ function render() {
     occurrencesMonth = currentMonth();
   }
   monthIndex = null;
+  captureIncoming();
   let r = route();
   // Logged in: the auth pages lead to the app. Not logged in and not "sem conta": show the login.
   if (AUTH_PAGES.includes(r.path) && sync) { history.replaceState(null, "", href("painel")); r = route(); }
@@ -1500,6 +1686,7 @@ function render() {
     return;
   }
   document.getElementById("app").innerHTML = shell(r, VIEWS[r.path](r));
+  if (hasIncoming()) flushIncoming();
   document.title = `${ROUTES.find((x) => x.path === r.path).label} · Minhas Finanças`;
 }
 
@@ -1976,6 +2163,7 @@ async function handleImportFile(file) {
     const drafts = isOfx ? parseOfx(text) : parseCsv(text, document.getElementById("signmode")?.value || "negative-expense");
     if (!drafts.length) return toast("Nenhuma transação encontrada no arquivo.");
     const known = new Set(state.transactions.map((t) => t.externalId).filter(Boolean));
+    importInboxIds = null;
     importDrafts = drafts.map((d) => ({ ...d, categoryId: "", duplicate: !!(d.externalId && known.has(d.externalId)), include: !(d.externalId && known.has(d.externalId)) }));
     render();
   } catch (e) { toast(e.message || "Não foi possível ler o arquivo."); }
@@ -1988,13 +2176,105 @@ function confirmImport() {
   let added = 0, ignored = 0;
   for (const d of chosen) {
     if (d.externalId && known.has(d.externalId)) { ignored++; continue; }
-    state.transactions.push({ id: uid(), type: d.type, description: d.description.trim(), amountCents: d.amountCents, date: d.date, status: "PAID", categoryId: d.categoryId || null, source: "BANK_IMPORT", externalId: d.externalId, recurringId: null, period: null, notes: "", createdAt: Date.now() });
+    state.transactions.push({ id: uid(), type: d.type, description: d.description.trim(), amountCents: d.amountCents, date: d.date, status: "PAID", categoryId: d.categoryId || null, source: d.source || "BANK_IMPORT", externalId: d.externalId, recurringId: null, period: null, notes: "", createdAt: Date.now() });
     if (d.externalId) known.add(d.externalId); added++;
   }
-  save(); importDrafts = null;
+  if (importInboxIds) { const done = new Set(importInboxIds); state.inbox = state.inbox.filter((x) => !done.has(x.id)); }
+  save(); importDrafts = null; importInboxIds = null;
   location.hash = href("lancamentos", { mes: chosen[0]?.date.slice(0, 7) });
   render();
   toast(`${added} lançamento(s) importado(s)${ignored ? `, ${ignored} já existiam` : ""}.`);
+}
+
+// ---------- Bank notifications ----------
+// They arrive pasted on the Importar page or through "#/notificacao?t=<text>" opened by an automation app
+// (MacroDroid on Android, Atalhos on iPhone). Linked ones wait in state.inbox; everything goes through the review.
+const INCOMING_KEY = "mf-incoming";
+const notifKey = (e) => `notif:${hashString(`${norm(e.text)}|${e.date}`)}`;
+const dayDiff = (a, b) => Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86400000);
+
+function notificationDrafts(entries) {
+  const known = new Set(state.transactions.map((t) => t.externalId).filter(Boolean));
+  const live = state.transactions.filter((t) => t.status !== "SKIPPED");
+  const seen = new Set(), drafts = [];
+  for (const e of entries) {
+    const key = notifKey(e);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const p = parseBankNotification(e.text, e.date);
+    if (p.kind === "IGNORE") continue;
+    const type = p.kind || "EXPENSE", already = known.has(key);
+    // Same value and kind within a day: probably already typed by hand or imported from the statement.
+    const same = (t) => t.type === type && t.amountCents === p.amountCents && Math.abs(dayDiff(t.date, p.date)) <= 1;
+    // Also against the other notifications in this review: the wallet and the card's bank both notify one purchase.
+    const near = !already && !!p.amountCents && (live.some(same) || drafts.some(same));
+    drafts.push({
+      type, description: p.description || e.text.slice(0, 120), amountCents: p.amountCents || 0, date: p.date,
+      categoryId: p.description ? parseSpokenTransaction.guessCategory(p.description, state.categories, type) || "" : "",
+      externalId: key, source: "NOTIFICATION", original: e.text,
+      duplicate: already, maybeDuplicate: near, unclear: !p.kind, cardBill: p.cardBill,
+      include: !already && !near && !!p.kind && !p.cardBill,
+    });
+  }
+  return drafts;
+}
+function readPastedNotifications() {
+  const entries = splitNotifications(document.getElementById("notif-text")?.value || "", todayISO());
+  if (!entries.length) return toast("Cole o texto de pelo menos uma notificação.");
+  const drafts = notificationDrafts(entries);
+  if (!drafts.length) return toast("Nenhum lançamento encontrado: eram avisos de saldo, fatura ou código.");
+  importInboxIds = null; importDrafts = drafts; render(); window.scrollTo(0, 0);
+}
+function reviewInbox() {
+  if (!state.inbox.length) return;
+  importInboxIds = state.inbox.map((x) => x.id);
+  importDrafts = notificationDrafts(state.inbox);
+  if (route().path !== "importar") location.hash = href("importar");
+  render(); window.scrollTo(0, 0);
+}
+
+// "#/notificacao?t=..." -> kept in sessionStorage until the user is in and the latest data was pulled.
+function captureIncoming() {
+  const h = location.hash;
+  if (!/^#\/?notificacao\b/.test(h)) return;
+  const i = h.indexOf("?t="), raw = i < 0 ? "" : h.slice(i + 3);
+  let text = raw;
+  try { text = decodeURIComponent(raw.replace(/\+/g, " ")); } catch { /* sent without encoding */ }
+  history.replaceState(null, "", href("importar"));
+  if (!text.trim()) return;
+  try { sessionStorage.setItem(INCOMING_KEY, joinIncoming(sessionStorage.getItem(INCOMING_KEY), text)); }
+  catch { pendingIncoming = joinIncoming(pendingIncoming, text); }
+}
+let pendingIncoming = "", flushingIncoming = false;
+const joinIncoming = (a, b) => (a ? `${a}\n---\n${b}` : b);
+function takeIncoming() {
+  let text = pendingIncoming; pendingIncoming = "";
+  try { const s = sessionStorage.getItem(INCOMING_KEY); if (s) { text = joinIncoming(text, s); sessionStorage.removeItem(INCOMING_KEY); } } catch {}
+  return text;
+}
+function hasIncoming() {
+  if (pendingIncoming) return true;
+  try { return !!sessionStorage.getItem(INCOMING_KEY); } catch { return false; }
+}
+async function flushIncoming() {
+  if (flushingIncoming || !hasIncoming() || !(sync || isLocalMode())) return;
+  flushingIncoming = true;
+  try {
+    // Pull first so saving the inbox never overwrites what another device saved meanwhile.
+    await pullIfNewer();
+    const text = takeIncoming(); if (!text) return;
+    const known = new Set([...state.inbox.map(notifKey), ...state.transactions.map((t) => t.externalId).filter(Boolean)]);
+    let added = 0;
+    for (const e of splitNotifications(text, todayISO())) {
+      const key = notifKey(e);
+      // Balances, bill reminders and codes never become transactions, so they do not wait in the queue.
+      if (known.has(key) || parseBankNotification(e.text, e.date).kind === "IGNORE") continue;
+      known.add(key); state.inbox.push({ id: uid(), text: e.text, date: e.date, at: Date.now() }); added++;
+    }
+    if (!added) { render(); return toast("Nada novo: a notificação já estava na fila, já foi lançada ou era só aviso (saldo, fatura, código)."); }
+    save(); reviewInbox();
+    toast(`${added} ${added === 1 ? "notificação recebida" : "notificações recebidas"}. Confira e confirme.`);
+  } finally { flushingIncoming = false; }
 }
 
 // ---------- Demo data ----------
@@ -2079,7 +2359,10 @@ document.addEventListener("click", (e) => {
     "use-local": () => { setLocalMode(true); location.hash = href("painel"); render(); },
     "push-now": pushNow,
     "logout": logoutForm,
-    "cancel-import": () => { importDrafts = null; render(); },
+    "cancel-import": () => { importDrafts = null; importInboxIds = null; render(); },
+    "read-notifs": readPastedNotifications,
+    "review-inbox": reviewInbox,
+    "copy-notif-link": () => { const v = document.getElementById("notif-link").value; navigator.clipboard?.writeText(v).then(() => toast("Endereço copiado."), () => toast("Não foi possível copiar. Selecione e copie o texto.")); },
     "confirm-import": confirmImport,
     "export": () => {
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
