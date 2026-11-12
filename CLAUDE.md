@@ -173,7 +173,8 @@ O que ficou combinado para continuar:
    - **Google Drive da própria pessoa** (pasta oculta do app, `drive.appdata`): quase todo mundo com Android tem conta Google, e não precisa de servidor. Exige criar um ID de cliente OAuth no Google Cloud (grátis) e um login Google nativo no app.
    - **Só no aparelho**, com backup e restauração mais fáceis (sem sincronizar entre aparelhos).
    - Um serviço como Firebase ou Supabase resolveria, mas vai contra as regras 7 e 8 e a preferência do usuário: só com pedido explícito.
-2. **Testar no celular a build com a aba Configurações**, o aviso que não pisca mais e as notificações reais do banco (texto real de cada banco; ajustar `parseBankNotification` com os exemplos que o usuário mandar, sempre anonimizados nos testes).
-3. **Fase 3, Play Store:** conta de desenvolvedor do Google (US$ 25), política de privacidade no GitHub Pages (cobrindo a leitura de notificações), página da loja, teste fechado e desligar o aviso de atualização do GitHub nas versões da loja.
-4. **Fase 4, iPhone:** projeto iOS no `mobile/`, montagem no GitHub Actions (macOS) e conta Apple Developer (US$ 99 por ano). Lá não há leitura de notificações.
-5. **Limpeza:** o pré-release antigo `app-v1.0.0` não recebe mais versões e pode ser apagado (pergunte antes).
+2. **Cabeçalho na versão Next.js** (combinado em 2026-11-11; o `index.html` já foi feito e testado no celular): levar o `mes` nos links de `nav.tsx` (`useSearchParams`), área de toque de 44px nas setas do `MonthPicker` e nos botões do topo em `(app)/layout.tsx`, e os mesmos ARIA (setas com o nome do mês, `aria-pressed` no `ThemeToggle`). A lista de meses e a tela de recuperação ficam só no `index.html`. Depois disso, vale olhar os valores cortados nos cartões do Painel a 360px ("R$ 7.200,…") no `index.html`.
+3. **Testar no celular a build com a aba Configurações**, o aviso que não pisca mais e as notificações reais do banco (texto real de cada banco; ajustar `parseBankNotification` com os exemplos que o usuário mandar, sempre anonimizados nos testes).
+4. **Fase 3, Play Store:** conta de desenvolvedor do Google (US$ 25), política de privacidade no GitHub Pages (cobrindo a leitura de notificações), página da loja, teste fechado e desligar o aviso de atualização do GitHub nas versões da loja.
+5. **Fase 4, iPhone:** projeto iOS no `mobile/`, montagem no GitHub Actions (macOS) e conta Apple Developer (US$ 99 por ano). Lá não há leitura de notificações.
+6. **Limpeza:** o pré-release antigo `app-v1.0.0` não recebe mais versões e pode ser apagado (pergunte antes).
