@@ -99,6 +99,10 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .top-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 .icon-btn { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); transition: background .15s, color .15s; }
 .icon-btn:hover { background: var(--c-low); color: var(--on); }
+/* Small header controls keep their look but get a 44px touch area (Apple HIG / Material); inset counts from inside the border. */
+.icon-btn, .sync, .month a, .month button { position: relative; }
+.icon-btn::after, .sync::after, .month a::after, .month button::after { content: ""; position: absolute; inset: -5px; place-self: stretch; }
+.month a::after, .month button::after { inset: -2px; }
 main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16px 112px; }
 .bottomnav { position: fixed; inset: auto 0 0 0; z-index: 40; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--hairline); padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -4px 16px rgb(15 23 42 / .06); }
 .bottomnav ul { list-style: none; margin: 0; padding: 0 4px; display: grid; grid-template-columns: repeat(5, 1fr); align-items: end; }
@@ -195,9 +199,18 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .alert { display: flex; gap: 8px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent); background: var(--warning-c); }
 .insight { display: flex; gap: 10px; margin-top: 24px; padding: 16px; border-radius: 12px; border: 1px solid var(--hairline); background: var(--c-low); color: var(--on-var); }
 .month { display: inline-flex; align-items: center; gap: 4px; padding: 2px; border-radius: 8px; border: 1px solid var(--hairline); background: var(--card); }
-.month a { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; color: var(--secondary); }
-.month a:hover { background: var(--c-low); color: var(--on); }
-.month span { min-width: 150px; text-align: center; font-weight: 600; }
+.month a { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 8px; color: var(--secondary); }
+.month button { min-width: 150px; height: 40px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; text-align: center; font-weight: 600; }
+.month a:hover, .month button:hover { background: var(--c-low); color: var(--on); }
+.month a:focus-visible, .month button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.month-list a[aria-current] { color: var(--primary); }
+.month-list a[aria-current] svg.i { margin-left: auto; }
+.boot { display: flex; flex-direction: column; gap: 16px; max-width: 1280px; margin: 0 auto; padding: calc(88px + env(safe-area-inset-top)) 16px 24px; }
+.boot > div { height: 120px; border-radius: 16px; background: var(--card); border: 1px solid var(--hairline); }
+.boot > div:first-child { height: 32px; width: 60%; background: var(--c); border: 0; }
+.boot p { opacity: 0; animation: fade-in .2s 6s forwards; text-align: center; color: var(--secondary); }
+.boot p a { color: var(--primary); font-weight: 600; text-decoration: underline; }
+@keyframes fade-in { to { opacity: 1; } }
 .seg { display: inline-flex; align-items: center; padding: 4px; border-radius: 8px; border: 1px solid var(--hairline); background: var(--surface); font-size: 12px; font-weight: 500; }
 .seg a { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; color: var(--secondary); }
 .seg a.on { background: var(--card); color: var(--primary); font-weight: 600; box-shadow: var(--shadow); }
@@ -376,8 +389,10 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 </style>
 </head>
 <body>
-<div id="app"></div>
+<!-- Static placeholder: the first paint is never blank, and a hint shows up if the script never replaces it. -->
+<div id="app"><div class="boot" aria-busy="true" aria-label="Carregando"><div></div><div></div><div></div><p>Demorando mais que o normal? <a href="">Recarregar</a></p></div></div>
 <div id="layer"></div>
+<div id="live" class="sr-only" aria-live="polite"></div>
 
 <script>
 "use strict";
@@ -1212,9 +1227,15 @@ function href(path, params = {}) {
 }
 
 // ---------- Shell ----------
+// The chosen month travels in the menu links, so switching tabs keeps it (back button and links still work).
+function navHref(path) {
+  const mes = route().params.get("mes");
+  return href(path, isMonth(mes) && mes !== currentMonth() ? { mes } : {});
+}
 function shell(r, content) {
-  const navLink = (x) => `<a href="${href(x.path)}" class="${r.path === x.path ? "active" : ""}" title="${x.label}" ${r.path === x.path ? 'aria-current="page"' : ""}>${icon(x.icon)}<span class="lbl">${x.label}</span></a>`;
-  const bottom = (path, label, ic) => `<li><a href="${href(path)}" class="${r.path === path ? "active" : ""}">${icon(ic)}${label}</a></li>`;
+  const navLink = (x) => `<a href="${navHref(x.path)}" class="${r.path === x.path ? "active" : ""}" title="${x.label}" ${r.path === x.path ? 'aria-current="page"' : ""}>${icon(x.icon)}<span class="lbl">${x.label}</span></a>`;
+  const bottom = (path, label, ic) => `<li><a href="${navHref(path)}" class="${r.path === path ? "active" : ""}" ${r.path === path ? 'aria-current="page"' : ""}>${icon(ic)}${label}</a></li>`;
+  const dark = document.documentElement.dataset.theme === "dark";
   const current = ROUTES.find((x) => x.path === r.path);
   return `
   <aside class="rail" aria-label="Menu">
@@ -1233,8 +1254,8 @@ function shell(r, content) {
       <div class="trail"><span>Visão geral</span>${icon("right", 'style="width:14px;height:14px;color:var(--outline-var)"')}<b>${current.label}</b></div>
       <div class="top-actions">
         ${syncBadge()}
-        <button class="icon-btn" data-act="theme" aria-label="Alternar tema claro/escuro" title="Alternar tema">${icon(document.documentElement.dataset.theme === "dark" ? "sun" : "moon")}</button>
-        <button class="icon-btn mob-only" data-act="menu" aria-label="Mais opções">${icon("menu")}</button>
+        <button class="icon-btn" data-act="theme" aria-label="Tema escuro" aria-pressed="${dark}" title="Alternar tema">${icon(dark ? "sun" : "moon")}</button>
+        <button class="icon-btn mob-only" data-act="menu" aria-label="Mais opções" aria-haspopup="dialog">${icon("menu")}</button>
         <button class="btn btn-primary btn-sm desk-only" data-act="new-tx">${icon("plus")} Novo gasto</button>
       </div>
     </div></header>
@@ -1246,7 +1267,22 @@ function shell(r, content) {
     ${bottom("fixos", "Fixos", "calendar")}${bottom("orcamentos", "Orçamentos", "piggy")}
   </ul></nav>`;
 }
-const monthPicker = (path, month, params = {}) => `<div class="month"><a href="${href(path, { ...params, mes: addMonths(month, -1) })}" aria-label="Mês anterior">${icon("left")}</a><span>${monthLabel(month)}</span><a href="${href(path, { ...params, mes: addMonths(month, 1) })}" aria-label="Próximo mês">${icon("right")}</a></div>`;
+const monthPicker = (path, month, params = {}) => {
+  const prev = addMonths(month, -1), next = addMonths(month, 1);
+  return `<div class="month" role="group" aria-label="Mês"><a href="${href(path, { ...params, mes: prev })}" data-month-nav="prev" aria-label="Mês anterior: ${monthLabel(prev)}">${icon("left")}</a><button type="button" data-act="pick-month" data-month-nav="pick" aria-haspopup="dialog" aria-label="${monthLabel(month)}. Escolher outro mês">${monthLabel(month)}</button><a href="${href(path, { ...params, mes: next })}" data-month-nav="next" aria-label="Próximo mês: ${monthLabel(next)}">${icon("right")}</a></div>`;
+};
+// Sheet with the months around the shown one (and a way back to today); keeps the page's other filters.
+let monthSheetUsed = false;
+function monthSheet() {
+  monthSheetUsed = true;
+  const r = route(), params = Object.fromEntries(r.params.entries()), cur = currentMonth();
+  const link = (m) => `<a href="${href(r.path, { ...params, mes: m })}" data-act="close-nav" ${m === r.month ? 'aria-current="true"' : ""}>${monthLabel(m)}${m === cur ? ' <span class="muted">(atual)</span>' : ""}${m === r.month ? icon("check") : ""}</a>`;
+  const months = Array.from({ length: 25 }, (_, i) => addMonths(r.month, i - 12));
+  const today = r.month !== cur ? `<a class="btn btn-secondary" style="width:100%" href="${href(r.path, { ...params, mes: cur })}" data-act="close-nav">${icon("calendar")} Ir para o mês atual</a>` : "";
+  openModal({ title: "Escolher mês", body: `<nav class="sheet-nav month-list" aria-label="Meses">${months.map(link).join("")}</nav>`, foot: today });
+  const sel = document.querySelector('#modal .month-list [aria-current]');
+  sel.scrollIntoView({ block: "center" }); sel.focus({ preventScroll: true });
+}
 const pageHead = (title, desc, actions = "") => `<div class="page-head"><div><h1 class="h-page">${title}</h1>${desc ? `<p class="desc">${desc}</p>` : ""}</div>${actions ? `<div class="actions">${actions}</div>` : ""}</div>`;
 const metric = ({ label, ic, chip, value, valueCls = "", pill = "", meter = null, cls = "" }) => `
   <div class="card metric ${cls}"><div class="metric-top"><span class="metric-label">${label}</span><span class="chip" style="${chip}">${icon(ic)}</span></div>
@@ -1346,7 +1382,7 @@ function viewPainel(r) {
         <div class="chart" aria-hidden="true"><div class="chart-grid"><div></div><div></div><div></div><div></div></div>
           <div class="chart-cols">${series.map((x, i) => { const n = x.income - x.expense, cur = i === series.length - 1; return `<div class="chart-col ${cur ? "cur" : ""}" title="${monthLabel(x.month)}: entradas ${fmt(x.income)}, saídas ${fmt(x.expense)}"><div class="bars"><div style="height:${h(x.income)};background:var(--chart-in)"></div><div style="height:${h(x.expense)};background:var(--chart-out)"></div></div><div class="chart-lbl"><span>${monthShort(x.month)}${cur ? " (atual)" : ""}</span><span class="${n >= 0 ? "t-income" : "t-danger"} desk-only">${n >= 0 ? "+" : "−"}${fmtCompact(Math.abs(n))}</span></div></div>`; }).join("")}</div>
         </div>
-        <table class="sr-only"><caption>Entradas e saídas por mês</caption><tr><th>Mês</th><th>Entradas</th><th>Saídas</th></tr>${series.map((x) => `<tr><td>${monthLabel(x.month)}</td><td>${fmt(x.income)}</td><td>${fmt(x.expense)}</td></tr>`).join("")}</table>
+        <div class="sr-only"><table><caption>Entradas e saídas por mês</caption><tr><th>Mês</th><th>Entradas</th><th>Saídas</th></tr>${series.map((x) => `<tr><td>${monthLabel(x.month)}</td><td>${fmt(x.income)}</td><td>${fmt(x.expense)}</td></tr>`).join("")}</table></div>
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--hairline);color:var(--secondary)">
           <span style="display:flex;align-items:center;gap:6px">${icon("trendUp", 'style="width:16px;height:16px"')} Taxa de poupança de <b class="t-income">${fmtPct(ratio(Math.max(s.forecast, 0), s.income))}</b> no mês.</span>
           <a class="t-primary" style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:12px" href="${href("lancamentos", { mes: m })}">Ver lançamentos ${icon("right", 'style="width:16px;height:16px"')}</a>
@@ -1702,7 +1738,17 @@ function deleteTripDialog(trip) {
 }
 
 const VIEWS = { painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, orcamentos: viewOrcamentos, viagens: viewViagens, categorias: viewCategorias, importar: viewImportar, configuracoes: viewConfiguracoes, backup: viewBackup };
+// A failed render must never leave a blank screen: show a way out instead (nothing is erased).
 function render() {
+  try { renderPage(); } catch (err) {
+    console.error("render failed", err);
+    document.getElementById("app").innerHTML = `<main><section class="card" role="alert" style="max-width:520px;margin:48px auto;padding:24px">
+      <h1 class="h-card">Algo deu errado ao abrir esta tela</h1>
+      <p class="muted" style="margin:6px 0 16px">Seus dados continuam guardados. Tente de novo; se o erro continuar, baixe um backup antes de qualquer outra coisa.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn btn-primary" data-act="reload">Tentar de novo</button><button class="btn btn-secondary" data-act="export">${icon("save")} Baixar backup</button></div></section></main>`;
+  }
+}
+function renderPage() {
   // Fixed items only need materializing after a change to them, a data swap or a new month.
   if (needsOccurrences || occurrencesMonth !== currentMonth()) {
     ensureOccurrences();
@@ -2166,7 +2212,7 @@ function menuSheet() {
   const account = sync
     ? `<a href="javascript:void 0" data-act="logout">${icon("logout")} Sair (@${esc(sync.login)})</a>`
     : `<a href="${href("entrar")}" data-act="close-nav">${icon("github")} Entrar / criar conta</a>`;
-  openModal({ title: "Menu", body: `<nav class="sheet-nav">${ROUTES.map((x) => `<a href="${href(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}${account}</nav>` });
+  openModal({ title: "Menu", body: `<nav class="sheet-nav">${ROUTES.map((x) => `<a href="${navHref(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}${account}</nav>` });
 }
 
 // ---------- Login / sign-up pages ----------
@@ -2631,7 +2677,7 @@ document.addEventListener("click", (e) => {
   if (act === "close-nav") { closeModal(); return; }
   const actions = {
     "theme": () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem("mf-theme", t); } catch {} render(); },
-    "menu": menuSheet, "close": closeModal,
+    "menu": menuSheet, "close": closeModal, "pick-month": monthSheet, "reload": () => location.reload(),
     "new-tx": () => txForm(null, el.dataset.type),
     "edit-tx": () => txForm(state.transactions.find((t) => t.id === id)),
     "tx-type": () => { stopVoice(); txForm.setType(el.dataset.type); },
@@ -2744,7 +2790,19 @@ document.addEventListener("input", (e) => { const t = e.target; if (t.dataset.dr
 document.addEventListener("dragover", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
 document.addEventListener("dragleave", (e) => { const d = e.target.closest?.("#drop"); if (d) d.classList.remove("over"); });
 document.addEventListener("drop", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.remove("over"); handleImportFile(e.dataTransfer.files[0]); } });
-window.addEventListener("hashchange", () => { closeModal(); render(); window.scrollTo(0, 0); });
+// Changing only the month keeps the scroll and the focus on the month control, and the new month is announced.
+let lastRoute = route();
+const sameExceptMonth = (a, b) => { const strip = (r) => { const p = new URLSearchParams(r.params); p.delete("mes"); p.sort(); return `${r.path}?${p}`; }; return strip(a) === strip(b); };
+window.addEventListener("hashchange", () => {
+  const prev = lastRoute, next = lastRoute = route();
+  const monthOnly = prev.month !== next.month && sameExceptMonth(prev, next);
+  const focused = document.activeElement?.closest?.("[data-month-nav]")?.dataset.monthNav || (monthSheetUsed ? "pick" : null);
+  monthSheetUsed = false;
+  closeModal(); render();
+  if (!monthOnly) { window.scrollTo(0, 0); return; }
+  document.getElementById("live").textContent = `Mostrando ${monthLabel(next.month)}`;
+  if (focused) document.querySelector(`[data-month-nav="${focused}"]`)?.focus({ preventScroll: true });
+});
 window.addEventListener("storage", (e) => { if (e.key === KEY) { replaceState(load()); render(); } });
 
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pullIfNewer(); else if (pushTimer) pushNow(); });
