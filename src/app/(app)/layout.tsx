@@ -78,12 +78,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <header className="sticky top-0 z-20 border-b border-hairline bg-surface-container-lowest/82 backdrop-blur-md">
           <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-margin md:px-margin-tablet lg:px-margin-desktop">
             <div className="flex min-w-0 items-center gap-3 lg:hidden">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-label-md font-bold text-primary ring-1 ring-primary/20 md:hidden">
+              {/* Small phones: the greeting already names the person, so the initials make room for the
+                  app name, which may take two lines instead of being cut. */}
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-label-md font-bold text-primary ring-1 ring-primary/20 max-[399px]:hidden md:hidden">
                 {initials(user.name)}
               </span>
               <span className="flex min-w-0 flex-col">
                 <span className="truncate text-body-sm text-secondary">Olá, {user.name.split(" ")[0]}</span>
-                <span className="truncate font-display text-headline-sm font-bold tracking-tight text-on-surface">
+                <span className="truncate font-display text-headline-sm font-bold tracking-tight text-on-surface max-[399px]:text-[16px] max-[399px]:leading-[18px] max-[399px]:whitespace-normal">
                   Minhas Finanças
                 </span>
               </span>

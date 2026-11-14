@@ -96,6 +96,8 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .trail b { color: var(--primary); font-weight: 600; }
 .mob-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .mob-brand .brand-logo { width: 36px; height: 36px; border-radius: 10px; }
+/* Small phones: a slightly smaller name that may take two lines instead of being cut. */
+@media (max-width: 359px) { .mob-brand .brand-name { font-size: 16px; line-height: 18px; white-space: normal; } }
 .top-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 .icon-btn { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); transition: background .15s, color .15s; }
 .icon-btn:hover { background: var(--c-low); color: var(--on); }
