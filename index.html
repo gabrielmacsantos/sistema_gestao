@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <!-- Fonts load without blocking the first paint; system fonts show until they arrive. -->
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" /></noscript>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&family=Roboto:wght@500&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&family=Roboto:wght@500&display=swap" /></noscript>
 <script>
   // Apply the saved theme before paint (falls back to the system preference).
   try {
@@ -367,6 +367,18 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .auth-switch a, .steps a { color: var(--primary); font-weight: 600; text-decoration: underline; }
 .auth-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
 .auth-note { margin-top: 12px; font-size: 12px; color: var(--secondary); text-align: center; }
+/* "Continuar com o Google": colors, "G" and Roboto Medium follow Google's branding, so no tokens. */
+.btn-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 44px; padding: 0 16px; border: 1px solid #747775; border-radius: 999px; background: #fff; color: #1f1f1f; font: 500 14px/20px Roboto, var(--font); cursor: pointer; transition: background .15s; }
+.btn-google:hover { background: #f8f9fa; }
+.btn-google:disabled { cursor: wait; opacity: .8; }
+:root[data-theme="dark"] .btn-google { border-color: #8e918f; background: #131314; color: #e3e3e3; }
+:root[data-theme="dark"] .btn-google:hover { background: #1f1f20; }
+.btn-google .g-mark { width: 18px; height: 18px; flex: none; }
+.auth-or { display: flex; align-items: center; gap: 12px; margin: 16px 0; font-size: 12px; font-weight: 600; color: var(--secondary); }
+.auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
+.spinner { width: 18px; height: 18px; flex: none; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 .auth-note svg.i { vertical-align: -2px; margin-right: 4px; }
 .account { display: none; align-items: center; gap: 10px; margin-top: 8px; padding: 10px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--surface); }
 .avatar { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 999px; background: var(--c-high); color: var(--primary); font-size: 12px; font-weight: 700; }
@@ -1039,7 +1051,8 @@ function setSyncStatus(status) {
 }
 function syncBadge() {
   if (!sync) return "";
-  const map = { ok: ["ok", "checkCircle", "Salvo no GitHub"], saving: ["", "cloud", "Salvando…"], error: ["err", "alert", "Erro ao salvar"] };
+  if (syncStatus === "reauth") return `<button type="button" class="sync err" data-act="google-reconnect" title="O acesso ao Google venceu. Toque para continuar sincronizando.">${icon("cloud")}<span class="txt">Toque para sincronizar</span></button>`;
+  const map = { ok: ["ok", "checkCircle", `Salvo no ${providerName()}`], saving: ["", "cloud", "Salvando…"], error: ["err", "alert", "Erro ao salvar"] };
   const [cls, ic, txt] = map[syncStatus] || map.ok;
   return `<a class="sync ${cls}" href="${href("backup")}" title="${txt}" aria-label="${txt}">${icon(ic)}<span class="txt">${txt}</span></a>`;
 }
@@ -1055,11 +1068,18 @@ async function pushNow() {
   if (pushing) { pushTimer = setTimeout(pushNow, 800); return; }
   pushing = true; setSyncStatus("saving");
   try {
-    const content = await encryptState(await importKey(sync.key), fromB64(sync.salt), sync.token);
-    await gh(`/gists/${sync.gistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files: { [GIST_FILE]: { content } } }) });
-    storeSync({ ...sync, lastPush: Date.now() });
+    if (isGoogle()) {
+      const fileId = await writeDriveFile(sync.fileId, DRIVE_FILE, driveDataFile(state), "application/json");
+      storeSync({ ...sync, fileId, lastPush: Date.now() });
+    } else {
+      const content = await encryptState(await importKey(sync.key), fromB64(sync.salt), sync.token);
+      await gh(`/gists/${sync.gistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files: { [GIST_FILE]: { content } } }) });
+      storeSync({ ...sync, lastPush: Date.now() });
+    }
     setSyncStatus("ok");
   } catch (e) {
+    // An expired Google access is not an error: the badge asks for a tap, nothing is lost.
+    if (e.reauth) return setSyncStatus("reauth");
     setSyncStatus("error");
     toast(e.message);
   } finally { pushing = false; }
@@ -1067,6 +1087,7 @@ async function pushNow() {
 /** On open / when the tab comes back: take the GitHub copy if it is newer (e.g. saved from the phone). */
 async function pullIfNewer() {
   if (!sync || pushTimer || pushing) return;
+  if (isGoogle()) return pullFromDrive();
   try {
     const file = await readGistFile(await gh(`/gists/${sync.gistId}`, sync.token));
     if (file && (file.savedAt || 0) > (state.savedAt || 0)) {
@@ -1077,6 +1098,20 @@ async function pullIfNewer() {
     }
     setSyncStatus("ok");
   } catch (e) { setSyncStatus("error"); }
+}
+
+/** Same as for GitHub: take the Drive copy if it is newer, send ours if it is older. */
+async function pullFromDrive() {
+  try {
+    if (!sync.fileId) return pushNow();
+    const remote = readDriveDataFile(await drive(`/files/${sync.fileId}?alt=media`, { as: "text" }));
+    if (remote.savedAt > (state.savedAt || 0)) {
+      replaceState(remote.data); persist(); render(); toast("Dados atualizados com o que foi salvo no Google Drive.");
+    } else if ((state.savedAt || 0) > remote.savedAt) {
+      return pushNow();
+    }
+    setSyncStatus("ok");
+  } catch (e) { setSyncStatus(e.reauth ? "reauth" : "error"); }
 }
 
 /** Login on any device: GitHub username + password. The token comes out of the decrypted file. */
@@ -1115,6 +1150,158 @@ async function signUp(token, password) {
   if (!state.savedAt) state.savedAt = Date.now();
   const gist = await gh("/gists", token, { method: "POST", body: JSON.stringify({ description: "Minhas Finanças: dados criptografados (não apague)", public: true, files: { [GIST_FILE]: { content: await encryptState(key, salt, token) } } }) });
   return { settings: { token, gistId: gist.id, login: user.login, salt: toB64(salt), key: await exportKey(key) }, data: null, existed: false };
+}
+
+// ---------- Accounts (Google) ----------
+// "Continuar com o Google": the data lives in the person's own Google Drive, in the app's hidden
+// folder (appDataFolder: only this app sees it, and it does not show among their files). No server and
+// no secret: Google Identity Services gives the browser a short-lived access token (about 1 hour).
+// When it runs out the data stays saved here and a tap renews it. The client id is public.
+const GOOGLE_CLIENT_ID = ""; // from the Google Cloud project ("ID do cliente OAuth", Web)
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const GOOGLE_SCOPES = `openid email profile ${DRIVE_SCOPE}`;
+const DRIVE_FILE = "minhas-financas.json";
+const photoDriveName = (id) => `photo-${id}.jpg`;
+const isGoogle = () => sync?.provider === "google";
+/** The app's WebView is blocked by Google for sign-in; the app gets it with a native plugin later. */
+const googleReady = () => !!GOOGLE_CLIENT_ID && !NATIVE;
+const accountLabel = () => (isGoogle() ? sync.email : `@${sync.login}`);
+const providerName = () => (isGoogle() ? "Google Drive" : "GitHub");
+const accountInitials = () => (isGoogle()
+  ? (sync.name || sync.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("")
+  : sync.login.slice(0, 2)).toUpperCase();
+const googleMark = () => `<svg class="g-mark" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`;
+const googleButton = (label = "Continuar com o Google") => `<button type="button" class="btn-google" data-act="google-sign-in">${googleMark()}<span>${label}</span></button>`;
+
+// <google-drive> Self-contained (uses hasValidMoney): tests/google-drive.test.ts loads this block.
+/** The data file kept in Drive: plain JSON, protected by the Google account (Drive's app folder). */
+function driveDataFile(data) {
+  return JSON.stringify({ app: "minhas-financas", format: "drive-1", savedAt: data.savedAt || 0, state: data });
+}
+/** Reads the Drive data file, refusing anything that is not our data with integer cents. */
+function readDriveDataFile(text) {
+  const file = JSON.parse(text);
+  const data = file && file.app === "minhas-financas" ? file.state : null;
+  if (!data || data.version !== 1 || !Array.isArray(data.transactions) || !hasValidMoney(data)) throw new Error("Arquivo de dados inválido.");
+  return { savedAt: file.savedAt || 0, data };
+}
+/** Body of a Drive "multipart" upload: the file's metadata and its content in one request. */
+function driveMultipart(metadata, content, mime, boundary) {
+  return {
+    type: `multipart/related; boundary=${boundary}`,
+    parts: [`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: ${mime}\r\n\r\n`, content, `\r\n--${boundary}--`],
+  };
+}
+// </google-drive>
+
+let gis = null;
+function loadGis() {
+  return (gis ||= new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client"; script.async = true;
+    script.onload = () => resolve(window.google);
+    script.onerror = () => { gis = null; script.remove(); reject(new Error("Sem conexão com o Google. Verifique a internet.")); };
+    document.head.appendChild(script);
+  }));
+}
+function googleError(type) {
+  if (type === "popup_closed" || type === "access_denied") return Object.assign(new Error("Login com o Google cancelado. Quando quiser, é só tentar de novo."), { cancelled: true });
+  if (type === "popup_failed_to_open") return new Error("O navegador bloqueou a janela do Google. Permita pop-ups para este site e tente de novo.");
+  return new Error("Não foi possível entrar com o Google. Tente de novo em instantes.");
+}
+/** Asks Google for an access token. Call it right after a tap: it may open Google's window. */
+async function requestGoogleToken(prompt, hint) {
+  if (!navigator.onLine) throw new Error("Sem conexão com o Google. Verifique a internet.");
+  const google = await loadGis();
+  return new Promise((resolve, reject) => {
+    google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_SCOPES, prompt, hint,
+      callback: (r) => {
+        if (r.error) return reject(googleError(r.error));
+        // Google lets people untick permissions; without the app folder there is nowhere to save.
+        if (!google.accounts.oauth2.hasGrantedAllScopes(r, DRIVE_SCOPE)) return reject(new Error("Para guardar seus dados, permita o acesso ao Google Drive (só à pasta do app)."));
+        resolve({ access: r.access_token, expiresAt: Date.now() + ((Number(r.expires_in) || 3600) - 60) * 1000 });
+      },
+      error_callback: (e) => reject(googleError(e && e.type)),
+    }).requestAccessToken();
+  });
+}
+async function googleProfile(access) {
+  let me;
+  try { const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: { Authorization: `Bearer ${access}` } }); me = res.ok ? await res.json() : null; }
+  catch { throw new Error("Sem conexão com o Google. Verifique a internet."); }
+  if (!me || !me.sub || !me.email) throw new Error("Não foi possível ler sua conta Google. Tente de novo.");
+  return { sub: me.sub, email: me.email.toLowerCase(), name: me.name || me.email };
+}
+const reauthError = () => Object.assign(new Error("Toque para continuar sincronizando com o Google."), { reauth: true });
+/** The saved access token, or a "tap to reconnect" error once it ran out. */
+function googleAccess() {
+  if (isGoogle() && sync.token && sync.token.expiresAt > Date.now()) return sync.token.access;
+  throw reauthError();
+}
+async function drive(path, { method = "GET", body, headers = {}, upload = false, as = "json" } = {}, access = googleAccess()) {
+  let res;
+  try { res = await fetch(`https://www.googleapis.com/${upload ? "upload/" : ""}drive/v3${path}`, { method, body, headers: { Authorization: `Bearer ${access}`, ...headers } }); }
+  catch { throw new Error("Sem conexão com o Google. Verifique a internet."); }
+  if (res.status === 401) { if (isGoogle()) storeSync({ ...sync, token: null }); throw reauthError(); }
+  if (res.status === 404) throw Object.assign(new Error("Não encontrado no Google Drive."), { notFound: true });
+  if (!res.ok) throw new Error(`O Google Drive respondeu com erro (${res.status}). Tente de novo em instantes.`);
+  if (method === "DELETE") return null;
+  return as === "json" ? res.json() : as === "blob" ? res.blob() : res.text();
+}
+async function findDriveFiles(query, access) {
+  const q = encodeURIComponent(`${query} and trashed = false`);
+  return (await drive(`/files?spaces=appDataFolder&q=${q}&fields=files(id,name)&pageSize=1000`, {}, access)).files || [];
+}
+const findDriveFile = async (name, access) => (await findDriveFiles(`name = '${name}'`, access))[0]?.id || null;
+/** Creates the file in the app folder, or replaces the content of an existing one. Returns its id. */
+async function writeDriveFile(id, name, content, mime, access = googleAccess()) {
+  if (id) {
+    await drive(`/files/${id}?uploadType=media&fields=id`, { method: "PATCH", upload: true, body: content, headers: { "Content-Type": mime } }, access);
+    return id;
+  }
+  const { type, parts } = driveMultipart({ name, parents: ["appDataFolder"] }, content, mime, `mf${uid().replace(/-/g, "")}`);
+  return (await drive("/files?uploadType=multipart&fields=id", { method: "POST", upload: true, body: new Blob(parts), headers: { "Content-Type": type } }, access)).id;
+}
+
+/** Sign-in and sign-up are the same tap: Google says who it is, the app folder says if data exists. */
+async function googleSignIn() {
+  const token = await requestGoogleToken("select_account");
+  const me = await googleProfile(token.access);
+  const fileId = await findDriveFile(DRIVE_FILE, token.access);
+  const remote = fileId ? readDriveDataFile(await drive(`/files/${fileId}?alt=media`, { as: "text" }, token.access)) : null;
+  return { settings: { provider: "google", sub: me.sub, email: me.email, name: me.name, fileId, token }, data: remote && remote.data };
+}
+/** After the access ran out: one tap renews it, for the same Google account only. */
+async function reconnectGoogle() {
+  const token = await requestGoogleToken("", sync.email);
+  const me = await googleProfile(token.access);
+  if (me.sub !== sync.sub) throw new Error(`Escolha a conta ${sync.email}, a desta sessão.`);
+  storeSync({ ...sync, token });
+}
+async function startGoogleSignIn(btn) {
+  const label = btn.innerHTML;
+  btn.disabled = true; btn.setAttribute("aria-busy", "true");
+  btn.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>Conectando ao Google…</span>`;
+  const reset = () => { if (btn.isConnected) { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.innerHTML = label; } };
+  let result;
+  try { result = await googleSignIn(); }
+  catch (e) { reset(); return toast(e.message); }
+  const { settings, data } = result;
+  const first = settings.name.split(" ")[0];
+  const finish = async (useRemote) => {
+    storeSync(settings); setLocalMode(false); syncStatus = "ok";
+    if (useRemote) { await clearPhotos(); replaceState(data); persist(); }
+    else { if (!state.savedAt) state.savedAt = Date.now(); persist(); await pushNow(); syncPhotos(); }
+    location.hash = href("painel"); render();
+    toast(useRemote ? `Bem-vindo de volta, ${first}!` : `Conta criada! Bem-vindo, ${first}.`);
+  };
+  const hasLocal = state.transactions.length > 0 || state.recurrings.length > 0;
+  if (data && hasLocal) {
+    reset();
+    return confirmDialog("Sua conta Google já tem dados", "Os lançamentos que estão só neste aparelho serão substituídos pelos da sua conta. Se quiser guardá-los, cancele e baixe um backup antes.", "Usar os da conta", () => finish(true));
+  }
+  await finish(!!data);
 }
 
 // ---------- Receipt photos ----------
@@ -1187,6 +1374,15 @@ async function decryptPhoto(text) {
 /** The photo as a Blob: from this device, or downloaded and decrypted from the user's gist. */
 async function getPhoto(id) {
   try { const rec = await photoDb.get(id); if (rec) return rec.blob; } catch {}
+  if (isGoogle()) {
+    try {
+      const fileId = await findDriveFile(photoDriveName(id), googleAccess());
+      if (!fileId) return null;
+      const blob = await drive(`/files/${fileId}?alt=media`, { as: "blob" });
+      photoDb.put({ id, blob, uploaded: true }).catch(() => {});
+      return blob;
+    } catch { return null; }
+  }
   if (!sync || !state.photosGistId) return null;
   try {
     const res = await fetch(`https://gist.githubusercontent.com/${encodeURIComponent(sync.login)}/${state.photosGistId}/raw/${photoFile(id)}`);
@@ -1205,6 +1401,11 @@ function syncPhotos() {
     try {
       const pending = (await photoDb.all()).filter((r) => !r.uploaded);
       for (const rec of pending) {
+        if (isGoogle()) {
+          await writeDriveFile(null, photoDriveName(rec.id), rec.blob, "image/jpeg");
+          await photoDb.put({ ...rec, uploaded: true });
+          continue;
+        }
         const files = { [photoFile(rec.id)]: { content: await encryptPhoto(rec.blob) } };
         if (!state.photosGistId) {
           const gist = await gh("/gists", sync.token, { method: "POST", body: JSON.stringify({ description: "Minhas Finanças: comprovantes criptografados (não apague)", public: true, files }) });
@@ -1215,13 +1416,20 @@ function syncPhotos() {
         await photoDb.put({ ...rec, uploaded: true });
       }
       return true;
-    } catch (e) { toast(e.message || "Não foi possível enviar a foto ao GitHub."); return false; }
+    } catch (e) {
+      if (e.reauth) { setSyncStatus("reauth"); return false; }
+      toast(e.message || `Não foi possível enviar a foto ao ${providerName()}.`); return false;
+    }
     finally { photoSync = null; }
   })());
 }
 /** Removes a photo here and (best effort) from the gist. */
 async function deletePhoto(id) {
   try { await photoDb.del(id); } catch {}
+  if (isGoogle()) {
+    findDriveFile(photoDriveName(id), googleAccess()).then((fileId) => fileId && drive(`/files/${fileId}`, { method: "DELETE" })).catch(() => {});
+    return;
+  }
   if (sync && state.photosGistId) gh(`/gists/${state.photosGistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files: { [photoFile(id)]: null } }) }).catch(() => {});
 }
 async function clearPhotos() { try { await photoDb.clear(); } catch {} }
@@ -1395,7 +1603,7 @@ function shell(r, content) {
       <nav class="nav" aria-label="Principal">${ROUTES.filter((x) => x.path !== "backup").map(navLink).join("")}</nav>
     </div>
     <div class="rail-foot nav">${navLink(ROUTES.find((x) => x.path === "backup"))}${sync
-      ? `<a href="javascript:void 0" data-act="logout" title="Sair">${icon("logout")}<span class="lbl">Sair</span></a><div class="account" title="@${esc(sync.login)}"><span class="avatar">${esc(sync.login.slice(0, 2).toUpperCase())}</span><span class="lbl"><b>@${esc(sync.login)}</b><br><span class="hint">Dados salvos no GitHub</span></span></div>`
+      ? `<a href="javascript:void 0" data-act="logout" title="Sair">${icon("logout")}<span class="lbl">Sair</span></a><div class="account" title="${esc(accountLabel())}"><span class="avatar">${esc(accountInitials())}</span><span class="lbl"><b>${esc(accountLabel())}</b><br><span class="hint">Dados salvos no ${providerName()}</span></span></div>`
       : `<a href="${href("entrar")}" title="Entrar">${icon("github")}<span class="lbl">Entrar / criar conta</span></a>`}</div>
   </aside>
   <div class="page">
@@ -1868,15 +2076,16 @@ function viewBackup() {
   const last = sync?.lastPush ? new Date(sync.lastPush).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : null;
   const github = sync
     ? `<section class="card" style="grid-column:1/-1;border-color:color-mix(in srgb,var(--success) 35%,transparent)">
-        <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("github")} Conta @${esc(sync.login)}</h2><span class="badge ${syncStatus === "error" ? "b-warning" : "b-success"}">${syncStatus === "error" ? "Erro no último envio" : syncStatus === "saving" ? "Salvando…" : "Salvo no GitHub"}</span></div>
-        <p class="muted">Cada alteração é criptografada com a sua senha e salva automaticamente na sua conta do GitHub.${last ? ` Último envio: ${esc(last)}.` : ""}</p>
-        <p class="hint" style="margin-top:6px">Em outro aparelho, entre com seu usuário do GitHub e sua senha. Em computador compartilhado, use <b>Sair</b> ao terminar.</p>
+        <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${isGoogle() ? googleMark() : icon("github")} ${isGoogle() ? `Conta Google ${esc(sync.email)}` : `Conta @${esc(sync.login)}`}</h2><span class="badge ${syncStatus === "error" ? "b-warning" : "b-success"}">${syncStatus === "error" ? "Erro no último envio" : syncStatus === "saving" ? "Salvando…" : "Salvo no GitHub"}</span></div>
+        <p class="muted">${isGoogle() ? "Cada alteração é salva automaticamente na pasta do app no seu Google Drive (só este app a vê, e ela não aparece entre os seus arquivos)." : "Cada alteração é criptografada com a sua senha e salva automaticamente na sua conta do GitHub."}${last ? ` Último envio: ${esc(last)}.` : ""}</p>
+        <p class="hint" style="margin-top:6px">Em outro aparelho, ${isGoogle() ? "entre com o Google, com a mesma conta" : "entre com seu usuário do GitHub e sua senha"}. Em computador compartilhado, use <b>Sair</b> ao terminar.</p>
         <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="push-now">${icon("cloud")} Salvar agora</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon("logout")} Sair</button></div>
       </section>`
     : `<section class="card welcome" style="grid-column:1/-1">
         <h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("github")} Você está sem conta</h2>
-        <p class="muted" style="margin:6px 0 16px">Os dados estão só neste navegador. Crie uma conta para salvá-los criptografados no seu GitHub e entrar de qualquer aparelho com usuário e senha. O que você já lançou aqui vai junto.</p>
-        <div class="actions"><a class="btn btn-primary" href="${href("cadastro")}">${icon("github")} Criar conta</a><a class="btn btn-secondary" href="${href("entrar")}">Já tenho conta</a></div>
+        <p class="muted" style="margin:6px 0 16px">Os dados estão só neste navegador. Crie uma conta para salvá-los ${googleReady() ? "no seu Google Drive ou criptografados no seu GitHub" : "criptografados no seu GitHub"} e entrar de qualquer aparelho. O que você já lançou aqui vai junto.</p>
+        ${googleReady() ? `<div style="max-width:320px;margin-bottom:12px">${googleButton("Criar conta com o Google")}</div>` : ""}
+        <div class="actions"><a class="btn btn-primary" href="${href("cadastro")}">${icon("github")} Criar conta${googleReady() ? " com o GitHub" : ""}</a><a class="btn btn-secondary" href="${href("entrar")}">Já tenho conta</a></div>
       </section>`;
   return `${pageHead("Backup e dados", sync ? "Seus dados são salvos automaticamente na sua conta do GitHub." : "Sem conta, os dados ficam só neste navegador.")}
   <div class="grid-2">
@@ -2508,7 +2717,7 @@ function confirmDialog(title, text, label, onYes) {
 
 function menuSheet() {
   const account = sync
-    ? `<a href="javascript:void 0" data-act="logout">${icon("logout")} Sair (@${esc(sync.login)})</a>`
+    ? `<a href="javascript:void 0" data-act="logout">${icon("logout")} Sair (${esc(accountLabel())})</a>`
     : `<a href="${href("entrar")}" data-act="close-nav">${icon("github")} Entrar / criar conta</a>`;
   openModal({ title: "Menu", body: `<nav class="sheet-nav">${ROUTES.map((x) => `<a href="${navHref(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}${account}</nav>` });
 }
@@ -2520,7 +2729,7 @@ function viewAuth(page) {
   const hasLocal = state.transactions.length || state.recurrings.length;
   const form = login
     ? `<form class="auth-form" id="auth-form" data-page="entrar" novalidate>
-        ${field("Usuário do GitHub", "username", input("username", "", 'autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="seu-usuario" autofocus'))}
+        ${field("Usuário do GitHub", "username", input("username", "", `autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="seu-usuario"${googleReady() ? "" : " autofocus"}`))}
         ${field("Senha", "password", input("password", "", 'type="password" autocomplete="current-password"'))}
         <button type="submit" class="btn btn-primary" style="width:100%">Entrar</button>
       </form>
@@ -2543,13 +2752,14 @@ function viewAuth(page) {
       <div class="auth-brand"><span class="brand-logo">${icon("wallet")}</span><div><h1 class="brand-name" style="font-size:22px;line-height:28px">Minhas Finanças</h1><p class="muted">Controle financeiro pessoal</p></div></div>
       <div class="card auth-card">
         <div class="tabs" role="tablist" style="margin-bottom:20px"><a role="tab" class="${login ? "on" : ""}" href="${href("entrar")}" aria-selected="${login}">Entrar</a><a role="tab" class="${login ? "" : "on"}" href="${href("cadastro")}" aria-selected="${!login}">Criar conta</a></div>
+        ${googleReady() ? `${googleButton(login ? "Continuar com o Google" : "Criar conta com o Google")}<div class="auth-or">ou com o GitHub</div>` : ""}
         ${form}
       </div>
       <div class="auth-foot">
         <button class="btn btn-ghost btn-sm" data-act="use-local">${hasLocal ? "Continuar sem conta" : "Usar sem conta (só neste aparelho)"}</button>
         <button class="icon-btn" data-act="theme" aria-label="Alternar tema claro/escuro">${icon(document.documentElement.dataset.theme === "dark" ? "sun" : "moon")}</button>
       </div>
-      <p class="auth-note">${icon("lock", 'style="width:14px;height:14px"')} Seus dados são criptografados no seu aparelho e guardados na sua própria conta do GitHub.</p>
+      <p class="auth-note">${icon("lock", 'style="width:14px;height:14px"')} ${googleReady() ? "Seus dados ficam na sua própria conta: na pasta do app no seu Google Drive, ou criptografados com sua senha no seu GitHub." : "Seus dados são criptografados no seu aparelho e guardados na sua própria conta do GitHub."}</p>
     </div>
   </main>`;
 }
@@ -2594,23 +2804,28 @@ async function submitAuth(form) {
 /** Saves what is pending to GitHub and then clears this browser, so another person can use it. */
 function logoutForm() {
   openModal({
-    title: "Sair desta conta?", sub: `@${esc(sync.login)}`,
-    body: `<p class="muted">Seus dados continuam salvos no GitHub e voltam quando você entrar de novo com seu usuário e senha. Este navegador fica vazio, pronto para outra pessoa usar.</p>`,
+    title: "Sair desta conta?", sub: esc(accountLabel()),
+    body: `<p class="muted">Seus dados continuam salvos no ${providerName()} e voltam quando você entrar de novo ${isGoogle() ? "com o Google" : "com seu usuário e senha"}. Este navegador fica vazio, pronto para outra pessoa usar.</p>`,
     foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="logout-btn">Salvar e sair</button>`,
     onSubmit: async () => {
       const btn = document.getElementById("logout-btn"); btn.disabled = true; btn.textContent = "Salvando…";
       // Wait for an upload already in flight, then send the latest state.
       while (pushing) await new Promise((r) => setTimeout(r, 200));
+      // Google's access may have run out: this tap can renew it before the last upload.
+      if (isGoogle() && !(sync.token && sync.token.expiresAt > Date.now())) {
+        try { await reconnectGoogle(); } catch (e) { btn.disabled = false; btn.textContent = "Salvar e sair"; return toast(e.message); }
+      }
       const photosOk = await syncPhotos();
       await pushNow();
-      if (syncStatus === "error" || !photosOk) {
+      if (syncStatus === "error" || syncStatus === "reauth" || !photosOk) {
         btn.disabled = false; btn.textContent = "Salvar e sair";
-        return toast("Não foi possível salvar no GitHub. Verifique a internet e tente de novo.");
+        return toast(`Não foi possível salvar no ${providerName()}. Verifique a internet e tente de novo.`);
       }
+      const where = providerName(); // read before the account is cleared
       storeSync(null); syncStatus = "off"; setLocalMode(false);
       replaceState(emptyState()); persist(); await clearPhotos();
       closeModal(); location.hash = href("entrar"); render();
-      toast("Você saiu. Seus dados estão salvos no GitHub.");
+      toast(`Você saiu. Seus dados estão salvos no ${where}.`);
     },
   });
 }
@@ -2985,6 +3200,11 @@ document.addEventListener("click", (e) => {
       document.getElementById("live").textContent = hideValues ? "Valores ocultos" : "Valores visíveis";
     },
     "recent-filter": () => setRecentFilter(el.dataset.f), "more-tx": showMoreLedger,
+    "google-sign-in": () => startGoogleSignIn(el),
+    "google-reconnect": async () => {
+      try { await reconnectGoogle(); setSyncStatus("saving"); await syncPhotos(); await pullIfNewer(); }
+      catch (e) { setSyncStatus("reauth"); toast(e.message); }
+    },
     "new-tx": () => txForm(null, el.dataset.type),
     "edit-tx": () => txForm(state.transactions.find((t) => t.id === id)),
     "tx-type": () => { stopVoice(); txForm.setType(el.dataset.type); },
@@ -3051,8 +3271,9 @@ document.addEventListener("click", (e) => {
       toast("Backup baixado.");
     },
     "demo": () => { if (state.transactions.length || state.recurrings.length) confirmDialog("Carregar dados de exemplo?", "Isso <b>substitui</b> os dados atuais deste navegador. Exporte um backup antes se quiser guardá-los.", "Substituir", loadDemo); else loadDemo(); },
-    "wipe": () => confirmDialog("Apagar todos os dados?", `Todos os lançamentos, fixos, orçamentos e metas serão removidos.${sync ? " Os dados salvos na sua conta do GitHub também serão apagados." : ""} Essa ação não pode ser desfeita.`, "Apagar tudo", () => {
-      if (sync && state.photosGistId) gh(`/gists/${state.photosGistId}`, sync.token, { method: "DELETE" }).catch(() => {});
+    "wipe": () => confirmDialog("Apagar todos os dados?", `Todos os lançamentos, fixos, orçamentos e metas serão removidos.${sync ? ` Os dados salvos na sua conta do ${providerName()} também serão apagados.` : ""} Essa ação não pode ser desfeita.`, "Apagar tudo", () => {
+      if (isGoogle()) findDriveFiles("name contains 'photo-'", googleAccess()).then((files) => Promise.all(files.map((f) => drive(`/files/${f.id}`, { method: "DELETE" })))).catch(() => {});
+      else if (sync && state.photosGistId) gh(`/gists/${state.photosGistId}`, sync.token, { method: "DELETE" }).catch(() => {});
       clearPhotos(); replaceState(emptyState()); save(); location.hash = href("painel"); toast("Dados apagados."); }),
   };
   if (actions[act]) { e.preventDefault(); actions[act](); }
