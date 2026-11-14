@@ -162,8 +162,8 @@ function CashFlowChart({
                   <span className="w-3 rounded-t-[4px] bg-(--chart-expense) sm:w-4" style={{ height: height(d.expense) }} />
                 </span>
                 <span className="flex h-10 flex-col items-center justify-center text-center" aria-hidden>
-                  <span className={cn("text-label-sm capitalize", isCurrent ? "text-primary" : "text-secondary")}>
-                    {d.label}
+                  <span className={cn("text-label-sm", isCurrent ? "text-primary" : "text-secondary")}>
+                    <span className="capitalize">{d.label}</span>
                     {isCurrent && " (atual)"}
                   </span>
                   <span className={cn("hidden text-label-sm tabular-nums sm:block", net >= 0 ? "text-success" : "text-danger")}>

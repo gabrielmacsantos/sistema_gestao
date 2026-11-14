@@ -274,7 +274,7 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .flow-read { margin-top: 12px; min-height: 20px; color: var(--secondary); }
 .flow-read b, .flow-read .num { color: var(--on); }
 .chart-lbl { height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; line-height: 14px; font-weight: 600; letter-spacing: .02em; color: var(--secondary); text-align: center; }
-.chart-lbl span:first-child { text-transform: capitalize; }
+.chart-lbl .cap { text-transform: capitalize; }
 .chart-col.cur .chart-lbl { color: var(--primary); }
 .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 10px; font-weight: 600; letter-spacing: .04em; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -1388,7 +1388,7 @@ function flowChart(m) {
   const h = (v) => `${v > 0 ? Math.max(2, (v / max) * 100) : 0}%`;
   flowPoints = d.points;
   return `<div class="chart"><div class="chart-grid" aria-hidden="true"><div></div><div></div><div></div><div></div></div>
-    <div class="chart-cols">${d.points.map((x, i) => { const n = x.income - x.expense, cur = i === d.current; return `<button type="button" class="chart-col ${cur ? "cur on" : ""}" data-act="flow-col" data-i="${i}" aria-pressed="${cur}" aria-label="${esc(x.long)}: entradas ${fmt(x.income)}, saídas ${fmt(x.expense)}"><span class="bars" aria-hidden="true"><span style="height:${h(x.income)};background:var(--chart-in)"></span><span style="height:${h(x.expense)};background:var(--chart-out)"></span></span><span class="chart-lbl" aria-hidden="true"><span>${x.label}${cur ? " (atual)" : ""}</span><span class="${n >= 0 ? "t-income" : "t-danger"} desk-only">${n >= 0 ? "+" : "−"}${fmtCompact(Math.abs(n))}</span></span></button>`; }).join("")}</div>
+    <div class="chart-cols">${d.points.map((x, i) => { const n = x.income - x.expense, cur = i === d.current; return `<button type="button" class="chart-col ${cur ? "cur on" : ""}" data-act="flow-col" data-i="${i}" aria-pressed="${cur}" aria-label="${esc(x.long)}: entradas ${fmt(x.income)}, saídas ${fmt(x.expense)}"><span class="bars" aria-hidden="true"><span style="height:${h(x.income)};background:var(--chart-in)"></span><span style="height:${h(x.expense)};background:var(--chart-out)"></span></span><span class="chart-lbl" aria-hidden="true"><span><span class="cap">${x.label}</span>${cur ? " (atual)" : ""}</span><span class="${n >= 0 ? "t-income" : "t-danger"} desk-only">${n >= 0 ? "+" : "−"}${fmtCompact(Math.abs(n))}</span></span></button>`; }).join("")}</div>
   </div>
   <p class="flow-read" id="flow-read" aria-live="polite">${flowReadout(d.points[d.current])}</p>
   <div class="sr-only"><table><caption>${d.caption}</caption><tr><th scope="col">${d.period}</th><th scope="col">Entradas</th><th scope="col">Saídas</th><th scope="col">Resultado</th></tr>${d.points.map((x) => `<tr><th scope="row">${esc(x.long)}</th><td>${fmt(x.income)}</td><td>${fmt(x.expense)}</td><td>${signedFmt(x.income - x.expense)}</td></tr>`).join("")}</table></div>`;
