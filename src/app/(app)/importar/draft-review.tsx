@@ -4,11 +4,13 @@ import { useState, useTransition } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormMessage, Input, Select } from "@/components/ui/form";
+import { MoneyInput } from "@/components/ui/money-input";
 import { type CategoryOption } from "@/lib/constants";
-import { centsToInput, formatBRL, parseMoneyToCents } from "@/lib/money";
+import { centsToInput, parseMoneyToCents } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { ConfirmedDraft, TransactionDraft } from "@/lib/validation";
 import { confirmImportAction } from "./actions";
+import { Money } from "@/components/money";
 
 type Row = {
   draft: TransactionDraft;
@@ -123,12 +125,12 @@ export function DraftReview({
                     placeholder="Descrição"
                     className="col-span-2 sm:col-span-1"
                   />
-                  <Input
+                  <MoneyInput
                     aria-label="Valor"
-                    inputMode="decimal"
                     value={row.amount}
-                    onChange={(e) => update(i, { amount: e.target.value })}
+                    onValueChange={(amount) => update(i, { amount })}
                     placeholder="0,00"
+                    showCurrency={false}
                   />
                   <Input
                     aria-label="Data"
@@ -193,7 +195,9 @@ export function DraftReview({
                         <span className="truncate">
                           {item.quantity.toLocaleString("pt-BR")} × {item.description}
                         </span>
-                        <span className="shrink-0 tabular-nums">{formatBRL(item.totalCents)}</span>
+                        <span className="shrink-0 tabular-nums">
+                          <Money cents={item.totalCents} />
+                        </span>
                       </li>
                     ))}
                   </ul>

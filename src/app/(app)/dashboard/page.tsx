@@ -50,6 +50,7 @@ import { monthParam, type SearchParams } from "@/lib/search-params";
 import { cn } from "@/lib/utils";
 import { CashFlowPanel, type FlowPoint } from "./cash-flow-chart";
 import { RecentLedger, type RecentViews } from "./recent-ledger";
+import { Money } from "@/components/money";
 
 export const metadata: Metadata = { title: "Painel" };
 
@@ -179,7 +180,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
                 {formatPercent(incomeDelta)} vs. anterior
               </Pill>
             ) : summary.incomePending ? (
-              <Pill className="bg-surface-container text-secondary">{formatBRL(summary.incomePending)} a receber</Pill>
+              <Pill className="bg-surface-container text-secondary"><Money cents={summary.incomePending} /> a receber</Pill>
             ) : undefined
           }
           meter={{ ratio: income > 0 ? 1 : 0, className: "bg-success" }}
@@ -197,7 +198,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
                 {formatPercent(ratio(expense, income))} da receita
               </Pill>
             ) : summary.expensePending ? (
-              <Pill className="bg-warning-container text-warning">{formatBRL(summary.expensePending)} a pagar</Pill>
+              <Pill className="bg-warning-container text-warning"><Money cents={summary.expensePending} /> a pagar</Pill>
             ) : undefined
           }
           meter={{ ratio: ratio(expense, income), className: "bg-primary" }}
@@ -262,9 +263,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
                 />
                 <span>
                   <strong className="font-semibold">{a.categoryName}</strong>:{" "}
-                  {a.ratio > 1
-                    ? `orçamento estourado em ${formatBRL(a.spentCents - a.limitCents)}`
-                    : `${Math.round(a.ratio * 100)}% do orçamento usado`}
+                  {a.ratio > 1 ? (
+                    <>
+                      orçamento estourado em <Money cents={a.spentCents - a.limitCents} />
+                    </>
+                  ) : (
+                    `${Math.round(a.ratio * 100)}% do orçamento usado`
+                  )}
                 </span>
               </li>
             ))}
@@ -350,7 +355,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
                       <span className="[overflow-wrap:anywhere]">{c.name}</span>
                     </span>
                     <span className="shrink-0 text-secondary tabular-nums">
-                      {formatBRL(c.totalCents)} ({shares[i] === 0 && c.totalCents > 0 ? "<1" : shares[i]}%)
+                      <Money cents={c.totalCents} /> ({shares[i] === 0 && c.totalCents > 0 ? "<1" : shares[i]}%)
                     </span>
                   </div>
                   <div className="h-2 rounded-full bg-surface-container-low" aria-hidden>
@@ -419,7 +424,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
                     {t.status === "PENDING" ? "Vence" : "Venceu"} {formatDayMonth(t.date)}
                   </span>
                   <span className="mt-1 font-display text-headline-sm font-bold text-on-surface tabular-nums">
-                    {formatBRL(t.amountCents)}
+                    <Money cents={t.amountCents} />
                   </span>
                 </Link>
               </li>
@@ -443,7 +448,7 @@ function ReserveText({ parts }: { parts: MessagePart[] }) {
       part
     ) : (
       <strong key={i} className="font-semibold text-primary">
-        {formatBRL(part.cents)}
+        <Money cents={part.cents} />
       </strong>
     ),
   );
@@ -480,7 +485,9 @@ function FlowStat({
       </span>
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-label-md text-secondary">{label}</span>
-        <span className={cn("truncate text-numeric-data tabular-nums", tone)}>{value}</span>
+        <span className={cn("truncate text-numeric-data tabular-nums", tone)}>
+          <span data-money>{value}</span>
+        </span>
       </span>
     </div>
   );

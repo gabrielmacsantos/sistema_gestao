@@ -454,6 +454,8 @@ const ICONS = {
   checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  eye: '<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff: '<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="m2 2 20 20"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
   menu: '<path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/>',
   wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
@@ -493,8 +495,12 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const brlCompact = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
 const pct = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 });
-const fmt = (cents) => brl.format(cents / 100);
-const fmtCompact = (cents) => brlCompact.format(cents / 100);
+// "Ocultar valores": every amount on screen goes through fmt/fmtCompact, so hiding them there also
+// covers tooltips and screen-reader labels. Form fields keep the real value (formatCentsInput).
+let hideValues = (() => { try { return localStorage.getItem("mf-hide-values") === "1"; } catch { return false; } })();
+const HIDDEN_AMOUNT = "R$ •••••";
+const fmt = (cents) => (hideValues ? HIDDEN_AMOUNT : brl.format(cents / 100));
+const fmtCompact = (cents) => (hideValues ? "R$ •••" : brlCompact.format(cents / 100));
 const fmtPct = (r) => pct.format(r);
 const ratio = (a, b) => (b > 0 ? a / b : 0);
 const clamp01 = (r) => Math.max(0, Math.min(1, r));
@@ -528,12 +534,14 @@ function formatCentsInput(cents) {
   const rest = cents % 100, whole = String((cents - rest) / 100).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return `${whole},${String(rest).padStart(2, "0")}`;
 }
-/** The digits typed are the cents, as on a card machine: "5230" -> 5230 cents, shown "52,30". */
-function maskMoneyInput(typed) {
+/** The digits typed are the cents, as on a card machine: "5230" -> 5230 cents, shown "52,30".
+ * With negative, a "-" anywhere makes it a withdrawal: "-5230" -> -5230, shown "-52,30". */
+function maskMoneyInput(typed, { negative = false } = {}) {
+  const minus = negative && typed.includes("-");
   const digits = typed.replace(/\D/g, "").replace(/^0+/, "").slice(0, MONEY_MASK_MAX_DIGITS);
-  if (!digits) return { cents: null, text: "" };
+  if (!digits) return { cents: null, text: minus ? "-" : "" };
   const cents = Number(digits);
-  return { cents, text: formatCentsInput(cents) };
+  return { cents: minus ? -cents : cents, text: `${minus ? "-" : ""}${formatCentsInput(cents)}` };
 }
 // </money-mask>
 
@@ -1394,6 +1402,7 @@ function shell(r, content) {
       <div class="trail"><span>Visão geral</span>${icon("right", 'style="width:14px;height:14px;color:var(--outline-var)"')}<b>${current.label}</b></div>
       <div class="top-actions">
         ${syncBadge()}
+        <button class="icon-btn" data-act="toggle-values" aria-label="Ocultar valores" aria-pressed="${hideValues}" title="${hideValues ? "Mostrar valores" : "Ocultar valores"}">${icon(hideValues ? "eyeOff" : "eye")}</button>
         <button class="icon-btn" data-act="theme" aria-label="Tema escuro" aria-pressed="${dark}" title="Alternar tema">${icon(dark ? "sun" : "moon")}</button>
         <button class="icon-btn mob-only" data-act="menu" aria-label="Mais opções" aria-haspopup="dialog">${icon("menu")}</button>
         <button class="btn btn-primary btn-sm desk-only" data-act="new-tx">${icon("plus")} Novo gasto</button>
@@ -1844,7 +1853,7 @@ function viewReview() {
   ${importDrafts.map((d, i) => `<tr class="${d.include ? "" : "off"}">
     <td><input type="checkbox" data-draft="${i}" data-k="include" ${d.include ? "checked" : ""} style="width:18px;height:18px;accent-color:var(--primary)" aria-label="Importar"></td>
     <td style="min-width:200px"><input class="input input-sm" data-draft="${i}" data-k="description" value="${esc(d.description)}">${flags(d)}${d.original ? `<p class="hint" style="margin-top:4px;max-width:320px">${esc(d.original)}</p>` : ""}</td>
-    <td style="min-width:120px"><input class="input input-sm num" data-draft="${i}" data-k="amount" value="${centsToInput(d.amountCents)}" inputmode="decimal"></td>
+    <td style="min-width:120px"><input class="input input-sm num" data-draft="${i}" data-k="amount" value="${d.amountCents ? formatCentsInput(d.amountCents) : ""}" inputmode="numeric" autocomplete="off" data-money-mask aria-label="Valor"></td>
     <td style="min-width:150px"><input class="input input-sm" type="date" data-draft="${i}" data-k="date" value="${esc(d.date || "")}"></td>
     <td style="min-width:120px"><select class="input input-sm" data-draft="${i}" data-k="type"><option value="EXPENSE" ${d.type === "EXPENSE" ? "selected" : ""}>Saída</option><option value="INCOME" ${d.type === "INCOME" ? "selected" : ""}>Entrada</option></select></td>
     <td style="min-width:160px"><select class="input input-sm" data-draft="${i}" data-k="categoryId">${cats(d.type, d.categoryId)}</select></td>
@@ -2067,9 +2076,9 @@ function showErrors(errors, root = document.getElementById("modal")) {
 }
 const field = (label, name, control, cls = "", hint = "") => `<div class="field ${cls}"><label for="f-${name}">${label}</label>${control}${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
 const input = (name, value = "", attrs = "") => `<input class="input" id="f-${name}" name="${name}" value="${esc(value)}" ${attrs}>`;
-const moneyInput = (name, cents) => `<div class="money"><span>R$</span><input class="input" id="f-${name}" name="${name}" inputmode="decimal" placeholder="0,00" value="${cents ? centsToInput(cents) : ""}"></div>`;
-// Amount field with the card-machine mask (see maskMoneyInput): typing 5230 shows 52,30.
-const maskedMoneyInput = (name, cents) => `<div class="money"><span>R$</span><input class="input" id="f-${name}" name="${name}" inputmode="numeric" autocomplete="off" placeholder="0,00" data-money-mask value="${cents ? formatCentsInput(cents) : ""}"></div>`;
+// Amount fields use the card-machine mask (see maskMoneyInput): typing 5230 shows 52,30.
+// With negative, typing "-" makes it a withdrawal (the goal deposit).
+const moneyInput = (name, cents, { negative = false } = {}) => `<div class="money"><span>R$</span><input class="input" id="f-${name}" name="${name}" inputmode="${negative ? "text" : "numeric"}" autocomplete="off" placeholder="0,00" data-money-mask="${negative ? "neg" : ""}" value="${cents ? `${cents < 0 ? "-" : ""}${formatCentsInput(Math.abs(cents))}` : ""}"></div>`;
 const catOptions = (type, sel) => `<option value="">Sem categoria</option>${state.categories.filter((c) => c.type === type).sort((a, b) => a.name.localeCompare(b.name)).map((c) => `<option value="${c.id}" ${c.id === sel ? "selected" : ""}>${esc(c.name)}</option>`).join("")}`;
 const catSelect = (type, sel, name = "categoryId") => `<select class="input" id="f-${name}" name="${name}">${catOptions(type, sel)}</select>`;
 const formData = () => Object.fromEntries(new FormData(document.getElementById("modal")).entries());
@@ -2112,7 +2121,7 @@ function txForm(tx, presetType, presetTrip) {
         <div class="tabs full" role="group" aria-label="Tipo"><button type="button" class="${type === "EXPENSE" ? "on exp" : ""}" data-act="tx-type" data-type="EXPENSE" aria-pressed="${type === "EXPENSE"}">Despesa</button><button type="button" class="${type === "INCOME" ? "on inc" : ""}" data-act="tx-type" data-type="INCOME" aria-pressed="${type === "INCOME"}">Receita</button></div>
         ${!tx && SpeechRec ? `<div class="full" id="voice-slot" aria-live="polite"></div>` : ""}
         ${field("Descrição", "description", input("description", d.description ?? tx?.description ?? "", `placeholder="${TX_DESCRIPTION_HINT[type]}" maxlength="120" autofocus`), "full")}
-        ${field("Valor", "amount", maskedMoneyInput("amount", d.amount ? parseMoneyToCents(d.amount) : tx?.amountCents))}
+        ${field("Valor", "amount", moneyInput("amount", d.amount ? parseMoneyToCents(d.amount) : tx?.amountCents))}
         ${field("Data", "date", input("date", d.date ?? tx?.date ?? defaultDate, 'type="date"'))}
         ${field("Categoria", "categoryId", catSelect(type, d.categoryId ?? tx?.categoryId))}
         ${state.trips.length && !tx?.recurringId ? field("Viagem", "tripId", `<select class="input" id="f-tripId" name="tripId"><option value="">Nenhuma (gestão do mês)</option>${[...state.trips].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)).map((x) => `<option value="${x.id}" ${(d.tripId ?? tx?.tripId ?? presetTrip) === x.id ? "selected" : ""}>✈ ${esc(x.name)}</option>`).join("")}</select>`, "full") : ""}
@@ -2480,7 +2489,7 @@ function goalForm(g) {
 function depositForm(g) {
   openModal({
     title: `Guardar em "${esc(g.name)}"`, sub: `${fmt(g.savedCents)} de ${fmt(g.targetCents)}`,
-    body: field("Quanto você guardou?", "amount", moneyInput("amount", 0), "", "Use um valor negativo para retirar."),
+    body: field("Quanto você guardou?", "amount", moneyInput("amount", 0, { negative: true }), "", "Para retirar, digite o sinal de menos (-)."),
     foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm">${icon("check")} Confirmar</button>`,
     onSubmit: () => {
       const amount = parseMoneyToCents(formData().amount);
@@ -2966,6 +2975,13 @@ document.addEventListener("click", (e) => {
     "theme": () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem("mf-theme", t); } catch {} render(); },
     "menu": menuSheet, "close": closeModal, "pick-month": monthSheet, "reload": () => location.reload(),
     "flow-view": () => setFlowView(el.dataset.view), "flow-col": () => selectFlowColumn(el),
+    "toggle-values": () => {
+      hideValues = !hideValues;
+      try { localStorage.setItem("mf-hide-values", hideValues ? "1" : "0"); } catch {}
+      render();
+      document.querySelector('[data-act="toggle-values"]')?.focus({ preventScroll: true });
+      document.getElementById("live").textContent = hideValues ? "Valores ocultos" : "Valores visíveis";
+    },
     "recent-filter": () => setRecentFilter(el.dataset.f), "more-tx": showMoreLedger,
     "new-tx": () => txForm(null, el.dataset.type),
     "edit-tx": () => txForm(state.transactions.find((t) => t.id === id)),
@@ -3078,7 +3094,7 @@ document.addEventListener("change", (e) => {
 document.addEventListener("input", (e) => {
   const t = e.target;
   if (t.id === "tx-search") onLedgerSearch(t.value);
-  else if (t.matches("[data-money-mask]")) { t.value = maskMoneyInput(t.value).text; t.setSelectionRange(t.value.length, t.value.length); }
+  else if (t.matches("[data-money-mask]")) { t.value = maskMoneyInput(t.value, { negative: t.dataset.moneyMask === "neg" }).text; t.setSelectionRange(t.value.length, t.value.length); }
   else if (t.dataset.draft !== undefined && t.dataset.k === "description") importDrafts[Number(t.dataset.draft)].description = t.value;
 });
 document.addEventListener("dragover", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
@@ -3093,7 +3109,8 @@ document.addEventListener("paste", (e) => {
   const cents = parseMoneyToCents(e.clipboardData?.getData("text") || "");
   if (cents === null) return;
   e.preventDefault();
-  t.value = cents > 0 ? formatCentsInput(Math.min(Math.abs(cents), 99999999999)) : "";
+  const negative = cents < 0 && t.dataset.moneyMask === "neg";
+  t.value = cents ? `${negative ? "-" : ""}${formatCentsInput(Math.min(Math.abs(cents), 99999999999))}` : "";
 });
 window.addEventListener("hashchange", () => {
   const prev = lastRoute, next = lastRoute = route();

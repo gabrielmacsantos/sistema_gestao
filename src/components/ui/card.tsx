@@ -132,7 +132,7 @@ export function MetricCard({
           )}
           style={{ "--chars": value.length } as CSSProperties}
         >
-          {value}
+          <span data-money>{value}</span>
         </p>
         {pill && <div className="mt-2 flex">{pill}</div>}
       </div>

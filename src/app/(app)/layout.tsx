@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogOut, Plus, Tags, Wallet } from "lucide-react";
 import { buttonClass } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ValuesToggle } from "@/components/values-toggle";
 import { getCurrentUser } from "@/server/auth";
 import { logoutAction } from "../(auth)/actions";
 import { BottomNav, PageTrail, SideNav } from "./nav";
@@ -90,6 +91,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <PageTrail />
 
             <div className="flex shrink-0 items-center gap-2">
+              <ValuesToggle />
               <ThemeToggle />
               <Link href="/categorias" className={`${iconButton} md:hidden`} aria-label="Categorias" title="Categorias">
                 <Tags className="size-[18px]" aria-hidden />

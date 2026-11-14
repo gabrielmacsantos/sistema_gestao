@@ -7,9 +7,10 @@ import { listCategories } from "@/server/repositories/categories";
 import { findTransaction } from "@/server/repositories/transactions";
 import { SOURCE_LABEL } from "@/lib/constants";
 import { dateToInput } from "@/lib/dates";
-import { centsToInput, formatBRL } from "@/lib/money";
+import { centsToInput } from "@/lib/money";
 import { deleteTransactionAction } from "../actions";
 import { TransactionForm } from "../transaction-form";
+import { Money } from "@/components/money";
 
 export const metadata: Metadata = { title: "Editar lançamento" };
 
@@ -65,10 +66,17 @@ export default async function EditTransactionPage({ params }: { params: Promise<
                   <span className="block truncate">{item.description}</span>
                   <span className="text-body-sm text-secondary">
                     {item.quantity.toLocaleString("pt-BR")} {item.unit ?? "un"}
-                    {item.unitPriceCents !== null && ` × ${formatBRL(item.unitPriceCents)}`}
+                    {item.unitPriceCents !== null && (
+                      <>
+                        {" × "}
+                        <Money cents={item.unitPriceCents} />
+                      </>
+                    )}
                   </span>
                 </span>
-                <span className="shrink-0 tabular-nums">{formatBRL(item.totalCents)}</span>
+                <span className="shrink-0 tabular-nums">
+                  <Money cents={item.totalCents} />
+                </span>
               </li>
             ))}
           </ul>

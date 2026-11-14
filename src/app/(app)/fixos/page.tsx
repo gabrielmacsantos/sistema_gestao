@@ -8,6 +8,7 @@ import { requireUserId } from "@/server/auth";
 import { listRecurrings } from "@/server/services/recurring";
 import { currentMonth, formatMonthShort } from "@/lib/dates";
 import { formatBRL } from "@/lib/money";
+import { Money } from "@/components/money";
 
 export const metadata: Metadata = { title: "Gastos fixos" };
 
@@ -95,7 +96,7 @@ function RecurringList({ items, bare }: { items: RecurringItem[]; bare?: boolean
                   : "text-body-md font-semibold tabular-nums"
               }
             >
-              {formatBRL(r.amountCents)}
+              <Money cents={r.amountCents} />
             </span>
           </Link>
         </li>

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FormMessage, Input, Select } from "@/components/ui/form";
+import { MoneyInput } from "@/components/ui/money-input";
 import type { CategoryOption } from "@/lib/constants";
 import type { ActionState } from "@/lib/validation";
 import { createGoalAction, depositGoalAction, setBudgetAction } from "./actions";
@@ -29,14 +30,7 @@ export function BudgetForm({ categories }: { categories: CategoryOption[] }) {
           </Select>
         </Field>
         <Field label="Limite mensal (R$)" htmlFor="budget-amount" error={errors.amountCents}>
-          <Input
-            id="budget-amount"
-            name="amountCents"
-            inputMode="decimal"
-            placeholder="0,00"
-            defaultValue={values.amountCents}
-            required
-          />
+          <MoneyInput id="budget-amount" name="amountCents" placeholder="0,00" defaultValue={values.amountCents} />
         </Field>
       </div>
       <Button type="submit" disabled={pending} className="self-start">
@@ -59,10 +53,10 @@ export function GoalForm() {
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Valor alvo (R$)" htmlFor="goal-target" error={errors.targetCents}>
-          <Input id="goal-target" name="targetCents" inputMode="decimal" defaultValue={values.targetCents} required />
+          <MoneyInput id="goal-target" name="targetCents" placeholder="0,00" defaultValue={values.targetCents} />
         </Field>
         <Field label="Já guardado (R$)" htmlFor="goal-saved" error={errors.savedCents}>
-          <Input id="goal-saved" name="savedCents" inputMode="decimal" defaultValue={values.savedCents} />
+          <MoneyInput id="goal-saved" name="savedCents" placeholder="0,00" defaultValue={values.savedCents} />
         </Field>
       </div>
       <Field label="Prazo" htmlFor="goal-deadline" error={errors.deadline}>
@@ -83,14 +77,7 @@ export function DepositForm({ goalId }: { goalId: string }) {
   return (
     <form action={action} className="flex flex-col gap-1">
       <div className="flex gap-2">
-        <Input
-          name="amountCents"
-          inputMode="decimal"
-          placeholder="Guardar R$"
-          aria-label="Valor a guardar"
-          className="h-9"
-          required
-        />
+        <MoneyInput name="amountCents" placeholder="0,00" aria-label="Valor a guardar" className="h-9" />
         <Button type="submit" size="sm" variant="secondary" disabled={pending}>
           Guardar
         </Button>

@@ -25,8 +25,9 @@ export const viewport: Viewport = {
   ],
 };
 
-// Runs before paint so the chosen theme never flashes. Falls back to the system preference.
-const themeScript = `try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}catch(e){}`;
+// Runs before paint so the chosen theme never flashes (falls back to the system preference), and
+// so hidden amounts ("Ocultar valores") never show for a moment on load.
+const themeScript = `try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t;if(localStorage.getItem("hide-values")==="1")document.documentElement.dataset.hideValues="1"}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

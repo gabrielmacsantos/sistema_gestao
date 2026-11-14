@@ -9,10 +9,10 @@ import { listGoals } from "@/server/services/budgets";
 import { ensureOccurrences } from "@/server/services/recurring";
 import { BUDGET_WARNING_RATIO, budgetStatus } from "@/server/services/reports";
 import { formatDate } from "@/lib/dates";
-import { formatBRL } from "@/lib/money";
 import { monthParam, type SearchParams } from "@/lib/search-params";
 import { deleteBudgetAction, deleteGoalAction } from "./actions";
 import { BudgetForm, DepositForm, GoalForm } from "./forms";
+import { Money } from "@/components/money";
 
 export const metadata: Metadata = { title: "Orçamentos e metas" };
 
@@ -47,10 +47,10 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Sear
                       </div>
                       <ProgressBar ratio={s.ratio} tone={tone} label={`Orçamento de ${s.categoryName}`} />
                       <p className="text-body-sm text-secondary">
-                        {formatBRL(s.spentCents)} de {formatBRL(s.limitCents)}
+                        <Money cents={s.spentCents} /> de <Money cents={s.limitCents} />
                         {tone === "over" && (
                           <span className="ml-1 font-medium text-danger">
-                            · estourou {formatBRL(s.spentCents - s.limitCents)}
+                            · estourou <Money cents={s.spentCents - s.limitCents} />
                           </span>
                         )}
                         {tone === "warn" && (
@@ -88,7 +88,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Sear
                       </div>
                       <ProgressBar ratio={ratio} tone="ok" label={`Progresso da meta ${g.name}`} />
                       <p className="text-body-sm text-secondary">
-                        {formatBRL(g.savedCents)} de {formatBRL(g.targetCents)} ({Math.round(ratio * 100)}%)
+                        <Money cents={g.savedCents} /> de <Money cents={g.targetCents} /> ({Math.round(ratio * 100)}%)
                         {g.deadline && ` · até ${formatDate(g.deadline)}`}
                         {ratio >= 1 && (
                           <span className="ml-1 font-medium text-primary">· concluída!</span>

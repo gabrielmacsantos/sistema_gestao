@@ -5,6 +5,7 @@ import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Badge } from "@/components/ui/card";
 import { formatBRL, formatBRLCompact } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { useValuesHidden } from "@/components/values-toggle";
 
 /** One column of the chart, already labeled by the server. Amounts in cents. */
 export type FlowPoint = { key: string; label: string; longLabel: string; income: number; expense: number };
@@ -39,7 +40,12 @@ function subscribe(notify: () => void) {
   };
 }
 
-const signed = (cents: number) => `${cents >= 0 ? "+" : "−"}${formatBRL(Math.abs(cents))}`;
+const signed = (cents: number) => (
+  <>
+    {cents >= 0 ? "+" : "−"}
+    <span data-money>{formatBRL(Math.abs(cents))}</span>
+  </>
+);
 
 /**
  * "Fluxo de caixa" card body: header with the Mensal/Semanal tabs, the totals passed as children
@@ -128,6 +134,7 @@ function CashFlowChart({
   periodName: string;
 }) {
   const [selected, setSelected] = useState(current);
+  const hidden = useValuesHidden();
   const max = Math.max(1, ...data.flatMap((d) => [d.income, d.expense]));
   const height = (v: number) => `${Math.max(v > 0 ? 2 : 0, (v / max) * 100)}%`;
   const point = selected === null ? undefined : data[selected];
@@ -150,7 +157,11 @@ function CashFlowChart({
                 key={d.key}
                 type="button"
                 aria-pressed={i === selected}
-                aria-label={`${d.longLabel}: entradas ${formatBRL(d.income)}, saídas ${formatBRL(d.expense)}`}
+                aria-label={
+                  hidden
+                    ? `${d.longLabel}: valores ocultos`
+                    : `${d.longLabel}: entradas ${formatBRL(d.income)}, saídas ${formatBRL(d.expense)}`
+                }
                 onClick={() => setSelected(i)}
                 className={cn(
                   "flex min-w-0 flex-1 flex-col items-center rounded-xl px-1 pt-2",
@@ -168,7 +179,7 @@ function CashFlowChart({
                   </span>
                   <span className={cn("hidden text-label-sm tabular-nums sm:block", net >= 0 ? "text-success" : "text-danger")}>
                     {net >= 0 ? "+" : "−"}
-                    {formatBRLCompact(Math.abs(net))}
+                    <span data-money>{formatBRLCompact(Math.abs(net))}</span>
                   </span>
                 </span>
               </button>
@@ -180,8 +191,14 @@ function CashFlowChart({
         {point ? (
           <>
             <strong className="font-semibold text-on-surface">{point.longLabel}</strong>: entradas{" "}
-            <span className="tabular-nums text-on-surface">{formatBRL(point.income)}</span> · saídas{" "}
-            <span className="tabular-nums text-on-surface">{formatBRL(point.expense)}</span> · resultado{" "}
+            <span className="tabular-nums text-on-surface" data-money>
+              {formatBRL(point.income)}
+            </span>{" "}
+            · saídas{" "}
+            <span className="tabular-nums text-on-surface" data-money>
+              {formatBRL(point.expense)}
+            </span>{" "}
+            · resultado{" "}
             <span className={cn("tabular-nums", point.income - point.expense >= 0 ? "text-success" : "text-danger")}>
               {signed(point.income - point.expense)}
             </span>
@@ -204,8 +221,12 @@ function CashFlowChart({
           {data.map((r) => (
             <tr key={r.key}>
               <th scope="row">{r.longLabel}</th>
-              <td>{formatBRL(r.income)}</td>
-              <td>{formatBRL(r.expense)}</td>
+              <td>
+                <span data-money>{formatBRL(r.income)}</span>
+              </td>
+              <td>
+                <span data-money>{formatBRL(r.expense)}</span>
+              </td>
               <td>{signed(r.income - r.expense)}</td>
             </tr>
           ))}

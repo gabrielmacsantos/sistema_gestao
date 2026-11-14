@@ -86,12 +86,17 @@ export function formatCentsInput(cents: number): string {
 /**
  * Money mask for typing: the digits typed are the cents, as on a card machine.
  * "5230" -> 5230 cents, shown "52,30"; anything but digits is dropped. Empty when no digits.
+ * With `negative`, a "-" anywhere makes it a withdrawal: "-5230" -> -5230, shown "-52,30".
  */
-export function maskMoneyInput(typed: string): { cents: number | null; text: string } {
+export function maskMoneyInput(
+  typed: string,
+  { negative = false }: { negative?: boolean } = {},
+): { cents: number | null; text: string } {
+  const minus = negative && typed.includes("-");
   const digits = typed.replace(/\D/g, "").replace(/^0+/, "").slice(0, MONEY_MASK_MAX_DIGITS);
-  if (!digits) return { cents: null, text: "" };
+  if (!digits) return { cents: null, text: minus ? "-" : "" };
   const cents = Number(digits);
-  return { cents, text: formatCentsInput(cents) };
+  return { cents: minus ? -cents : cents, text: `${minus ? "-" : ""}${formatCentsInput(cents)}` };
 }
 
 /** Value for a money <input>, e.g. 123456 -> "1234,56". */

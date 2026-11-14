@@ -35,6 +35,14 @@ describe.each([
     expect(maskMoneyInput("")).toEqual({ cents: null, text: "" });
   });
 
+  it("takes a minus sign only where withdrawals are allowed", () => {
+    expect(maskMoneyInput("-5230")).toEqual({ cents: 5230, text: "52,30" });
+    expect(maskMoneyInput("-5230", { negative: true })).toEqual({ cents: -5230, text: "-52,30" });
+    expect(maskMoneyInput("52,30-", { negative: true }).text).toBe("-52,30"); // "-" typed at the end
+    expect(maskMoneyInput("-", { negative: true })).toEqual({ cents: null, text: "-" });
+    expect(lib.parseMoneyToCents(maskMoneyInput("-123456", { negative: true }).text)).toBe(-123456);
+  });
+
   it("stops at 11 digits (R$ 999.999.999,99)", () => {
     expect(maskMoneyInput("99999999999")).toEqual({ cents: 99999999999, text: "999.999.999,99" });
     expect(maskMoneyInput("999999999999").cents).toBe(99999999999);

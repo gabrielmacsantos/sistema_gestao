@@ -98,6 +98,18 @@ test("amount mask and switching between expense and income", async ({ page }, te
   await page.getByRole("button", { name: "Salvar" }).click();
   await expect(page).toHaveURL(/\/lancamentos\?mes=/);
   await expect(page.getByText("− R$ 52,30").filter({ visible: true })).toBeVisible();
+
+  // The eye hides every amount, survives a reload, and shows them again.
+  const amount5230 = page.getByText("R$ 52,30", { exact: true }).first();
+  const eye = page.getByRole("button", { name: "Ocultar valores" });
+  await eye.click();
+  await expect(eye).toHaveAttribute("aria-pressed", "true");
+  await expect(amount5230).toBeHidden();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Ocultar valores" })).toHaveAttribute("aria-pressed", "true");
+  await expect(amount5230).toBeHidden();
+  await page.getByRole("button", { name: "Ocultar valores" }).click();
+  await expect(amount5230).toBeVisible();
 });
 
 test("validation errors keep what the user typed", async ({ page }, testInfo) => {

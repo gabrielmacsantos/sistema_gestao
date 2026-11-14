@@ -4,10 +4,10 @@ import { Banknote, CalendarSync, Paperclip, ReceiptText, ShoppingBag } from "luc
 import type { listTransactions } from "@/server/repositories/transactions";
 import { SOURCE_LABEL } from "@/lib/constants";
 import { formatDayMonth } from "@/lib/dates";
-import { formatBRL } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { CategoryBadge } from "./category-badge";
 import { StatusBadge } from "./ui/card";
+import { Money } from "@/components/money";
 
 type Row = Awaited<ReturnType<typeof listTransactions>>[number];
 
@@ -42,7 +42,7 @@ function Amount({ t, className }: { t: Row; className?: string }) {
       )}
     >
       {t.type === "INCOME" ? "+ " : "− "}
-      {formatBRL(t.amountCents)}
+      <Money cents={t.amountCents} />
     </span>
   );
 }

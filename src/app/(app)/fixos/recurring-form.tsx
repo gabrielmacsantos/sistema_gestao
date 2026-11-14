@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Field, FormMessage, Input, Select } from "@/components/ui/form";
+import { MoneyInput } from "@/components/ui/money-input";
 import { PAYMENT_METHODS, type CategoryOption } from "@/lib/constants";
 import type { ActionState } from "@/lib/validation";
 import { saveRecurringAction } from "./actions";
@@ -70,14 +71,7 @@ export function RecurringForm({
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Valor (R$)" htmlFor="amountCents" error={errors.amountCents}>
-          <Input
-            id="amountCents"
-            name="amountCents"
-            inputMode="decimal"
-            placeholder="0,00"
-            defaultValue={values.amountCents}
-            required
-          />
+          <MoneyInput id="amountCents" name="amountCents" placeholder="0,00" defaultValue={values.amountCents} />
         </Field>
         <Field label="Dia do vencimento" htmlFor="dayOfMonth" error={errors.dayOfMonth}>
           <Input

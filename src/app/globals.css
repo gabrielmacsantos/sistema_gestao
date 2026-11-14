@@ -220,3 +220,18 @@
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
+
+/* "Ocultar valores": every amount marked [data-money] shows dots instead. visibility: hidden also
+   keeps the number from screen readers, which read the dots of ::after. */
+:root[data-hide-values="1"] [data-money] {
+  position: relative;
+  visibility: hidden;
+  white-space: nowrap;
+}
+:root[data-hide-values="1"] [data-money]::after {
+  content: "R$ •••••";
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: visible;
+}
