@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /** Tier 1 panel: white plane, 16px radius, hairline border. */
@@ -114,7 +114,7 @@ export function MetricCard({
   className?: string;
 }) {
   return (
-    <Card className={cn("flex flex-col justify-between", className)}>
+    <Card className={cn("@container flex flex-col justify-between", className)}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-label-md text-secondary">{label}</span>
         <span
@@ -127,9 +127,10 @@ export function MetricCard({
       <div className="mt-3">
         <p
           className={cn(
-            "truncate font-display text-headline-md font-bold tracking-tight tabular-nums text-on-surface",
+            "metric-value font-display font-bold tracking-tight tabular-nums text-on-surface",
             valueClassName,
           )}
+          style={{ "--chars": value.length } as CSSProperties}
         >
           {value}
         </p>

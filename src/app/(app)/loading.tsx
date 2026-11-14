@@ -6,11 +6,11 @@ export default function Loading() {
         <div className="h-8 w-64 max-w-full rounded-lg bg-surface-container" />
         <div className="h-4 w-80 max-w-full rounded bg-surface-container-low" />
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-6 xl:grid-cols-5">
         {Array.from({ length: 5 }, (_, i) => (
           <div
             key={i}
-            className={`h-36 rounded-2xl border border-hairline bg-surface-container-lowest ${i === 4 ? "col-span-2 lg:col-span-1" : ""}`}
+            className={`h-36 rounded-2xl border border-hairline bg-surface-container-lowest xl:col-span-1 ${i < 3 ? "lg:col-span-2" : "lg:col-span-3"} ${i === 4 ? "col-span-2" : ""}`}
           />
         ))}
       </div>

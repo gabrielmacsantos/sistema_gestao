@@ -43,6 +43,9 @@ import { CashFlowChart, ChartLegend } from "./cash-flow-chart";
 
 export const metadata: Metadata = { title: "Painel" };
 
+const KPI_TOP = "lg:col-span-2 xl:col-span-1";
+const KPI_BOTTOM = "lg:col-span-3 xl:col-span-1";
+
 export default async function DashboardPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await getCurrentUser();
   const month = monthParam(await searchParams);
@@ -99,10 +102,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         </div>
       </div>
 
-      {/* 1. KPI bento */}
-      <section aria-label="Resumo do mês" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+      {/* 1. KPI bento: five in a row only fit from xl; next to the side menu they go three over two */}
+      <section aria-label="Resumo do mês" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-6 xl:grid-cols-5">
         <MetricCard
           label="Entradas no mês"
+          className={KPI_TOP}
           icon={<ArrowDown className="size-[18px]" />}
           iconClassName="bg-success-container text-success"
           value={formatBRL(income)}
@@ -122,6 +126,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         />
         <MetricCard
           label="Total gasto no mês"
+          className={KPI_TOP}
           icon={<Banknote className="size-[18px]" />}
           iconClassName="bg-surface-container-high text-primary"
           value={formatBRL(expense)}
@@ -139,6 +144,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         />
         <MetricCard
           label="Fixos comprometidos"
+          className={KPI_TOP}
           icon={<Lock className="size-[18px]" />}
           iconClassName="bg-secondary-container text-on-secondary-container"
           value={formatBRL(split.fixedCents)}
@@ -154,6 +160,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         />
         <MetricCard
           label="Gastos variáveis"
+          className={KPI_BOTTOM}
           icon={<ShoppingBag className="size-[18px]" />}
           iconClassName="bg-surface-container-low text-tertiary"
           value={formatBRL(split.variableCents)}
@@ -171,7 +178,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           iconClassName="bg-tertiary-fixed text-on-tertiary-fixed"
           value={formatBRL(free)}
           valueClassName={free < 0 ? "text-danger" : "text-tertiary"}
-          className="col-span-2 lg:col-span-1"
+          className={cn("col-span-2", KPI_BOTTOM)}
           pill={
             income > 0 ? (
               <Pill className={free < 0 ? "bg-danger-container text-danger" : "bg-surface-container-low text-tertiary"}>

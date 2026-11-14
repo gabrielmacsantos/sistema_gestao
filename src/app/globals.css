@@ -212,3 +212,11 @@
   --chart-axis: #94a3b8;
   --chart-surface: #111a2b;
 }
+
+/* KPI values shrink with the card instead of being cut ("R$ 7.200,…" at 360px). --chars is the
+   value's length, set by MetricCard; 0.62em is a bold digit's width, with room for the fallback font. */
+@utility metric-value {
+  font-size: clamp(14px, calc(100cqi / (var(--chars, 10) * 0.62)), 22px);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}

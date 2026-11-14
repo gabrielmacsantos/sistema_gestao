@@ -10,6 +10,7 @@ import { ensureOccurrences, saveRecurring } from "@/server/services/recurring";
 import { monthSummary } from "@/server/services/reports";
 import { removeTransaction, saveTransaction } from "@/server/services/transactions";
 import { currentMonth, monthRange, parseDateInput } from "@/lib/dates";
+import { formatBRL } from "@/lib/money";
 
 let alice: string;
 let bob: string;
@@ -121,6 +122,25 @@ describe("imports", () => {
     expect(await confirmDrafts(alice, [draft])).toEqual({ created: 0, skipped: 1 });
     // The same note can still be imported by another user.
     expect(await confirmDrafts(bob, [draft])).toEqual({ created: 1, skipped: 0 });
+  });
+});
+
+describe("month summary", () => {
+  it("computes the free balance in integer cents and only from the user's own entries", async () => {
+    const userId = (await signUp({ name: "Painel", email: `painel-${Date.now()}@test.dev`, password: "senha-segura" })).id;
+    await saveTransaction(userId, expense({ type: "INCOME", description: "Salário", amountCents: 700000 }));
+    await saveTransaction(userId, expense({ type: "INCOME", description: "Freela", amountCents: 150000, status: "PENDING" }));
+    await saveTransaction(userId, expense({ amountCents: 400000 }));
+    await saveTransaction(userId, expense({ amountCents: 82050, status: "PENDING" }));
+    await saveTransaction(bob, expense({ type: "INCOME", amountCents: 999999 }));
+    await saveTransaction(bob, expense({ amountCents: 123457 }));
+
+    const summary = await monthSummary(userId, currentMonth());
+    expect(summary.incomePaid + summary.incomePending).toBe(850000);
+    expect(summary.expensePaid + summary.expensePending).toBe(482050);
+    expect(summary.forecast).toBe(367950);
+    expect(Object.values(summary).every(Number.isSafeInteger)).toBe(true);
+    expect(formatBRL(summary.forecast)).toBe("R$ 3.679,50");
   });
 });
 

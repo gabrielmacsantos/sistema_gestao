@@ -172,17 +172,22 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
 @media (min-width: 640px) { .grid-kpi, .grid-3 { gap: 16px; } }
 @media (min-width: 1024px) {
-  .grid-kpi { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .grid-kpi > .span2, .grid-3 > .span2 { grid-column: auto; }
+  /* Five KPIs in a row only fit from 1280px; next to the side menu they go three over two. */
+  .grid-kpi { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .grid-kpi > * { grid-column: span 2; }
+  .grid-kpi > :nth-child(n+4) { grid-column: span 3; }
+  .grid-3 > .span2 { grid-column: auto; }
   .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .grid-main { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
   .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.metric { display: flex; flex-direction: column; justify-content: space-between; }
+@media (min-width: 1280px) { .grid-kpi { grid-template-columns: repeat(5, minmax(0, 1fr)); } .grid-kpi > *, .grid-kpi > :nth-child(n+4) { grid-column: auto; } }
+.metric { display: flex; flex-direction: column; justify-content: space-between; container-type: inline-size; }
 .metric-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .metric-label { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: .02em; color: var(--secondary); }
 .chip { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; flex: none; }
-.metric-value { margin-top: 12px; font: 700 22px/28px var(--display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Shrinks with the card instead of cutting the amount; --chars is the value's length (see metric()). */
+.metric-value { margin-top: 12px; font: 700 clamp(14px, calc(100cqi / (var(--chars, 10) * .62)), 22px)/1.3 var(--display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .pill { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 2px 8px; border-radius: 999px; font-size: 10px; line-height: 14px; font-weight: 600; letter-spacing: .04em; white-space: nowrap; }
 .pill svg.i { width: 12px; height: 12px; }
 .meter { margin-top: 12px; height: 6px; border-radius: 999px; background: var(--c-high); overflow: hidden; }
@@ -934,10 +939,22 @@ async function encryptState(key, salt, token) {
   const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify({ state, token })));
   return JSON.stringify({ app: "minhas-financas", format: 2, kdf: "PBKDF2-SHA256", iterations: PBKDF2_ITERATIONS, salt: toB64(salt), iv: toB64(iv), savedAt: state.savedAt || 0, data: toB64(data) });
 }
+// <money-check> Self-contained: tests/money-check.test.ts loads this block from the file.
+/** True when every amount in the data is a non-negative integer of cents. Backups and synced
+ * data pass here before replacing anything: a "1000" would be concatenated by the sums. */
+function hasValidMoney(data) {
+  const cents = (v) => Number.isSafeInteger(v) && v >= 0;
+  const ok = (list, required, optional = []) => list === undefined || (Array.isArray(list) && list.every((x) =>
+    x && required.every((k) => cents(x[k])) && optional.every((k) => x[k] == null || cents(x[k]))));
+  return !!data && ok(data.transactions, ["amountCents"]) && ok(data.recurrings, ["amountCents"]) && ok(data.budgets, ["amountCents"])
+    && ok(data.goals, ["targetCents", "savedCents"]) && ok(data.trips, [], ["budgetCents"]);
+}
+// </money-check>
+
 async function decryptFile(file, key) {
   const plain = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(file.iv) }, key, fromB64(file.data))));
   const { state: data, token } = file.format >= 2 ? plain : { state: plain, token: null };
-  if (!data || data.version !== 1 || !Array.isArray(data.transactions)) throw new Error("Arquivo de dados inválido.");
+  if (!data || data.version !== 1 || !Array.isArray(data.transactions) || !hasValidMoney(data)) throw new Error("Arquivo de dados inválido.");
   return { data, token };
 }
 
@@ -1286,7 +1303,7 @@ function monthSheet() {
 const pageHead = (title, desc, actions = "") => `<div class="page-head"><div><h1 class="h-page">${title}</h1>${desc ? `<p class="desc">${desc}</p>` : ""}</div>${actions ? `<div class="actions">${actions}</div>` : ""}</div>`;
 const metric = ({ label, ic, chip, value, valueCls = "", pill = "", meter = null, cls = "" }) => `
   <div class="card metric ${cls}"><div class="metric-top"><span class="metric-label">${label}</span><span class="chip" style="${chip}">${icon(ic)}</span></div>
-  <div><p class="metric-value ${valueCls}">${value}</p>${pill}</div>
+  <div><p class="metric-value ${valueCls}" style="--chars:${String(value).length}">${value}</p>${pill}</div>
   ${meter ? `<div class="meter"><div style="width:${clamp01(meter.r) * 100}%;background:${meter.color}"></div></div>` : ""}</div>`;
 const pill = (style, ic, text) => `<span class="pill" style="${style}">${ic ? icon(ic) : ""}${text}</span>`;
 const statusBadge = (t) => t.status === "PENDING" ? `<span class="badge b-warning">Pendente</span>` : `<span class="badge b-success">${t.type === "INCOME" ? "Recebido" : "Pago"}</span>`;
@@ -2774,7 +2791,7 @@ document.addEventListener("change", (e) => {
     const file = t.files[0]; if (!file) return;
     file.text().then((text) => {
       const data = JSON.parse(text);
-      if (!data || data.version !== 1 || !Array.isArray(data.transactions) || !Array.isArray(data.categories)) throw new Error();
+      if (!data || data.version !== 1 || !Array.isArray(data.transactions) || !Array.isArray(data.categories) || !hasValidMoney(data)) throw new Error();
       confirmDialog("Restaurar backup?", `O arquivo tem ${data.transactions.length} lançamentos. Os dados atuais deste navegador serão substituídos.`, "Restaurar", () => { replaceState(data); save(); toast("Backup restaurado."); });
     }).catch(() => toast("Arquivo de backup inválido."));
   } else if (t.dataset.draft !== undefined) {
