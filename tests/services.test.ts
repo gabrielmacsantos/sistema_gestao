@@ -8,7 +8,7 @@ import { setBudget } from "@/server/services/budgets";
 import { confirmDrafts } from "@/server/services/imports";
 import { ensureOccurrences, saveRecurring } from "@/server/services/recurring";
 import { expensesByCategory, forecastByCategory, monthlySeries, monthSummary } from "@/server/services/reports";
-import { removeTransaction, saveTransaction } from "@/server/services/transactions";
+import { removeTransaction, saveTransaction, searchTransactions } from "@/server/services/transactions";
 import { addMonths, currentMonth, monthRange, parseDateInput } from "@/lib/dates";
 import { formatBRL } from "@/lib/money";
 
@@ -54,6 +54,17 @@ describe("multi-user isolation", () => {
 
     const { start, end } = monthRange(currentMonth());
     expect((await listTransactions(bob, { start, end })).some((t) => t.id === tx!.id)).toBe(false);
+  });
+
+  it("searches only the user's own entries, even with the same text", async () => {
+    const mine = await saveTransaction(alice, expense({ description: "Açaí da Praça Única", amountCents: 4590 }));
+    const theirs = await saveTransaction(bob, expense({ description: "Açaí da Praça Única", amountCents: 4590 }));
+    const { start, end } = monthRange(currentMonth());
+
+    const found = await searchTransactions(alice, { start, end }, "acai praca unica");
+    expect(found.map((t) => t.id)).toEqual([mine!.id]);
+    expect((await searchTransactions(alice, { start, end }, "45,90")).some((t) => t.id === theirs!.id)).toBe(false);
+    expect((await searchTransactions(bob, { start, end }, "unica")).map((t) => t.id)).toEqual([theirs!.id]);
   });
 
   it("rejects another user's category everywhere", async () => {

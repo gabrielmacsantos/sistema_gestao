@@ -21,7 +21,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { MonthPicker } from "@/components/month-picker";
-import { TransactionList } from "@/components/transaction-list";
 import { buttonClass } from "@/components/ui/button";
 import { Badge, Card, CardTitle, EmptyState, MetricCard, Pill } from "@/components/ui/card";
 import { getCurrentUser } from "@/server/auth";
@@ -50,6 +49,7 @@ import { formatBRL, formatPercent } from "@/lib/money";
 import { monthParam, type SearchParams } from "@/lib/search-params";
 import { cn } from "@/lib/utils";
 import { CashFlowPanel, type FlowPoint } from "./cash-flow-chart";
+import { RecentLedger, type RecentViews } from "./recent-ledger";
 
 export const metadata: Metadata = { title: "Painel" };
 
@@ -104,8 +104,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   const fixed = transactions
     .filter((t) => t.recurringId && t.type === "EXPENSE")
     .sort((a, b) => a.date.getTime() - b.date.getTime());
-  const pendingCount = transactions.filter((t) => t.status === "PENDING").length;
-  const recent = transactions.slice(0, 6);
+  // Recent ledger: the 6 newest entries and the count for each chip, so switching needs no request.
+  const recentOf = (rows: typeof transactions) => ({ rows: rows.slice(0, 6), count: rows.length });
+  const recentViews: RecentViews = {
+    todas: recentOf(transactions),
+    receitas: recentOf(transactions.filter((t) => t.type === "INCOME")),
+    despesas: recentOf(transactions.filter((t) => t.type === "EXPENSE")),
+    pendentes: recentOf(transactions.filter((t) => t.status === "PENDING")),
+  };
   const monthLabel = formatMonthLabel(month);
   const monthName = monthLabel.split(" ")[0].toLowerCase();
 
@@ -424,50 +430,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
 
       {/* 4. Recent ledger */}
       <section className="overflow-hidden rounded-2xl border border-hairline bg-surface-container-lowest shadow-sm">
-        <div className="flex flex-col gap-4 border-b border-hairline p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-headline-sm text-on-surface">Últimos lançamentos</h2>
-            <p className="mt-0.5 text-body-sm text-secondary">Extrato recente de {monthLabel.toLowerCase()}.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <nav aria-label="Filtrar lançamentos" className="flex items-center rounded-lg border border-hairline bg-surface p-1 text-label-md">
-              <Link href={`/lancamentos?mes=${month}`} className="rounded-md bg-surface-container-lowest px-2.5 py-1 font-semibold text-primary shadow-xs">
-                Todas
-              </Link>
-              <Link href={`/lancamentos?mes=${month}&tipo=receitas`} className="flex items-center gap-1 rounded-md px-2.5 py-1 text-success hover:bg-surface-container-low">
-                <ArrowDown className="size-3.5" aria-hidden /> Entradas
-              </Link>
-              <Link href={`/lancamentos?mes=${month}&tipo=despesas`} className="flex items-center gap-1 rounded-md px-2.5 py-1 text-secondary hover:text-on-surface">
-                <ArrowUp className="size-3.5" aria-hidden /> Saídas
-              </Link>
-              <Link href={`/lancamentos?mes=${month}&status=pendentes`} className="rounded-md px-2.5 py-1 text-secondary hover:text-on-surface">
-                Pendentes{pendingCount > 0 && ` (${pendingCount})`}
-              </Link>
-            </nav>
-            <span className="hidden sm:block">
-              <Link href="/lancamentos/novo" className={buttonClass("primary", "sm")}>
-                <CirclePlus className="size-4" aria-hidden /> Lançar gasto
-              </Link>
-            </span>
-          </div>
-        </div>
-
-        {recent.length === 0 ? (
-          <div className="p-5">
-            <EmptyState>Nenhum lançamento neste mês.</EmptyState>
-          </div>
-        ) : (
-          <TransactionList rows={recent} />
-        )}
-
-        <div className="flex flex-col items-center justify-between gap-3 border-t border-hairline p-4 text-body-sm text-secondary sm:flex-row">
-          <span>
-            Mostrando {recent.length} de {transactions.length} lançamentos de {monthLabel.toLowerCase()}
-          </span>
-          <Link href={`/lancamentos?mes=${month}`} className={buttonClass("secondary", "sm")}>
-            Ver extrato completo
-          </Link>
-        </div>
+        <RecentLedger views={recentViews} month={month} monthName={monthLabel.toLowerCase()} />
       </section>
     </div>
   );

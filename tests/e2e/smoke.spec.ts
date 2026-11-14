@@ -48,6 +48,27 @@ test("sign up, add an expense, a fixed expense and see them on the dashboard", a
   await expect(page.getByRole("button", { name: "Semanal" })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Mensal" }).click();
   await expect(page.getByRole("table", { name: "Entradas e saídas por mês" })).toBeAttached();
+
+  // Recent ledger: the chip filters the list in place and updates the count.
+  const expenses = page.getByRole("button", { name: "Saídas", exact: true });
+  await expenses.click();
+  await expect(expenses).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(/^Mostrando 2 de 2 saídas$/)).toBeVisible();
+  await page.getByRole("button", { name: "Entradas", exact: true }).click();
+  await expect(page.getByText("Nenhuma entrada neste mês.")).toBeVisible();
+
+  // Search on Lançamentos: ignores accents, keeps the term in the URL, and can be cleared.
+  await page.goto("/lancamentos");
+  const search = page.getByRole("searchbox", { name: "Buscar lançamentos" });
+  await search.fill("PADARÍA");
+  await expect(page).toHaveURL(/busca=PADAR/);
+  await expect(page.getByText("Mostrando 1 de 1 lançamento")).toBeVisible();
+  await expect(page.getByText("Padaria").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText("Internet").filter({ visible: true })).toHaveCount(0);
+  await search.fill("xyz-nada");
+  await expect(page.getByText("Nenhum lançamento encontrado para “xyz-nada”.")).toBeVisible();
+  await page.getByRole("link", { name: "Limpar filtros" }).click();
+  await expect(page.getByText("Mostrando 2 de 2 lançamentos")).toBeVisible();
 });
 
 test("validation errors keep what the user typed", async ({ page }, testInfo) => {

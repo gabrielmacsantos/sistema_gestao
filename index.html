@@ -218,7 +218,7 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 @keyframes fade-in { to { opacity: 1; } }
 .seg { display: inline-flex; align-items: center; padding: 4px; border-radius: 8px; border: 1px solid var(--hairline); background: var(--surface); font-size: 12px; font-weight: 500; }
 .seg a { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; color: var(--secondary); }
-.seg button { position: relative; min-height: 32px; padding: 4px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--secondary); font: inherit; }
+.seg button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; min-height: 32px; padding: 4px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--secondary); font: inherit; }
 .seg button::after { content: ""; position: absolute; inset: -6px -2px; }
 .seg a.on, .seg button.on { background: var(--card); color: var(--primary); font-weight: 600; box-shadow: var(--shadow); }
 .seg a:hover:not(.on), .seg button:hover:not(.on) { color: var(--on); }
@@ -255,6 +255,20 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 }
 .section-head { display: flex; flex-direction: column; gap: 16px; padding: 20px; border-bottom: 1px solid var(--hairline); }
 @media (min-width: 640px) { .section-head { flex-direction: row; align-items: center; justify-content: space-between; } }
+.ledger-filters { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-bottom: 1px solid var(--hairline); }
+.ledger-filters-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.ledger-filters-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 400px) { .ledger-filters-grid { grid-template-columns: 1fr 1fr; } }
+.ledger-filters-grid .search-field { grid-column: 1 / -1; }
+@media (min-width: 1024px) { .ledger-filters-grid { grid-template-columns: 2fr 1fr 1fr; } .ledger-filters-grid .search-field { grid-column: auto; } }
+.search-field { position: relative; display: block; }
+.search-field svg.i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--secondary); pointer-events: none; }
+.search-field .input { width: 100%; padding-left: 34px; }
+.ledger-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px; }
+.seg a { position: relative; }
+/* Four chips do not fit in one row on small phones: two by two there. */
+@media (max-width: 399px) { .seg-filter { display: grid; grid-template-columns: 1fr 1fr; width: 100%; } }
+.seg a::after { content: ""; position: absolute; inset: -6px -2px; }
 .section-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; border-top: 1px solid var(--hairline); font-size: 12px; color: var(--secondary); }
 
 /* Chart */
@@ -456,6 +470,7 @@ const ICONS = {
   logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
   camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
   settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/>',
@@ -1224,6 +1239,34 @@ function monthlySeries(month, count = 6) {
   }
   return out;
 }
+// <ledger-search> Self-contained: tests/ledger-search.test.ts loads this block (same as src/lib/search.ts).
+/** Lowercase, without accents and repeated spaces: "Açaí  Bom" -> "acai bom". */
+function normalizeText(text) {
+  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+/** "45,90", "R$ 1.234,5" or "12" as integer cents; null when the term is not an amount. */
+function searchAmountCents(term) {
+  const m = /^(?:r\$\s*)?(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?$/.exec(term.trim().toLowerCase());
+  if (!m) return null;
+  return Number(m[1].replace(/\./g, "")) * 100 + Number((m[2] ?? "").padEnd(2, "0"));
+}
+// Normalized texts are kept by their original text, so typing does not redo the whole month.
+const normalizedCache = new Map();
+function normalizedOf(text) {
+  let n = normalizedCache.get(text);
+  if (n === undefined) { if (normalizedCache.size > 5000) normalizedCache.clear(); n = normalizeText(text); normalizedCache.set(text, n); }
+  return n;
+}
+/** Prepares the typed term once; the returned test runs per entry. */
+function searchMatcher(query) {
+  const words = normalizeText(query).split(" ").filter(Boolean), cents = searchAmountCents(query);
+  if (!words.length) return () => true;
+  return (entry) => entry.amountCents === cents
+    || words.every((word) => [entry.description, entry.merchantName, entry.notes, entry.categoryName].some((t) => t && normalizedOf(t).includes(word)));
+}
+/** Every typed word appears in the description, place, notes or category, or the whole term is the amount. */
+function matchesSearch(entry, query) { return searchMatcher(query)(entry); }
+// </ledger-search>
 // <share-math> Self-contained: tests/share-math.test.ts loads this block (same as src/lib/cashflow.ts).
 /** round(n / d) with halves going up, for n >= 0 and d > 0, in integers only. */
 function divideHalfUp(n, d) { const twice = 2 * n + d; return (twice - (twice % (2 * d))) / (2 * d); }
@@ -1381,7 +1424,7 @@ function ledgerRow(t, { toggle = false, inTrip = false } = {}) {
     <button class="row-main" data-act="edit-tx" data-id="${t.id}">
       ${toggle ? "" : `<span class="row-icon" style="color:${esc(color)}">${icon(ic)}</span>`}
       <span style="flex:1;min-width:0">
-        <span class="row-title truncate" style="display:block">${t.attachmentId ? `<span class="clip" title="Tem comprovante">${icon("paperclip")}</span>` : ""}${esc(t.description)}</span>
+        <span class="row-title truncate" style="display:block">${t.attachmentId ? `<span class="clip" title="Tem comprovante">${icon("paperclip")}<span class="sr-only">Com comprovante: </span></span>` : ""}${esc(t.description)}</span>
         <span class="row-meta"><span>${sub}</span><span class="m-mob">· ${dayMonth(t.date)}</span>${t.status === "PENDING" ? `<span class="m-mob">${statusBadge(t)}</span>` : ""}</span>
       </span>
       <span class="row-cat">${catChip(c)}</span>
@@ -1443,6 +1486,94 @@ function setFlowView(view) {
 function selectFlowColumn(el) {
   document.querySelectorAll('[data-act="flow-col"]').forEach((b) => { const on = b === el; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
   document.getElementById("flow-read").innerHTML = flowReadout(flowPoints[Number(el.dataset.i)]);
+}
+
+// ---------- Ledger: recent entries on the dashboard, full list on Lançamentos ----------
+// Filters change only the list's own block; typing a search never redraws the page (focus stays).
+const RECENT_FILTERS = { todas: { label: "Todas" }, receitas: { label: "Entradas", icon: "down" }, despesas: { label: "Saídas", icon: "up" }, pendentes: { label: "Pendentes" } };
+const RECENT_NOUN = { todas: ["lançamento", "lançamentos"], receitas: ["entrada", "entradas"], despesas: ["saída", "saídas"], pendentes: ["pendente", "pendentes"] };
+const RECENT_EMPTY = { receitas: "Nenhuma entrada neste mês.", despesas: "Nenhuma saída neste mês.", pendentes: "Nada pendente neste mês." };
+let recentFilter = "todas";
+const byFilter = (list, f) => f === "receitas" ? list.filter((t) => t.type === "INCOME") : f === "despesas" ? list.filter((t) => t.type === "EXPENSE") : f === "pendentes" ? list.filter((t) => t.status === "PENDING") : list;
+function recentBody(m) {
+  const all = ofMonth(m), list = byFilter(all, recentFilter).sort(byDateDesc), [one, many] = RECENT_NOUN[recentFilter];
+  const link = href("lancamentos", { mes: m, tipo: recentFilter === "receitas" || recentFilter === "despesas" ? recentFilter : "", status: recentFilter === "pendentes" ? "pendentes" : "" });
+  return `${list.length ? `${listHead(false)}<ul class="ledger">${list.slice(0, 6).map((t) => ledgerRow(t)).join("")}</ul>` : `<div style="padding:20px"><p class="empty">${all.length ? RECENT_EMPTY[recentFilter] : "Nenhum lançamento neste mês."}</p></div>`}
+      <div class="section-foot"><span id="recent-count">Mostrando ${Math.min(6, list.length)} de ${list.length} ${list.length === 1 ? one : many}</span><a class="btn btn-secondary btn-sm" href="${link}">Ver extrato completo</a></div>`;
+}
+function setRecentFilter(f) {
+  recentFilter = RECENT_FILTERS[f] ? f : "todas";
+  document.querySelectorAll('[data-act="recent-filter"]').forEach((b) => { const on = b.dataset.f === recentFilter; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+  document.getElementById("recent-body").innerHTML = recentBody(route().month);
+  document.getElementById("live").textContent = document.getElementById("recent-count").textContent;
+}
+
+const LEDGER_PAGE = 50;
+let ledgerView = { key: "", list: [], shown: LEDGER_PAGE };
+const ledgerParams = (r) => ({ tipo: r.params.get("tipo") || "", status: r.params.get("status") || "", categoria: r.params.get("categoria") || "", busca: r.params.get("busca") || "" });
+const ledgerLinkParams = (f) => ({ tipo: f.tipo, status: f.status, categoria: f.categoria, busca: f.busca.trim() });
+/** The month's entries after the filters and the search, newest first. */
+function ledgerList(r) {
+  const f = ledgerParams(r);
+  let list = ofMonth(r.month);
+  if (f.tipo === "despesas") list = list.filter((t) => t.type === "EXPENSE");
+  if (f.tipo === "receitas") list = list.filter((t) => t.type === "INCOME");
+  if (f.status === "pendentes") list = list.filter((t) => t.status === "PENDING");
+  if (f.categoria) list = list.filter((t) => t.categoryId === f.categoria);
+  if (f.busca.trim()) {
+    const match = searchMatcher(f.busca), names = new Map(state.categories.map((c) => [c.id, c.name]));
+    list = list.filter((t) => match({ description: t.description, amountCents: t.amountCents, notes: t.notes, categoryName: names.get(t.categoryId) }));
+  }
+  return list.sort(byDateDesc);
+}
+function ledgerMetrics(list) {
+  const inc = sum(list.filter((t) => t.type === "INCOME")), exp = sum(list.filter((t) => t.type === "EXPENSE")), pen = sum(list.filter((t) => t.status === "PENDING"));
+  return `${metric({ label: "Entradas", ic: "down", chip: "background:var(--success-c);color:var(--success)", value: fmt(inc), valueCls: "t-income" })}
+    ${metric({ label: "Saídas", ic: "up", chip: "background:var(--c-high);color:var(--primary)", value: fmt(exp) })}
+    ${metric({ label: "Pendente", ic: "clock", chip: "background:var(--warning-c);color:var(--warning)", value: fmt(pen), valueCls: pen ? "t-warning" : "", cls: "span2" })}`;
+}
+function ledgerTipoTabs(m, f) {
+  return `<nav class="seg" aria-label="Tipo">${[["", "Todos"], ["receitas", "Entradas"], ["despesas", "Saídas"]].map(([v, l]) => `<a href="${href("lancamentos", { ...ledgerLinkParams(f), mes: m, tipo: v })}" class="${f.tipo === v ? "on" : ""}" ${f.tipo === v ? 'aria-current="true"' : ""}>${l}</a>`).join("")}</nav>`;
+}
+const ledgerFoot = () => {
+  const { list, shown } = ledgerView, n = Math.min(shown, list.length), more = Math.min(LEDGER_PAGE, list.length - n);
+  return `<span id="tx-count">Mostrando ${n} de ${list.length} ${list.length === 1 ? "lançamento" : "lançamentos"}</span>${more > 0 ? `<button type="button" class="btn btn-secondary btn-sm" data-act="more-tx">Mostrar mais ${more}</button>` : ""}`;
+};
+function ledgerBody(r) {
+  const f = ledgerParams(r), key = JSON.stringify([r.month, f.tipo, f.status, f.categoria, normalizeText(f.busca)]);
+  // A toggle or an edit redraws the page with the same filters: keep the pages already shown.
+  if (key !== ledgerView.key) ledgerView = { key, list: [], shown: LEDGER_PAGE };
+  ledgerView.list = ledgerList(r);
+  if (!ledgerView.list.length) {
+    const filtered = f.tipo || f.status || f.categoria || f.busca.trim();
+    if (!filtered) return `<div style="padding:20px"><p class="empty">Nenhum lançamento em ${monthLabel(r.month).toLowerCase()}.</p></div>`;
+    return `<div class="ledger-empty"><p class="empty">${f.busca.trim() ? `Nenhum lançamento encontrado para “${esc(f.busca.trim())}”.` : "Nenhum lançamento com esses filtros."}</p><a class="btn btn-secondary btn-sm" href="${href("lancamentos", { mes: r.month })}">Limpar filtros</a></div>`;
+  }
+  return `${listHead(true)}<ul class="ledger" id="tx-rows">${ledgerView.list.slice(0, ledgerView.shown).map((t) => ledgerRow(t, { toggle: true })).join("")}</ul><div class="section-foot" id="tx-foot">${ledgerFoot()}</div>`;
+}
+/** "Mostrar mais": appends the next page without redrawing the rows already there. */
+function showMoreLedger() {
+  const from = ledgerView.shown;
+  ledgerView.shown += LEDGER_PAGE;
+  document.getElementById("tx-rows").insertAdjacentHTML("beforeend", ledgerView.list.slice(from, ledgerView.shown).map((t) => ledgerRow(t, { toggle: true })).join(""));
+  document.getElementById("tx-foot").innerHTML = ledgerFoot();
+  document.querySelectorAll("#tx-rows > li")[from]?.querySelector(".row-main")?.focus();
+}
+// Typing waits a moment (debounce), then keeps the search in the URL and repaints only the list.
+let searchTimer = null;
+function onLedgerSearch(value) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    const r = route(), f = { ...ledgerParams(r), busca: value };
+    history.replaceState(null, "", href("lancamentos", { ...ledgerLinkParams(f), mes: r.month }));
+    const next = lastRoute = route();
+    document.getElementById("tx-ledger").innerHTML = ledgerBody(next);
+    document.getElementById("tx-metrics").innerHTML = ledgerMetrics(ledgerView.list);
+    document.getElementById("tx-month").innerHTML = monthPicker("lancamentos", next.month, ledgerLinkParams(f));
+    document.getElementById("tx-tipo").innerHTML = ledgerTipoTabs(next.month, f);
+    const n = ledgerView.list.length;
+    document.getElementById("live").textContent = value.trim() ? `${n} ${n === 1 ? "lançamento encontrado" : "lançamentos encontrados"}` : `${n} ${n === 1 ? "lançamento" : "lançamentos"}`;
+  }, 150);
 }
 
 function viewPainel(r) {
@@ -1532,46 +1663,29 @@ function viewPainel(r) {
     <section class="card card-flush">
       <div class="section-head">
         <div><h2 class="h-card">Últimos lançamentos</h2><p class="sub">Extrato recente de ${monthLabel(m).toLowerCase()}.</p></div>
-        <div class="actions"><nav class="seg" aria-label="Filtrar">
-          <a class="on" href="${href("lancamentos", { mes: m })}">Todas</a>
-          <a class="t-income" href="${href("lancamentos", { mes: m, tipo: "receitas" })}">${icon("down", 'style="width:14px;height:14px"')}Entradas</a>
-          <a href="${href("lancamentos", { mes: m, tipo: "despesas" })}">${icon("up", 'style="width:14px;height:14px"')}Saídas</a>
-          <a href="${href("lancamentos", { mes: m, status: "pendentes" })}">Pendentes${pending ? ` (${pending})` : ""}</a>
-        </nav></div>
+        <div class="actions" style="width:100%;justify-content:flex-end"><div class="seg seg-filter" role="group" aria-label="Filtrar extrato">${Object.entries(RECENT_FILTERS).map(([f, x]) => `<button type="button" data-act="recent-filter" data-f="${f}" class="${recentFilter === f ? "on" : ""}" aria-pressed="${recentFilter === f}">${x.icon ? icon(x.icon, 'style="width:14px;height:14px"') : ""}${x.label}${f === "pendentes" && pending ? ` (${pending})` : ""}</button>`).join("")}</div></div>
       </div>
-      ${list.length ? `${listHead(false)}<ul class="ledger">${list.slice(0, 6).map((t) => ledgerRow(t)).join("")}</ul>` : `<div style="padding:20px"><p class="empty">Nenhum lançamento neste mês.</p></div>`}
-      <div class="section-foot"><span>Mostrando ${Math.min(6, list.length)} de ${list.length} lançamentos</span><a class="btn btn-secondary btn-sm" href="${href("lancamentos", { mes: m })}">Ver extrato completo</a></div>
+      <div id="recent-body">${recentBody(m)}</div>
     </section>
   </div>`;
 }
 
 function viewLancamentos(r) {
-  const m = r.month, tipo = r.params.get("tipo") || "", status = r.params.get("status") || "", cat = r.params.get("categoria") || "";
-  let list = ofMonth(m);
-  if (tipo === "despesas") list = list.filter((t) => t.type === "EXPENSE");
-  if (tipo === "receitas") list = list.filter((t) => t.type === "INCOME");
-  if (status === "pendentes") list = list.filter((t) => t.status === "PENDING");
-  if (cat) list = list.filter((t) => t.categoryId === cat);
-  list.sort(byDateDesc);
-  const inc = sum(list.filter((t) => t.type === "INCOME")), exp = sum(list.filter((t) => t.type === "EXPENSE")), pen = sum(list.filter((t) => t.status === "PENDING"));
+  const m = r.month, f = ledgerParams(r), body = ledgerBody(r); // fills ledgerView.list for the totals
   const opt = (v, l, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(l)}</option>`;
   return `${pageHead("Lançamentos", "Despesas e receitas do mês. Toque no círculo para marcar como pago.",
     `<button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Nova entrada</button><button class="btn btn-primary btn-sm" data-act="new-tx">${icon("plusCircle")} Novo gasto</button>`)}
-  <div class="grid-3" style="margin-bottom:16px">
-    ${metric({ label: "Entradas", ic: "down", chip: "background:var(--success-c);color:var(--success)", value: fmt(inc), valueCls: "t-income" })}
-    ${metric({ label: "Saídas", ic: "up", chip: "background:var(--c-high);color:var(--primary)", value: fmt(exp) })}
-    ${metric({ label: "Pendente", ic: "clock", chip: "background:var(--warning-c);color:var(--warning)", value: fmt(pen), valueCls: pen ? "t-warning" : "", cls: "span2" })}
-  </div>
+  <div class="grid-3" style="margin-bottom:16px" id="tx-metrics">${ledgerMetrics(ledgerView.list)}</div>
   <section class="card card-flush">
-    <div class="section-head" style="padding:16px">
-      ${monthPicker("lancamentos", m, { tipo, status, categoria: cat })}
-      <div class="actions" style="display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:560px" id="filters">
-        <select class="input input-sm" data-filter="tipo" aria-label="Tipo">${opt("", "Todos os tipos", tipo)}${opt("despesas", "Saídas", tipo)}${opt("receitas", "Entradas", tipo)}</select>
-        <select class="input input-sm" data-filter="status" aria-label="Status">${opt("", "Todos os status", status)}${opt("pendentes", "Pendentes", status)}</select>
-        <select class="input input-sm" data-filter="categoria" aria-label="Categoria" style="grid-column:1/-1">${opt("", "Todas as categorias", cat)}${state.categories.map((c) => opt(c.id, `${c.name} (${c.type === "EXPENSE" ? "despesa" : "receita"})`, cat)).join("")}</select>
+    <div class="ledger-filters">
+      <div class="ledger-filters-top"><span id="tx-month">${monthPicker("lancamentos", m, ledgerLinkParams(f))}</span><span id="tx-tipo">${ledgerTipoTabs(m, f)}</span></div>
+      <div class="ledger-filters-grid" id="filters">
+        <label class="search-field"><span class="sr-only">Buscar lançamentos</span>${icon("search")}<input class="input input-sm" type="search" id="tx-search" value="${esc(f.busca)}" placeholder="Buscar no extrato…" enterkeyhint="search" autocomplete="off"></label>
+        <select class="input input-sm" data-filter="status" aria-label="Status">${opt("", "Todos os status", f.status)}${opt("pendentes", "Pendentes", f.status)}</select>
+        <select class="input input-sm" data-filter="categoria" aria-label="Categoria">${opt("", "Todas as categorias", f.categoria)}${state.categories.map((c) => opt(c.id, `${c.name} (${c.type === "EXPENSE" ? "despesa" : "receita"})`, f.categoria)).join("")}</select>
       </div>
     </div>
-    ${list.length ? `${listHead(true)}<ul class="ledger">${list.map((t) => ledgerRow(t, { toggle: true })).join("")}</ul>` : `<div style="padding:20px"><p class="empty">Nenhum lançamento em ${monthLabel(m).toLowerCase()}.</p></div>`}
+    <div id="tx-ledger">${body}</div>
   </section>`;
 }
 
@@ -2810,6 +2924,7 @@ document.addEventListener("click", (e) => {
     "theme": () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem("mf-theme", t); } catch {} render(); },
     "menu": menuSheet, "close": closeModal, "pick-month": monthSheet, "reload": () => location.reload(),
     "flow-view": () => setFlowView(el.dataset.view), "flow-col": () => selectFlowColumn(el),
+    "recent-filter": () => setRecentFilter(el.dataset.f), "more-tx": showMoreLedger,
     "new-tx": () => txForm(null, el.dataset.type),
     "edit-tx": () => txForm(state.transactions.find((t) => t.id === id)),
     "tx-type": () => { stopVoice(); txForm.setType(el.dataset.type); },
@@ -2918,7 +3033,11 @@ document.addEventListener("change", (e) => {
     if (k === "include" || k === "type") render();
   }
 });
-document.addEventListener("input", (e) => { const t = e.target; if (t.dataset.draft !== undefined && t.dataset.k === "description") importDrafts[Number(t.dataset.draft)].description = t.value; });
+document.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.id === "tx-search") onLedgerSearch(t.value);
+  else if (t.dataset.draft !== undefined && t.dataset.k === "description") importDrafts[Number(t.dataset.draft)].description = t.value;
+});
 document.addEventListener("dragover", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
 document.addEventListener("dragleave", (e) => { const d = e.target.closest?.("#drop"); if (d) d.classList.remove("over"); });
 document.addEventListener("drop", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.remove("over"); handleImportFile(e.dataTransfer.files[0]); } });

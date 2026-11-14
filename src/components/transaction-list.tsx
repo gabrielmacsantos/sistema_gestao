@@ -124,8 +124,15 @@ export function TransactionList({ rows, leading }: { rows: Row[]; leading?: (t: 
                   <Link href={`/lancamentos/${t.id}`} className="flex min-w-0 items-center gap-3">
                     <RowIcon t={t} />
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate text-label-lg text-on-surface hover:text-primary">
-                        {t.description}
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate text-label-lg text-on-surface hover:text-primary">{t.description}</span>
+                        {/* The receipt column only fits from lg; the clip marks it at every width. */}
+                        {t.attachment && (
+                          <>
+                            <Paperclip className="size-3.5 shrink-0 text-primary" aria-hidden />
+                            <span className="sr-only">(com comprovante)</span>
+                          </>
+                        )}
                       </span>
                       <span className="truncate text-label-sm font-medium text-secondary normal-case">
                         {subtitle(t)}
