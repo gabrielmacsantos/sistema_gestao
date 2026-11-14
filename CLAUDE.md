@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Módulo | Rota | O que faz |
 |---|---|---|
-| **Painel** | `/dashboard` | Resumo do mês (receitas, despesas, saldo, previsto), alertas de orçamento, despesas por categoria, receitas × despesas dos últimos 6 meses ou, na aba "Semanal", por semana (segunda a domingo) do mês escolhido (`weeklySeries`, igual em `lib/cashflow.ts` e no `index.html`, testada em `tests/weekly-series.test.ts`), e pendências. |
+| **Painel** | `/dashboard` | Resumo do mês (receitas, despesas, saldo, previsto), alertas de orçamento, despesas por categoria (com os fixos previstos; porcentagens em inteiros por `shareOfTotal`, que sempre somam 100%, e "Outras categorias" além das 5 maiores), cartão de margem segura (saldo previsto menos o que falta gastar nos orçamentos: `reserveMargin`/`reserveMessage`, iguais em `lib/cashflow.ts` e no `index.html`, testadas em `tests/share-math.test.ts`), receitas × despesas dos últimos 6 meses ou, na aba "Semanal", por semana (segunda a domingo) do mês escolhido (`weeklySeries`, igual em `lib/cashflow.ts` e no `index.html`, testada em `tests/weekly-series.test.ts`), e pendências. |
 | **Lançamentos** | `/lancamentos` | Despesas e receitas avulsas, com filtros por mês, tipo e categoria. Marcar como pago/pendente. |
 | **Gastos fixos** | `/fixos` | Despesas e receitas recorrentes, que geram um lançamento pendente por mês. |
 | **Importar** | `/importar` | QR Code da NFC-e, foto de cupom/recibo (Claude API) e extrato OFX/CSV. Tudo passa pela tela de revisão. |

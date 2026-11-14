@@ -30,11 +30,21 @@ import { ensureOccurrences, projectedOccurrences } from "@/server/services/recur
 import {
   BUDGET_WARNING_RATIO,
   budgetStatus,
-  expensesByCategory,
+  forecastByCategory,
   monthlySeries,
   monthSummary,
 } from "@/server/services/reports";
-import { percentChange, ratio, splitExpenses, weeklySeries } from "@/lib/cashflow";
+import {
+  percentChange,
+  percentTenths,
+  ratio,
+  reserveMargin,
+  reserveMessage,
+  shareOfTotal,
+  splitExpenses,
+  weeklySeries,
+  type MessagePart,
+} from "@/lib/cashflow";
 import { currentMonth, dateToInput, formatDayMonth, formatMonthLabel, formatMonthShort, monthRange, todayInput } from "@/lib/dates";
 import { formatBRL, formatPercent } from "@/lib/money";
 import { monthParam, type SearchParams } from "@/lib/search-params";
@@ -54,7 +64,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   const { start, end } = monthRange(month);
   const [summary, categories, series, budgets, transactions, projected] = await Promise.all([
     monthSummary(user.id, month),
-    expensesByCategory(user.id, month),
+    forecastByCategory(user.id, month),
     monthlySeries(user.id, month, 6),
     budgetStatus(user.id, month),
     listTransactions(user.id, { start, end }),
@@ -67,7 +77,29 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   const split = splitExpenses(transactions, projected);
   const previous = series.at(-2);
   const incomeDelta = previous ? percentChange(series.at(-1)?.income ?? 0, previous.income) : null;
+  // Distribution: the 6 largest, or the 5 largest plus the rest together, so the list adds up to 100%.
   const totalByCategory = categories.reduce((s, c) => s + c.totalCents, 0);
+  const rest = categories.slice(5);
+  const distribution =
+    categories.length > 6
+      ? [
+          ...categories.slice(0, 5),
+          {
+            categoryId: "others",
+            name: `Outras categorias (${rest.length})`,
+            color: "var(--color-outline)",
+            totalCents: rest.reduce((s, c) => s + c.totalCents, 0),
+          },
+        ]
+      : categories;
+  const shares = shareOfTotal(distribution.map((c) => c.totalCents), totalByCategory);
+  // Reserve card: what is still left inside the budgets is kept aside from the free balance.
+  const spentByCategory = new Map(categories.map((c) => [c.categoryId, c.totalCents]));
+  const margin = reserveMargin(
+    free,
+    budgets.map((b) => ({ limitCents: b.limitCents, spentCents: spentByCategory.get(b.categoryId) ?? 0 })),
+  );
+  const pastMonth = month < currentMonth();
   const alerts = budgets.filter((b) => b.ratio >= BUDGET_WARNING_RATIO);
   const fixed = transactions
     .filter((t) => t.recurringId && t.type === "EXPENSE")
@@ -299,46 +331,50 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           <CardTitle action={<span className="text-label-sm text-secondary capitalize">{monthLabel.split(" ")[0]}</span>}>
             Distribuição de gastos
           </CardTitle>
-          {categories.length === 0 ? (
+          {distribution.length === 0 ? (
             <EmptyState>Sem despesas neste mês.</EmptyState>
           ) : (
             <ul className="flex flex-col gap-4">
-              {categories.slice(0, 6).map((c) => (
+              {distribution.map((c, i) => (
                 <li key={c.categoryId ?? "none"} className="flex flex-col gap-1.5">
                   <div className="flex justify-between gap-2 text-body-md">
-                    <span className="flex min-w-0 items-center gap-2 font-medium text-on-surface">
-                      <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: c.color }} aria-hidden />
-                      <span className="truncate">{c.name}</span>
+                    {/* The name wraps instead of being cut: on a 320px phone it would lose most of itself. */}
+                    <span className="flex min-w-0 items-start gap-2 font-medium text-on-surface">
+                      <span className="mt-1.5 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: c.color }} aria-hidden />
+                      <span className="[overflow-wrap:anywhere]">{c.name}</span>
                     </span>
                     <span className="shrink-0 text-secondary tabular-nums">
-                      {formatBRL(c.totalCents)} ({Math.round(ratio(c.totalCents, totalByCategory) * 100)}%)
+                      {formatBRL(c.totalCents)} ({shares[i] === 0 && c.totalCents > 0 ? "<1" : shares[i]}%)
                     </span>
                   </div>
-                  <div className="h-2 rounded-full bg-surface-container-high" aria-hidden>
+                  <div className="h-2 rounded-full bg-surface-container-low" aria-hidden>
                     <div
                       className="h-full rounded-full"
-                      style={{ width: `${ratio(c.totalCents, totalByCategory) * 100}%`, backgroundColor: c.color }}
+                      style={{
+                        width: `${ratio(c.totalCents, totalByCategory) * 100}%`,
+                        minWidth: c.totalCents > 0 ? 4 : 0,
+                        backgroundColor: c.color,
+                      }}
                     />
                   </div>
                 </li>
               ))}
             </ul>
           )}
-          {expense > 0 && (
+          {(income > 0 || expense > 0) && (
             <div className="mt-6 flex gap-2.5 rounded-xl border border-hairline bg-surface-container-low p-4 text-body-md text-on-surface-variant lg:mt-auto">
               <Lightbulb className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
               <p>
-                Seus custos fixos representam{" "}
-                <strong className="font-semibold text-primary">{formatPercent(ratio(split.fixedCents, expense))}</strong> das
-                saídas.{" "}
-                {free > 0 ? (
+                {split.fixedCents > 0 && expense > 0 && (
                   <>
-                    Você ainda pode gastar até <strong className="font-semibold text-primary">{formatBRL(free)}</strong> sem
-                    fechar o mês no negativo.
+                    Seus custos fixos representam{" "}
+                    <strong className="font-semibold text-primary">
+                      {formatPercent(percentTenths(split.fixedCents, expense) / 1000)}
+                    </strong>{" "}
+                    das saídas.{" "}
                   </>
-                ) : (
-                  <>O mês está previsto para fechar no negativo.</>
                 )}
+                <ReserveText parts={reserveMessage(free, margin, pastMonth)} />
               </p>
             </div>
           )}
@@ -434,6 +470,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         </div>
       </section>
     </div>
+  );
+}
+
+/** The reserve card's sentence, with the amounts in bold. */
+function ReserveText({ parts }: { parts: MessagePart[] }) {
+  return parts.map((part, i) =>
+    typeof part === "string" ? (
+      part
+    ) : (
+      <strong key={i} className="font-semibold text-primary">
+        {formatBRL(part.cents)}
+      </strong>
+    ),
   );
 }
 

@@ -64,6 +64,78 @@ export function weeklySeries(
   return weeks;
 }
 
+/** round(n / d) with halves going up, for n >= 0 and d > 0, in integers only. */
+function divideHalfUp(n: number, d: number): number {
+  const twice = 2 * n + d;
+  return (twice - (twice % (2 * d))) / (2 * d);
+}
+
+/**
+ * Whole percentages of `total` for each part (cents), computed with integers only. Each one is
+ * the floor of part × 100 / total; the points left over go to the largest remainders (then the
+ * largest parts), so parts that add up to the total always show 100%.
+ */
+export function shareOfTotal(parts: number[], total: number): number[] {
+  if (total <= 0) return parts.map(() => 0);
+  const floors = parts.map((p) => (p * 100 - ((p * 100) % total)) / total);
+  const target = divideHalfUp(parts.reduce((s, p) => s + p, 0) * 100, total);
+  const order = parts
+    .map((p, i) => ({ i, p, rest: (p * 100) % total }))
+    .sort((a, b) => b.rest - a.rest || b.p - a.p || a.i - b.i);
+  let left = target - floors.reduce((s, f) => s + f, 0);
+  for (const { i, rest } of order) {
+    if (left <= 0 || rest === 0) break;
+    floors[i] += 1;
+    left -= 1;
+  }
+  return floors;
+}
+
+/** part / total in tenths of a percent, rounded half up with integers (145 = 14,5%). */
+export function percentTenths(part: number, total: number): number {
+  return total > 0 && part > 0 ? divideHalfUp(part * 1000, total) : 0;
+}
+
+export type ReserveMargin = {
+  /** Money still to be spent inside the category budgets (unspent limits). */
+  reservedCents: number;
+  /** Forecast free balance minus that reservation: what can go to anything else. */
+  safeCents: number;
+};
+
+/**
+ * Safe spending margin for the month: the forecast free balance minus what is still left in each
+ * budget. `spentCents` must include pending and projected entries, as the forecast already does.
+ */
+export function reserveMargin(forecastCents: number, budgets: { limitCents: number; spentCents: number }[]): ReserveMargin {
+  const reservedCents = budgets.reduce((s, b) => s + Math.max(0, b.limitCents - b.spentCents), 0);
+  return { reservedCents, safeCents: forecastCents - reservedCents };
+}
+
+/** A sentence as text pieces and amounts (cents, shown without sign), so each UI styles the amounts. */
+export type MessagePart = string | { cents: number };
+
+/** The reserve card's sentence: a closed month says how it ended; an open one, how much is safe to spend. */
+export function reserveMessage(freeCents: number, margin: ReserveMargin, past: boolean): MessagePart[] {
+  const amount = (cents: number) => ({ cents: Math.abs(cents) });
+  if (past) {
+    if (freeCents === 0) return ["O mês fechou sem sobra."];
+    return ["O mês fechou com ", amount(freeCents), freeCents > 0 ? " de sobra." : " de falta."];
+  }
+  const { reservedCents, safeCents } = margin;
+  const reserving: MessagePart[] = reservedCents > 0 ? ["Reservando ", amount(reservedCents), " para o que falta nos orçamentos, "] : [];
+  if (safeCents > 0) {
+    return [...reserving, `${reserving.length ? "você" : "Você"} ainda pode gastar até `, amount(safeCents), " sem fechar o mês no negativo."];
+  }
+  if (safeCents === 0) {
+    return reserving.length ? [...reserving, "não sobra margem para outros gastos."] : ["O mês está previsto para fechar sem sobra."];
+  }
+  if (reservedCents > 0) {
+    return ["Se gastar os ", amount(reservedCents), " que faltam nos orçamentos, o mês fecha ", amount(safeCents), " no negativo."];
+  }
+  return ["O mês está previsto para fechar ", amount(safeCents), " no negativo."];
+}
+
 /** part / whole as a 0..1 ratio, 0 when whole is not positive. */
 export function ratio(part: number, whole: number): number {
   return whole > 0 ? part / whole : 0;

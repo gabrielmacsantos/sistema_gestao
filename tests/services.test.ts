@@ -7,7 +7,7 @@ import { signUp, verifyCredentials } from "@/server/services/auth";
 import { setBudget } from "@/server/services/budgets";
 import { confirmDrafts } from "@/server/services/imports";
 import { ensureOccurrences, saveRecurring } from "@/server/services/recurring";
-import { monthlySeries, monthSummary } from "@/server/services/reports";
+import { expensesByCategory, forecastByCategory, monthlySeries, monthSummary } from "@/server/services/reports";
 import { removeTransaction, saveTransaction } from "@/server/services/transactions";
 import { addMonths, currentMonth, monthRange, parseDateInput } from "@/lib/dates";
 import { formatBRL } from "@/lib/money";
@@ -174,6 +174,30 @@ describe("monthly series", () => {
     expect(series.at(-1)).toEqual({ month: future, income: 720000, expense: 0 });
     expect(series.at(-1)?.income).toBe(summary.incomePaid + summary.incomePending);
     expect(series.at(-2)?.income).toBe(720000);
+  });
+});
+
+describe("distribution by category", () => {
+  it("adds projected recurring expenses only to the dashboard's forecast base", async () => {
+    const userId = (await signUp({ name: "Dist", email: `dist-${Date.now()}@test.dev`, password: "senha-segura" })).id;
+    const [housing] = await listCategories(userId, "EXPENSE");
+    await saveRecurring(userId, {
+      type: "EXPENSE",
+      description: "Aluguel",
+      amountCents: 240000,
+      dayOfMonth: 5,
+      startMonth: currentMonth(),
+      endMonth: null,
+      categoryId: housing.id,
+      paymentMethod: null,
+    });
+
+    const future = addMonths(currentMonth(), 1);
+    expect(await forecastByCategory(userId, future)).toEqual([
+      { categoryId: housing.id, name: housing.name, color: housing.color, totalCents: 240000 },
+    ]);
+    expect(await expensesByCategory(userId, future)).toEqual([]);
+    expect((await monthSummary(userId, future)).expensePending).toBe(240000);
   });
 });
 

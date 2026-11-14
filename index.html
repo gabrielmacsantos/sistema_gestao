@@ -282,6 +282,11 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .dist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
 .dist-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
 .bar { height: 8px; border-radius: 999px; background: var(--c-high); overflow: hidden; }
+/* Category colors are the person's choice; a lighter track keeps their bars easier to tell apart. */
+.dist .bar { background: var(--c-low); }
+/* The name wraps instead of being cut: on a 320px phone it would lose most of itself. */
+.dist-name { display: flex; align-items: flex-start; gap: 8px; min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
+.dist-name .dot { flex: none; margin-top: 6px; }
 .bar > div { height: 100%; border-radius: 999px; }
 .hscroll { display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scroll-snap-type: x mandatory; list-style: none; }
 .hscroll > li { flex: none; width: 168px; scroll-snap-align: start; }
@@ -1204,9 +1209,10 @@ function splitExpenses(month) {
   for (const p of projected(month)) if (p.type === "EXPENSE") { out.fixedCents += p.amountCents; out.fixedCount++; }
   return out;
 }
-function expensesByCategory(month) {
+/** Expenses per category; withProjected adds the month's projected fixed expenses (same base as monthSummary). */
+function expensesByCategory(month, withProjected = false) {
   const map = new Map();
-  for (const t of ofMonth(month)) if (t.type === "EXPENSE") map.set(t.categoryId || "", (map.get(t.categoryId || "") || 0) + t.amountCents);
+  for (const t of [...ofMonth(month), ...(withProjected ? projected(month) : [])]) if (t.type === "EXPENSE") map.set(t.categoryId || "", (map.get(t.categoryId || "") || 0) + t.amountCents);
   return [...map.entries()].map(([id, total]) => { const c = catById(id); return { id, name: c?.name || "Sem categoria", color: c?.color || "#94a3b8", total }; }).sort((a, b) => b.total - a.total);
 }
 /** Same totals as the month summary: future months also count their projected fixed entries. */
@@ -1218,6 +1224,38 @@ function monthlySeries(month, count = 6) {
   }
   return out;
 }
+// <share-math> Self-contained: tests/share-math.test.ts loads this block (same as src/lib/cashflow.ts).
+/** round(n / d) with halves going up, for n >= 0 and d > 0, in integers only. */
+function divideHalfUp(n, d) { const twice = 2 * n + d; return (twice - (twice % (2 * d))) / (2 * d); }
+/** Whole percentages of total per part (cents), integers only; leftover points go to the largest remainders. */
+function shareOfTotal(parts, total) {
+  if (total <= 0) return parts.map(() => 0);
+  const floors = parts.map((p) => (p * 100 - ((p * 100) % total)) / total);
+  const target = divideHalfUp(parts.reduce((s, p) => s + p, 0) * 100, total);
+  const order = parts.map((p, i) => ({ i, p, rest: (p * 100) % total })).sort((a, b) => b.rest - a.rest || b.p - a.p || a.i - b.i);
+  let left = target - floors.reduce((s, f) => s + f, 0);
+  for (const { i, rest } of order) { if (left <= 0 || rest === 0) break; floors[i] += 1; left -= 1; }
+  return floors;
+}
+/** part / total in tenths of a percent, rounded half up with integers (145 = 14,5%). */
+function percentTenths(part, total) { return total > 0 && part > 0 ? divideHalfUp(part * 1000, total) : 0; }
+/** Forecast free balance minus what is still left inside each budget (spent includes pending and projected). */
+function reserveMargin(forecastCents, budgets) {
+  const reservedCents = budgets.reduce((s, b) => s + Math.max(0, b.limitCents - b.spentCents), 0);
+  return { reservedCents, safeCents: forecastCents - reservedCents };
+}
+/** The reserve card's sentence as text pieces and { cents } amounts: a closed month says how it ended. */
+function reserveMessage(freeCents, margin, past) {
+  const amount = (cents) => ({ cents: Math.abs(cents) });
+  if (past) return freeCents === 0 ? ["O mês fechou sem sobra."] : ["O mês fechou com ", amount(freeCents), freeCents > 0 ? " de sobra." : " de falta."];
+  const { reservedCents, safeCents } = margin;
+  const reserving = reservedCents > 0 ? ["Reservando ", amount(reservedCents), " para o que falta nos orçamentos, "] : [];
+  if (safeCents > 0) return [...reserving, `${reserving.length ? "você" : "Você"} ainda pode gastar até `, amount(safeCents), " sem fechar o mês no negativo."];
+  if (safeCents === 0) return reserving.length ? [...reserving, "não sobra margem para outros gastos."] : ["O mês está previsto para fechar sem sobra."];
+  if (reservedCents > 0) return ["Se gastar os ", amount(reservedCents), " que faltam nos orçamentos, o mês fecha ", amount(safeCents), " no negativo."];
+  return ["O mês está previsto para fechar ", amount(safeCents), " no negativo."];
+}
+// </share-math>
 // <weekly-series> Self-contained: tests/weekly-series.test.ts loads this block (same as src/lib/cashflow.ts).
 /** Income and expenses of a month per calendar week, Monday to Sunday, cut at the month's edges. */
 function weeklySeries(entries, month) {
@@ -1409,7 +1447,12 @@ function selectFlowColumn(el) {
 
 function viewPainel(r) {
   const m = r.month, s = monthSummary(m), split = splitExpenses(m), series = monthlySeries(m);
-  const cats = expensesByCategory(m), totalCats = sum(cats, (c) => c.total);
+  const cats = expensesByCategory(m, true), totalCats = sum(cats, (c) => c.total);
+  // Distribution: the 6 largest, or the 5 largest plus the rest together, so the list adds up to 100%.
+  const dist = cats.length > 6 ? [...cats.slice(0, 5), { id: "others", name: `Outras categorias (${cats.length - 5})`, color: "var(--outline)", total: sum(cats.slice(5), (c) => c.total) }] : cats;
+  const shares = shareOfTotal(dist.map((c) => c.total), totalCats);
+  const spentByCat = new Map(cats.map((c) => [c.id, c.total]));
+  const margin = reserveMargin(s.forecast, state.budgets.filter((b) => catById(b.categoryId)).map((b) => ({ limitCents: b.amountCents, spentCents: spentByCat.get(b.categoryId) || 0 })));
   const prev = series[series.length - 2], delta = prev && prev.income > 0 ? (series[series.length - 1].income - prev.income) / prev.income : null;
   const alerts = budgetStatus(m).filter((b) => b.ratio >= 0.8);
   const list = ofMonth(m).sort(byDateDesc), fixed = list.filter((t) => t.recurringId && t.type === "EXPENSE").sort((a, b) => (a.date < b.date ? -1 : 1));
@@ -1478,8 +1521,8 @@ function viewPainel(r) {
       </section>
       <section class="card" style="display:flex;flex-direction:column">
         <div class="card-head"><h2 class="h-card">Distribuição de gastos</h2><span class="metric-label" style="text-transform:capitalize">${MONTHS[Number(m.slice(5)) - 1]}</span></div>
-        ${cats.length ? `<ul class="dist">${cats.slice(0, 6).map((c) => `<li><div class="dist-row"><span style="display:flex;align-items:center;gap:8px;min-width:0;font-weight:500"><span class="dot" style="background:${esc(c.color)}"></span><span class="truncate">${esc(c.name)}</span></span><span class="muted num" style="flex:none">${fmt(c.total)} (${Math.round(ratio(c.total, totalCats) * 100)}%)</span></div><div class="bar"><div style="width:${ratio(c.total, totalCats) * 100}%;background:${esc(c.color)}"></div></div></li>`).join("")}</ul>` : `<p class="empty">Sem despesas neste mês.</p>`}
-        ${s.expense > 0 ? `<div class="insight" style="margin-top:auto;margin-top:24px"><span class="t-primary" style="display:flex">${icon("bulb")}</span><p>Seus custos fixos representam <b class="t-primary">${fmtPct(ratio(split.fixedCents, s.expense))}</b> das saídas. ${s.forecast > 0 ? `Você ainda pode gastar até <b class="t-primary">${fmt(s.forecast)}</b> sem fechar o mês no negativo.` : "O mês está previsto para fechar no negativo."}</p></div>` : ""}
+        ${dist.length ? `<ul class="dist">${dist.map((c, i) => `<li><div class="dist-row"><span class="dist-name"><span class="dot" style="background:${esc(c.color)}"></span><span>${esc(c.name)}</span></span><span class="muted num" style="flex:none">${fmt(c.total)} (${shares[i] === 0 && c.total > 0 ? "&lt;1" : shares[i]}%)</span></div><div class="bar"><div style="width:${ratio(c.total, totalCats) * 100}%;${c.total > 0 ? "min-width:4px;" : ""}background:${esc(c.color)}"></div></div></li>`).join("")}</ul>` : `<p class="empty">Sem despesas neste mês.</p>`}
+        ${s.income > 0 || s.expense > 0 ? `<div class="insight" style="margin-top:auto;margin-top:24px"><span class="t-primary" style="display:flex">${icon("bulb")}</span><p>${split.fixedCents > 0 && s.expense > 0 ? `Seus custos fixos representam <b class="t-primary">${fmtPct(percentTenths(split.fixedCents, s.expense) / 1000)}</b> das saídas. ` : ""}${reserveMessage(s.forecast, margin, m < currentMonth()).map((x) => typeof x === "string" ? x : `<b class="t-primary">${fmt(x.cents)}</b>`).join("")}</p></div>` : ""}
       </section>
     </div>
     ${fixed.length ? `<section>

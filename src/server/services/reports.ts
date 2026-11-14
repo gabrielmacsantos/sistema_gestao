@@ -46,27 +46,38 @@ export async function monthSummary(userId: string, month: string): Promise<Month
 
 export type CategoryTotal = { categoryId: string | null; name: string; color: string; totalCents: number };
 
-// Cached per request: the dashboard needs it both directly and through budgetStatus.
-export const expensesByCategory = cache(async (userId: string, month: string): Promise<CategoryTotal[]> => {
+async function totalsByCategory(userId: string, month: string, withProjected: boolean): Promise<CategoryTotal[]> {
   const { start, end } = monthRange(month);
-  const [groups, categories] = await Promise.all([
+  const [groups, categories, projected] = await Promise.all([
     tx.sumByCategory(userId, "EXPENSE", start, end),
     listCategories(userId, "EXPENSE"),
+    withProjected ? projectedOccurrences(userId, month) : [],
   ]);
   const byId = new Map(categories.map((c) => [c.id, c]));
+  const totals = new Map<string | null, number>();
+  for (const g of groups) totals.set(g.categoryId, (totals.get(g.categoryId) ?? 0) + (g._sum.amountCents ?? 0));
+  for (const p of projected) {
+    if (p.type === "EXPENSE") totals.set(p.categoryId, (totals.get(p.categoryId) ?? 0) + p.amountCents);
+  }
 
-  return groups
-    .map((g) => {
-      const category = g.categoryId ? byId.get(g.categoryId) : undefined;
+  return [...totals]
+    .map(([categoryId, totalCents]) => {
+      const category = categoryId ? byId.get(categoryId) : undefined;
       return {
-        categoryId: g.categoryId,
+        categoryId,
         name: category?.name ?? "Sem categoria",
         color: category?.color ?? "#94a3b8",
-        totalCents: g._sum.amountCents ?? 0,
+        totalCents,
       };
     })
     .sort((a, b) => b.totalCents - a.totalCents);
-});
+}
+
+// Cached per request: the dashboard needs it both directly and through budgetStatus.
+export const expensesByCategory = cache((userId: string, month: string) => totalsByCategory(userId, month, false));
+
+/** Like expensesByCategory, plus the month's projected recurring expenses: the same base as monthSummary. */
+export const forecastByCategory = cache((userId: string, month: string) => totalsByCategory(userId, month, true));
 
 export type MonthlyPoint = { month: string; income: number; expense: number };
 
