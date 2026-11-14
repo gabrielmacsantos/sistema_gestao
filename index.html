@@ -326,7 +326,11 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 @media (min-width: 560px) { .form-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); } .form-grid .full { grid-column: 1 / -1; } }
 @media (min-width: 640px) { .input { font-size: 14px; } }
 .tabs { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border-radius: 8px; background: var(--c); }
-.tabs button { height: 36px; border: 0; border-radius: 6px; background: transparent; color: var(--secondary); font-weight: 600; }
+.tabs button { height: 36px; border: 0; border-radius: 6px; background: transparent; color: var(--secondary); font-weight: 600; transition: background-color .15s, color .15s, box-shadow .15s; }
+@media (prefers-reduced-motion: reduce) { .tabs button { transition: none; } }
+/* 36px buttons inside a 44px bar: the touch area covers the whole bar height. */
+.tabs button { position: relative; }
+.tabs button::after { content: ""; position: absolute; inset: -4px -2px; }
 .tabs button.on { background: var(--card); box-shadow: var(--shadow); }
 .tabs button.on.exp { color: var(--danger); } .tabs button.on.inc { color: var(--success); }
 
@@ -517,6 +521,21 @@ function parseMoneyToCents(input) {
   return negative ? -cents : cents;
 }
 const centsToInput = (c) => (c / 100).toFixed(2).replace(".", ",");
+// <money-mask> Self-contained: tests/money-mask.test.ts loads this block (same as src/lib/money.ts).
+const MONEY_MASK_MAX_DIGITS = 11; // R$ 999.999.999,99
+/** Cents as the masked field shows them, with integers only: 123456 -> "1.234,56". */
+function formatCentsInput(cents) {
+  const rest = cents % 100, whole = String((cents - rest) / 100).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${whole},${String(rest).padStart(2, "0")}`;
+}
+/** The digits typed are the cents, as on a card machine: "5230" -> 5230 cents, shown "52,30". */
+function maskMoneyInput(typed) {
+  const digits = typed.replace(/\D/g, "").replace(/^0+/, "").slice(0, MONEY_MASK_MAX_DIGITS);
+  if (!digits) return { cents: null, text: "" };
+  const cents = Number(digits);
+  return { cents, text: formatCentsInput(cents) };
+}
+// </money-mask>
 
 // Dates are calendar strings in the user's local time.
 const pad = (n) => String(n).padStart(2, "0");
@@ -2049,7 +2068,10 @@ function showErrors(errors, root = document.getElementById("modal")) {
 const field = (label, name, control, cls = "", hint = "") => `<div class="field ${cls}"><label for="f-${name}">${label}</label>${control}${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
 const input = (name, value = "", attrs = "") => `<input class="input" id="f-${name}" name="${name}" value="${esc(value)}" ${attrs}>`;
 const moneyInput = (name, cents) => `<div class="money"><span>R$</span><input class="input" id="f-${name}" name="${name}" inputmode="decimal" placeholder="0,00" value="${cents ? centsToInput(cents) : ""}"></div>`;
-const catSelect = (type, sel, name = "categoryId") => `<select class="input" id="f-${name}" name="${name}"><option value="">Sem categoria</option>${state.categories.filter((c) => c.type === type).sort((a, b) => a.name.localeCompare(b.name)).map((c) => `<option value="${c.id}" ${c.id === sel ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`;
+// Amount field with the card-machine mask (see maskMoneyInput): typing 5230 shows 52,30.
+const maskedMoneyInput = (name, cents) => `<div class="money"><span>R$</span><input class="input" id="f-${name}" name="${name}" inputmode="numeric" autocomplete="off" placeholder="0,00" data-money-mask value="${cents ? formatCentsInput(cents) : ""}"></div>`;
+const catOptions = (type, sel) => `<option value="">Sem categoria</option>${state.categories.filter((c) => c.type === type).sort((a, b) => a.name.localeCompare(b.name)).map((c) => `<option value="${c.id}" ${c.id === sel ? "selected" : ""}>${esc(c.name)}</option>`).join("")}`;
+const catSelect = (type, sel, name = "categoryId") => `<select class="input" id="f-${name}" name="${name}">${catOptions(type, sel)}</select>`;
 const formData = () => Object.fromEntries(new FormData(document.getElementById("modal")).entries());
 
 // ---------- Forms ----------
@@ -2073,21 +2095,24 @@ async function renderPhotoSlot() {
   }
 }
 
+const TX_DESCRIPTION_HINT = { EXPENSE: "Ex.: Mercado, Uber, Farmácia", INCOME: "Ex.: Salário, Freela, Bônus" };
+const VOICE_EXAMPLE = { EXPENSE: "Ex.: “Gastei 52,30 no mercado ontem”", INCOME: "Ex.: “Recebi 2500,00 de salário hoje”" };
 function txForm(tx, presetType, presetTrip) {
   let type = tx?.type || presetType || "EXPENSE";
   const preTrip = presetTrip && tripById(presetTrip);
   const defaultDate = preTrip && !(todayISO() >= preTrip.startDate && todayISO() <= preTrip.endDate) ? preTrip.startDate : todayISO();
   formPhoto = { blob: null, removed: false, existingId: tx?.attachmentId || null };
+  const title = () => tx ? "Editar lançamento" : preTrip ? `Gasto da viagem: ${esc(preTrip.name)}` : type === "INCOME" ? "Nova entrada" : "Novo gasto";
   const draw = () => {
     const d = document.getElementById("modal") ? formData() : {};
     openModal({
-      title: tx ? "Editar lançamento" : preTrip ? `Gasto da viagem: ${esc(preTrip.name)}` : type === "INCOME" ? "Nova entrada" : "Novo gasto",
+      title: title(),
       sub: tx?.recurringId ? "Ocorrência de um gasto fixo. Alterar aqui não muda os outros meses." : "Preencha os detalhes do lançamento.",
       body: `<div class="form-grid two">
-        <div class="tabs full" role="tablist"><button type="button" class="${type === "EXPENSE" ? "on exp" : ""}" data-act="tx-type" data-type="EXPENSE">Despesa</button><button type="button" class="${type === "INCOME" ? "on inc" : ""}" data-act="tx-type" data-type="INCOME">Receita</button></div>
+        <div class="tabs full" role="group" aria-label="Tipo"><button type="button" class="${type === "EXPENSE" ? "on exp" : ""}" data-act="tx-type" data-type="EXPENSE" aria-pressed="${type === "EXPENSE"}">Despesa</button><button type="button" class="${type === "INCOME" ? "on inc" : ""}" data-act="tx-type" data-type="INCOME" aria-pressed="${type === "INCOME"}">Receita</button></div>
         ${!tx && SpeechRec ? `<div class="full" id="voice-slot" aria-live="polite"></div>` : ""}
-        ${field("Descrição", "description", input("description", d.description ?? tx?.description ?? "", 'placeholder="Ex.: Mercado, Uber, Salário" maxlength="120" autofocus'), "full")}
-        ${field("Valor", "amount", moneyInput("amount", d.amount ? parseMoneyToCents(d.amount) : tx?.amountCents))}
+        ${field("Descrição", "description", input("description", d.description ?? tx?.description ?? "", `placeholder="${TX_DESCRIPTION_HINT[type]}" maxlength="120" autofocus`), "full")}
+        ${field("Valor", "amount", maskedMoneyInput("amount", d.amount ? parseMoneyToCents(d.amount) : tx?.amountCents))}
         ${field("Data", "date", input("date", d.date ?? tx?.date ?? defaultDate, 'type="date"'))}
         ${field("Categoria", "categoryId", catSelect(type, d.categoryId ?? tx?.categoryId))}
         ${state.trips.length && !tx?.recurringId ? field("Viagem", "tripId", `<select class="input" id="f-tripId" name="tripId"><option value="">Nenhuma (gestão do mês)</option>${[...state.trips].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)).map((x) => `<option value="${x.id}" ${(d.tripId ?? tx?.tripId ?? presetTrip) === x.id ? "selected" : ""}>✈ ${esc(x.name)}</option>`).join("")}</select>`, "full") : ""}
@@ -2117,7 +2142,23 @@ function txForm(tx, presetType, presetTrip) {
       },
     });
   };
-  txForm.setType = (t) => { type = t; draw(); renderPhotoSlot(); renderVoiceSlot(); };
+  // Switching the type repaints only what depends on it: no new dialog (its slide-in made it flicker),
+  // so the other fields, the focus and the attached photo stay as they are.
+  txForm.setType = (t) => {
+    type = t === "INCOME" ? "INCOME" : "EXPENSE";
+    document.querySelectorAll('#modal [data-act="tx-type"]').forEach((b) => {
+      const on = b.dataset.type === type;
+      b.classList.toggle("on", on); b.classList.toggle("exp", on && type === "EXPENSE"); b.classList.toggle("inc", on && type === "INCOME");
+      b.setAttribute("aria-pressed", String(on));
+    });
+    document.getElementById("mtitle").innerHTML = title();
+    const cat = document.getElementById("f-categoryId");
+    if (cat) cat.innerHTML = catOptions(type, cat.value);
+    const paid = document.querySelector('#f-status option[value="PAID"]');
+    if (paid) paid.textContent = type === "INCOME" ? "Recebido" : "Pago";
+    document.getElementById("f-description")?.setAttribute("placeholder", TX_DESCRIPTION_HINT[type]);
+    renderVoiceSlot();
+  };
   txForm.getType = () => type;
   stopVoice();
   voiceUi = { mode: "idle", text: "" };
@@ -2288,7 +2329,8 @@ function renderVoiceSlot() {
     return;
   }
   const listening = mode === "listening";
-  const hint = listening ? text || "Fale o gasto, o valor e quando foi…" : mode === "done" ? `Ouvi: “${text}”. Confira os campos antes de salvar.` : "Ex.: “gastei 52,30 no mercado ontem”";
+  const income = txForm.getType?.() === "INCOME";
+  const hint = listening ? text || (income ? "Fale a entrada, o valor e quando foi…" : "Fale o gasto, o valor e quando foi…") : mode === "done" ? `Ouvi: “${text}”. Confira os campos antes de salvar.` : VOICE_EXAMPLE[income ? "INCOME" : "EXPENSE"];
   slot.innerHTML = `<button type="button" class="voice-btn ${listening ? "on" : ""}" data-act="voice" aria-pressed="${listening}">${icon("mic")}<span><b>${listening ? "Ouvindo… toque para parar" : mode === "done" ? "Falar de novo" : "Falar o lançamento"}</b><span class="hint voice-text">${esc(hint)}</span></span></button>`;
 }
 
@@ -2338,7 +2380,7 @@ function finishVoice(session) {
     el.closest(".field")?.querySelector(".err")?.remove();
   };
   fill("description", p.description);
-  fill("amount", p.amountCents ? centsToInput(p.amountCents) : null);
+  fill("amount", p.amountCents ? formatCentsInput(Math.min(p.amountCents, 99999999999)) : null);
   fill("date", p.date);
   fill("categoryId", p.categoryId);
   fill("status", p.status);
@@ -3036,6 +3078,7 @@ document.addEventListener("change", (e) => {
 document.addEventListener("input", (e) => {
   const t = e.target;
   if (t.id === "tx-search") onLedgerSearch(t.value);
+  else if (t.matches("[data-money-mask]")) { t.value = maskMoneyInput(t.value).text; t.setSelectionRange(t.value.length, t.value.length); }
   else if (t.dataset.draft !== undefined && t.dataset.k === "description") importDrafts[Number(t.dataset.draft)].description = t.value;
 });
 document.addEventListener("dragover", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
@@ -3044,6 +3087,14 @@ document.addEventListener("drop", (e) => { const d = e.target.closest?.("#drop")
 // Changing only the month keeps the scroll and the focus on the month control, and the new month is announced.
 let lastRoute = route();
 const sameExceptMonth = (a, b) => { const strip = (r) => { const p = new URLSearchParams(r.params); p.delete("mes"); p.sort(); return `${r.path}?${p}`; }; return strip(a) === strip(b); };
+// A pasted amount is read as written ("50" is R$ 50,00), not digit by digit as typing is.
+document.addEventListener("paste", (e) => {
+  const t = e.target; if (!t.matches?.("[data-money-mask]")) return;
+  const cents = parseMoneyToCents(e.clipboardData?.getData("text") || "");
+  if (cents === null) return;
+  e.preventDefault();
+  t.value = cents > 0 ? formatCentsInput(Math.min(Math.abs(cents), 99999999999)) : "";
+});
 window.addEventListener("hashchange", () => {
   const prev = lastRoute, next = lastRoute = route();
   const monthOnly = prev.month !== next.month && sameExceptMonth(prev, next);

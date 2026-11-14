@@ -14,7 +14,7 @@ export default async function NewTransactionPage({ searchParams }: { searchParam
   const categories = await listCategories(userId);
 
   return (
-    <div className="mx-auto max-w-xl">
+    <div className="mx-auto max-w-xl xl:max-w-2xl">
       <PageHeader title="Novo lançamento" />
       <Card>
         <TransactionForm

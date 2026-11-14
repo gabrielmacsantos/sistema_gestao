@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Field, FormMessage, Input, Select, Textarea } from "@/components/ui/form";
 import { PAYMENT_METHODS, type CategoryOption } from "@/lib/constants";
+import { formatCentsInput, maskMoneyInput, MONEY_MASK_MAX_DIGITS, parseMoneyToCents } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { ActionState } from "@/lib/validation";
 import { saveTransactionAction } from "./actions";
@@ -19,6 +20,9 @@ export type TransactionFormValues = {
   paymentMethod: string;
   notes: string;
 };
+
+const DESCRIPTION_HINT = { EXPENSE: "Ex.: Mercado, Uber, Farmácia", INCOME: "Ex.: Salário, Freela, Bônus" };
+const MAX_CENTS = 10 ** MONEY_MASK_MAX_DIGITS - 1;
 
 export function TransactionForm({
   id,
@@ -36,6 +40,9 @@ export function TransactionForm({
   const [type, setType] = useState(initial.type);
   const errors = state.fieldErrors ?? {};
   const values: TransactionFormValues = { ...initial, ...state.values };
+  // Card-machine mask: the digits typed are the cents ("5230" shows 52,30). The server reads the
+  // shown text back with parseMoneyToCents, which gives exactly the same integer.
+  const [amount, setAmount] = useState(() => maskMoneyInput(values.amountCents).text);
   const options = categories.filter((c) => c.type === type);
 
   return (
@@ -49,7 +56,7 @@ export function TransactionForm({
             <label
               key={t}
               className={cn(
-                "cursor-pointer rounded-md py-2 text-center text-body-md font-medium",
+                "cursor-pointer rounded-md py-2.5 text-center text-body-md font-medium transition-[background-color,color,box-shadow] duration-150 motion-reduce:transition-none has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary",
                 type === t
                   ? t === "EXPENSE"
                     ? "bg-surface-container-lowest text-danger shadow-sm"
@@ -72,26 +79,46 @@ export function TransactionForm({
       </fieldset>
 
       <Field label="Descrição" htmlFor="description" error={errors.description}>
-        <Input id="description" name="description" defaultValue={values.description} required />
+        <Input
+          id="description"
+          name="description"
+          defaultValue={values.description}
+          placeholder={DESCRIPTION_HINT[type]}
+          required
+        />
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
         <Field label="Valor (R$)" htmlFor="amountCents" error={errors.amountCents}>
-          <Input
-            id="amountCents"
-            name="amountCents"
-            inputMode="decimal"
-            placeholder="0,00"
-            defaultValue={values.amountCents}
-            required
-          />
+          <div className="relative">
+            <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 font-semibold text-secondary" aria-hidden>
+              R$
+            </span>
+            <Input
+              id="amountCents"
+              name="amountCents"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="0,00"
+              value={amount}
+              onChange={(e) => setAmount(maskMoneyInput(e.target.value).text)}
+              onPaste={(e) => {
+                // A pasted amount is read as written ("50" is R$ 50,00), not digit by digit.
+                const cents = parseMoneyToCents(e.clipboardData.getData("text"));
+                if (cents === null) return;
+                e.preventDefault();
+                setAmount(cents > 0 ? formatCentsInput(Math.min(Math.abs(cents), MAX_CENTS)) : "");
+              }}
+              className="pl-10 tabular-nums"
+            />
+          </div>
         </Field>
         <Field label="Data" htmlFor="date" error={errors.date}>
           <Input id="date" name="date" type="date" defaultValue={values.date} required />
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
         <Field label="Categoria" htmlFor="categoryId" error={errors.categoryId}>
           <Select
             id="categoryId"

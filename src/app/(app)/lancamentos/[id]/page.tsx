@@ -20,7 +20,7 @@ export default async function EditTransactionPage({ params }: { params: Promise<
   if (!transaction) notFound();
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4">
+    <div className="mx-auto flex max-w-xl flex-col gap-4 xl:max-w-2xl">
       <PageHeader
         title="Editar lançamento"
         action={

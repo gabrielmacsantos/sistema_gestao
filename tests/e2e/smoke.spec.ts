@@ -71,6 +71,35 @@ test("sign up, add an expense, a fixed expense and see them on the dashboard", a
   await expect(page.getByText("Mostrando 2 de 2 lançamentos")).toBeVisible();
 });
 
+test("amount mask and switching between expense and income", async ({ page }, testInfo) => {
+  await page.goto("/cadastro");
+  await page.getByLabel("Nome").fill("Teste");
+  await page.getByLabel("E-mail").fill(`e2e-mask-${testInfo.project.name}-${Date.now()}@test.dev`);
+  await page.getByLabel("Senha").fill("senha-segura-123");
+  await page.getByRole("button", { name: "Criar conta" }).click();
+  await expect(page.getByRole("heading", { name: "Gestão financeira e despesas" })).toBeVisible();
+
+  await page.goto("/lancamentos/novo");
+  const description = page.getByLabel("Descrição");
+  const amount = page.getByLabel("Valor (R$)");
+  await description.fill("Mercado");
+  await amount.pressSequentially("5230");
+  await expect(amount).toHaveValue("52,30");
+
+  // Switching keeps what was typed and only changes what depends on the type.
+  await page.getByText("Receita", { exact: true }).click();
+  await expect(description).toHaveValue("Mercado");
+  await expect(amount).toHaveValue("52,30");
+  await expect(description).toHaveAttribute("placeholder", "Ex.: Salário, Freela, Bônus");
+  await expect(page.getByLabel("Situação").locator("option").first()).toHaveText("Recebido");
+  await page.getByText("Despesa", { exact: true }).click();
+  await expect(amount).toHaveValue("52,30");
+
+  await page.getByRole("button", { name: "Salvar" }).click();
+  await expect(page).toHaveURL(/\/lancamentos\?mes=/);
+  await expect(page.getByText("− R$ 52,30").filter({ visible: true })).toBeVisible();
+});
+
 test("validation errors keep what the user typed", async ({ page }, testInfo) => {
   const email = `e2e-val-${testInfo.project.name}-${Date.now()}@test.dev`;
   await page.goto("/cadastro");
@@ -83,6 +112,7 @@ test("validation errors keep what the user typed", async ({ page }, testInfo) =>
   await page.goto("/lancamentos/novo");
   await page.getByLabel("Descrição").fill("Sem valor");
   await page.getByLabel("Valor (R$)").fill("abc");
+  await expect(page.getByLabel("Valor (R$)")).toHaveValue(""); // the mask keeps digits only
   await page.getByRole("button", { name: "Salvar" }).click();
   await expect(page.getByText("Informe um valor maior que zero")).toBeVisible();
   await expect(page.getByLabel("Descrição")).toHaveValue("Sem valor");

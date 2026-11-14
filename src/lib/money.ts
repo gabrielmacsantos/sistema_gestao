@@ -73,6 +73,27 @@ export function parseMoneyToCents(input: string): number | null {
   return negative ? -cents : cents;
 }
 
+/** Most digits the masked amount field takes: R$ 999.999.999,99. */
+export const MONEY_MASK_MAX_DIGITS = 11;
+
+/** Cents as the masked field shows them, with integers only: 123456 -> "1.234,56". */
+export function formatCentsInput(cents: number): string {
+  const rest = cents % 100;
+  const whole = String((cents - rest) / 100).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${whole},${String(rest).padStart(2, "0")}`;
+}
+
+/**
+ * Money mask for typing: the digits typed are the cents, as on a card machine.
+ * "5230" -> 5230 cents, shown "52,30"; anything but digits is dropped. Empty when no digits.
+ */
+export function maskMoneyInput(typed: string): { cents: number | null; text: string } {
+  const digits = typed.replace(/\D/g, "").replace(/^0+/, "").slice(0, MONEY_MASK_MAX_DIGITS);
+  if (!digits) return { cents: null, text: "" };
+  const cents = Number(digits);
+  return { cents, text: formatCentsInput(cents) };
+}
+
 /** Value for a money <input>, e.g. 123456 -> "1234,56". */
 export function centsToInput(cents: number): string {
   const abs = Math.abs(cents);
