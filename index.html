@@ -1167,8 +1167,8 @@ const GOOGLE_SCOPES = `openid email profile ${DRIVE_SCOPE}`;
 const DRIVE_FILE = "minhas-financas.json";
 const photoDriveName = (id) => `photo-${id}.jpg`;
 const isGoogle = () => sync?.provider === "google";
-/** The app's WebView is blocked by Google for sign-in; the app gets it with a native plugin later. */
-const googleReady = () => !!GOOGLE_CLIENT_ID && !NATIVE;
+/** Google blocks sign-in inside WebViews, so the app signs in through the native SocialLogin plugin. */
+const googleReady = () => !!GOOGLE_CLIENT_ID && (!NATIVE || !!NativePlugins.SocialLogin);
 const accountLabel = () => (isGoogle() ? sync.email : `@${sync.login}`);
 const providerName = () => (isGoogle() ? "Google Drive" : "GitHub");
 const accountInitials = () => (isGoogle()
@@ -1213,9 +1213,46 @@ function googleError(type) {
   if (type === "popup_failed_to_open") return new Error("O navegador bloqueou a janela do Google. Permita pop-ups para este site e tente de novo.");
   return new Error("Não foi possível entrar com o Google. Tente de novo em instantes.");
 }
+// In the app, Android hands out access tokens without an expiry; keep each for a while and let a
+// 401 or this deadline fetch a new one silently (the person already granted the app folder).
+const NATIVE_TOKEN_MS = 30 * 60 * 1000;
+let socialLoginReady = null;
+/** Initializes the plugin once. Resolves to nothing: a Capacitor plugin proxy must never be a promise's
+ * value (resolving looks up its .then, which the proxy turns into a call to a native "then"). */
+async function nativeSocialLogin() {
+  socialLoginReady ||= NativePlugins.SocialLogin.initialize({ google: { webClientId: GOOGLE_CLIENT_ID } }).catch((e) => { socialLoginReady = null; throw e; });
+  await socialLoginReady;
+}
+function nativeGoogleError(e) {
+  const text = String((e && e.message) || e);
+  if (/cancel/i.test(text)) return googleError("popup_closed");
+  if (/no credential|no account/i.test(text)) return new Error("Adicione uma conta Google ao celular (Configurações › Contas) e tente de novo.");
+  return googleError("other");
+}
+async function nativeGoogleToken() {
+  await nativeSocialLogin();
+  let res;
+  try { res = await NativePlugins.SocialLogin.login({ provider: "google", options: { scopes: [DRIVE_SCOPE] } }); }
+  catch (e) { throw nativeGoogleError(e); }
+  const access = res && res.result && res.result.accessToken && res.result.accessToken.token;
+  if (!access) throw new Error("Para guardar seus dados, permita o acesso ao Google Drive (só à pasta do app).");
+  return { access, expiresAt: Date.now() + NATIVE_TOKEN_MS };
+}
+/** In the app only: a fresh access token without asking anything; throws "tap to reconnect" if Google needs the person. */
+async function renewNativeGoogle() {
+  try {
+    await nativeSocialLogin();
+    await NativePlugins.SocialLogin.refresh({ provider: "google", options: { scopes: [DRIVE_SCOPE] } });
+    const { accessToken } = await NativePlugins.SocialLogin.getAuthorizationCode({ provider: "google" });
+    if (!accessToken) throw new Error("no access token");
+    storeSync({ ...sync, token: { access: accessToken, expiresAt: Date.now() + NATIVE_TOKEN_MS } });
+    return accessToken;
+  } catch { throw reauthError(); }
+}
 /** Asks Google for an access token. Call it right after a tap: it may open Google's window. */
 async function requestGoogleToken(prompt, hint) {
   if (!navigator.onLine) throw new Error("Sem conexão com o Google. Verifique a internet.");
+  if (NATIVE) return nativeGoogleToken();
   const google = await loadGis();
   return new Promise((resolve, reject) => {
     google.accounts.oauth2.initTokenClient({
@@ -1238,16 +1275,24 @@ async function googleProfile(access) {
   return { sub: me.sub, email: me.email.toLowerCase(), name: me.name || me.email };
 }
 const reauthError = () => Object.assign(new Error("Toque para continuar sincronizando com o Google."), { reauth: true });
-/** The saved access token, or a "tap to reconnect" error once it ran out. */
-function googleAccess() {
+/** The saved access token. Once it ran out: in the app a new one comes silently; on the site, "tap to reconnect". */
+async function googleAccess() {
   if (isGoogle() && sync.token && sync.token.expiresAt > Date.now()) return sync.token.access;
+  if (isGoogle() && NATIVE && NativePlugins.SocialLogin) return renewNativeGoogle();
   throw reauthError();
 }
-async function drive(path, { method = "GET", body, headers = {}, upload = false, as = "json" } = {}, access = googleAccess()) {
+async function drive(path, { method = "GET", body, headers = {}, upload = false, as = "json" } = {}, access, retried = false) {
+  const token = access || (await googleAccess());
   let res;
-  try { res = await fetch(`https://www.googleapis.com/${upload ? "upload/" : ""}drive/v3${path}`, { method, body, headers: { Authorization: `Bearer ${access}`, ...headers } }); }
+  try { res = await fetch(`https://www.googleapis.com/${upload ? "upload/" : ""}drive/v3${path}`, { method, body, headers: { Authorization: `Bearer ${token}`, ...headers } }); }
   catch { throw new Error("Sem conexão com o Google. Verifique a internet."); }
-  if (res.status === 401) { if (isGoogle()) storeSync({ ...sync, token: null }); throw reauthError(); }
+  if (res.status === 401) {
+    if (!isGoogle()) throw reauthError();
+    storeSync({ ...sync, token: null });
+    // In the app the saved token may have been revoked or cached too long: renew once and retry.
+    if (NATIVE && NativePlugins.SocialLogin && !retried) return drive(path, { method, body, headers, upload, as }, undefined, true);
+    throw reauthError();
+  }
   if (res.status === 404) throw Object.assign(new Error("Não encontrado no Google Drive."), { notFound: true });
   if (!res.ok) throw new Error(`O Google Drive respondeu com erro (${res.status}). Tente de novo em instantes.`);
   if (method === "DELETE") return null;
@@ -1259,7 +1304,7 @@ async function findDriveFiles(query, access) {
 }
 const findDriveFile = async (name, access) => (await findDriveFiles(`name = '${name}'`, access))[0]?.id || null;
 /** Creates the file in the app folder, or replaces the content of an existing one. Returns its id. */
-async function writeDriveFile(id, name, content, mime, access = googleAccess()) {
+async function writeDriveFile(id, name, content, mime, access) {
   if (id) {
     await drive(`/files/${id}?uploadType=media&fields=id`, { method: "PATCH", upload: true, body: content, headers: { "Content-Type": mime } }, access);
     return id;
@@ -1380,7 +1425,7 @@ async function getPhoto(id) {
   try { const rec = await photoDb.get(id); if (rec) return rec.blob; } catch {}
   if (isGoogle()) {
     try {
-      const fileId = await findDriveFile(photoDriveName(id), googleAccess());
+      const fileId = await findDriveFile(photoDriveName(id));
       if (!fileId) return null;
       const blob = await drive(`/files/${fileId}?alt=media`, { as: "blob" });
       photoDb.put({ id, blob, uploaded: true }).catch(() => {});
@@ -1431,7 +1476,7 @@ function syncPhotos() {
 async function deletePhoto(id) {
   try { await photoDb.del(id); } catch {}
   if (isGoogle()) {
-    findDriveFile(photoDriveName(id), googleAccess()).then((fileId) => fileId && drive(`/files/${fileId}`, { method: "DELETE" })).catch(() => {});
+    findDriveFile(photoDriveName(id)).then((fileId) => fileId && drive(`/files/${fileId}`, { method: "DELETE" })).catch(() => {});
     return;
   }
   if (sync && state.photosGistId) gh(`/gists/${state.photosGistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files: { [photoFile(id)]: null } }) }).catch(() => {});
@@ -2406,7 +2451,7 @@ const NativePlugins = {};
 if (NATIVE) {
   const cap = window.Capacitor, register = cap.registerPlugin || window.capacitorExports?.registerPlugin;
   const shipped = new Set((cap.PluginHeaders || []).map((h) => h.name));
-  for (const name of ["App", "BankNotifications", "Browser", "Filesystem", "Share", "SpeechRecognition"]) {
+  for (const name of ["App", "BankNotifications", "Browser", "Filesystem", "Share", "SocialLogin", "SpeechRecognition"]) {
     if (register && shipped.has(name)) NativePlugins[name] = register(name);
   }
 }
@@ -2820,8 +2865,9 @@ function logoutForm() {
       const btn = document.getElementById("logout-btn"); btn.disabled = true; btn.textContent = "Salvando…";
       // Wait for an upload already in flight, then send the latest state.
       while (pushing) await new Promise((r) => setTimeout(r, 200));
-      // Google's access may have run out: this tap can renew it before the last upload.
-      if (isGoogle() && !(sync.token && sync.token.expiresAt > Date.now())) {
+      // Google's access may have run out: on the site this tap renews it before the last upload
+      // (in the app the upload renews it by itself).
+      if (isGoogle() && !NATIVE && !(sync.token && sync.token.expiresAt > Date.now())) {
         try { await reconnectGoogle(); } catch (e) { btn.disabled = false; btn.textContent = "Salvar e sair"; return toast(e.message); }
       }
       const photosOk = await syncPhotos();
@@ -2831,6 +2877,7 @@ function logoutForm() {
         return toast(`Não foi possível salvar no ${providerName()}. Verifique a internet e tente de novo.`);
       }
       const where = providerName(); // read before the account is cleared
+      if (isGoogle() && NATIVE && NativePlugins.SocialLogin) nativeSocialLogin().then(() => NativePlugins.SocialLogin.logout({ provider: "google" })).catch(() => {});
       storeSync(null); syncStatus = "off"; setLocalMode(false);
       replaceState(emptyState()); persist(); await clearPhotos();
       closeModal(); location.hash = href("entrar"); render();
@@ -3281,7 +3328,7 @@ document.addEventListener("click", (e) => {
     },
     "demo": () => { if (state.transactions.length || state.recurrings.length) confirmDialog("Carregar dados de exemplo?", "Isso <b>substitui</b> os dados atuais deste navegador. Exporte um backup antes se quiser guardá-los.", "Substituir", loadDemo); else loadDemo(); },
     "wipe": () => confirmDialog("Apagar todos os dados?", `Todos os lançamentos, fixos, orçamentos e metas serão removidos.${sync ? ` Os dados salvos na sua conta do ${providerName()} também serão apagados.` : ""} Essa ação não pode ser desfeita.`, "Apagar tudo", () => {
-      if (isGoogle()) findDriveFiles("name contains 'photo-'", googleAccess()).then((files) => Promise.all(files.map((f) => drive(`/files/${f.id}`, { method: "DELETE" })))).catch(() => {});
+      if (isGoogle()) findDriveFiles("name contains 'photo-'").then((files) => Promise.all(files.map((f) => drive(`/files/${f.id}`, { method: "DELETE" })))).catch(() => {});
       else if (sync && state.photosGistId) gh(`/gists/${state.photosGistId}`, sync.token, { method: "DELETE" }).catch(() => {});
       clearPhotos(); replaceState(emptyState()); save(); location.hash = href("painel"); toast("Dados apagados."); }),
   };

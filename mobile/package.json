@@ -9,13 +9,14 @@
     "sync:android": "npm run copy-web && cap sync android"
   },
   "dependencies": {
+    "@capacitor-community/speech-recognition": "7.0.1",
     "@capacitor/android": "8.5.3",
     "@capacitor/app": "8.1.2",
     "@capacitor/browser": "8.0.5",
     "@capacitor/core": "8.5.3",
     "@capacitor/filesystem": "8.1.5",
     "@capacitor/share": "8.0.3",
-    "@capacitor-community/speech-recognition": "7.0.1"
+    "@capgo/capacitor-social-login": "8.7.11"
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.3"
