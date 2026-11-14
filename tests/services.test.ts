@@ -3,7 +3,7 @@ import { prisma } from "@/server/db";
 import { DomainError } from "@/server/errors";
 import { listCategories } from "@/server/repositories/categories";
 import { findTransaction, listTransactions } from "@/server/repositories/transactions";
-import { signUp, verifyCredentials } from "@/server/services/auth";
+import { GoogleSignInError, signInWithGoogle, signUp, verifyCredentials } from "@/server/services/auth";
 import { setBudget } from "@/server/services/budgets";
 import { confirmDrafts } from "@/server/services/imports";
 import { ensureOccurrences, saveRecurring } from "@/server/services/recurring";
@@ -41,6 +41,53 @@ describe("auth", () => {
     await expect(signUp({ name: "B", email, password: "outra-senha" })).rejects.toThrow(DomainError);
     await expect(verifyCredentials(email, "errada")).rejects.toThrow(DomainError);
     await expect(verifyCredentials(email, "senha-segura")).resolves.toHaveProperty("id");
+  });
+});
+
+describe("Google sign-in", () => {
+  const google = (overrides = {}) => ({
+    sub: `g-${Date.now()}-${Math.random()}`,
+    email: `google-${Date.now()}-${Math.random()}@gmail.com`,
+    emailVerified: true,
+    name: "Pessoa Google",
+    ...overrides,
+  });
+
+  it("creates the account on the first login and finds it again by the Google sub", async () => {
+    const profile = google();
+    const first = await signInWithGoogle(profile);
+    expect((await listCategories(first.id)).length).toBeGreaterThan(5);
+    expect(await signInWithGoogle({ ...profile, name: "Outro nome" })).toEqual(first);
+    const stored = await prisma.user.findUnique({ where: { id: first.id } });
+    expect(stored).toMatchObject({ googleSub: profile.sub, email: profile.email, passwordHash: null });
+  });
+
+  it("keeps two Google accounts apart", async () => {
+    const ana = await signInWithGoogle(google());
+    const bia = await signInWithGoogle(google());
+    expect(ana.id).not.toBe(bia.id);
+    const tx = await saveTransaction(ana.id, expense());
+    expect(await findTransaction(bia.id, tx!.id)).toBeNull();
+  });
+
+  it("never takes over an existing e-mail account", async () => {
+    const email = `existente-${Date.now()}@gmail.com`;
+    const owner = await signUp({ name: "Dona", email, password: "senha-segura" });
+    const attempt = signInWithGoogle(google({ email }));
+    await expect(attempt).rejects.toThrow(GoogleSignInError);
+    await expect(attempt).rejects.toMatchObject({ reason: "email-taken" });
+    expect(await prisma.user.findUnique({ where: { id: owner.id } })).toMatchObject({ googleSub: null });
+  });
+
+  it("refuses an e-mail Google has not confirmed", async () => {
+    await expect(signInWithGoogle(google({ emailVerified: false }))).rejects.toMatchObject({ reason: "email-unverified" });
+  });
+
+  it("does not let a Google-only account in with any password", async () => {
+    const profile = google();
+    await signInWithGoogle(profile);
+    await expect(verifyCredentials(profile.email, "")).rejects.toThrow(DomainError);
+    await expect(verifyCredentials(profile.email, "qualquer-senha")).rejects.toThrow(DomainError);
   });
 });
 

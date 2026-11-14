@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Optimistic check only (cookie presence). Real authorization happens in the
 // Data Access Layer (src/server/auth.ts) on every page, action and route handler.
 const SESSION_COOKIE = "fin_session";
-const PUBLIC_PATHS = ["/login", "/cadastro"];
+const PUBLIC_PATHS = ["/login", "/cadastro", "/api/auth/google", "/api/auth/google/callback"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

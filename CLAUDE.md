@@ -54,7 +54,7 @@ A versão completa roda localmente com Node.js. Não depende de Docker nem de ba
 | Framework | **Next.js 16** (App Router, Turbopack) + **React 19** + **TypeScript** (`strict`) |
 | UI | **Tailwind CSS 4** + componentes próprios em `src/components/ui` + ícones `lucide-react`. Design system "Sovereign Financial" (`Design-google/`), com tokens em `globals.css` e fontes Plus Jakarta Sans/Inter via `next/font` |
 | Banco | **SQLite** via **Prisma 7** com driver adapter `@prisma/adapter-better-sqlite3` (arquivo `prisma/dev.db`) |
-| Autenticação | Sessão própria em cookie criptografado com **iron-session** + senhas com **bcryptjs** |
+| Autenticação | Sessão própria em cookie criptografado com **iron-session** + senhas com **bcryptjs**, e "Continuar com o Google" (OAuth 2.0 com PKCE no servidor; ID token verificado com **jose**) |
 | Validação | **Zod 4** (`src/lib/validation.ts`), compartilhado entre formulários e servidor |
 | Formulários | Server Actions + `useActionState` (sem biblioteca de formulário) |
 | Gráficos | HTML/CSS puro, renderizado no servidor (sem biblioteca de gráficos) |
@@ -87,6 +87,8 @@ npm run db:studio           # inspeciona o banco
 - `ANTHROPIC_API_KEY`: opcional; sem ela a aba de foto mostra como configurar
 - `ANTHROPIC_MODEL`: modelo de visão para fotos
 - `COOKIE_SECURE=true`: só se o app for servido em HTTPS (por padrão fica desligado para funcionar via HTTP na rede local)
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: opcionais; um "ID do cliente OAuth" do tipo Aplicativo da Web, com o URI de redirecionamento `<APP_URL>/api/auth/google/callback`. Sem eles, a tela de entrada mostra só e-mail e senha. O segredo nunca sai do servidor.
+- `APP_URL`: endereço pelo qual o app é aberto (padrão `http://localhost:3000`). O Google só aceita `localhost` ou `https`, então pelo IP da máquina na rede local o login com Google não funciona (e-mail e senha continuam).
 
 ---
 
@@ -98,6 +100,7 @@ src/
     (auth)/             # login, cadastro e as actions de sessão
     (app)/              # área logada: o layout chama getCurrentUser(); cada rota tem page.tsx + actions.ts
     api/anexos/         # serve fotos de comprovante só para o dono
+    api/auth/google/    # "Continuar com o Google": ida (state, nonce, PKCE) e volta (callback)
   proxy.ts              # (era "middleware" antes do Next 16) redireciona quem não tem cookie; não é autorização
   server/
     auth.ts             # Data Access Layer: getCurrentUser() / requireUserId()
@@ -107,6 +110,7 @@ src/
     integrations/
       nfce/             # qrcode.ts (chave e QR), parsers/ por layout, draft.ts (puro), index.ts (fetch)
       receipt-ai/       # normalize.ts (puro, testável) + extract.ts (chamada à Claude API)
+      google-oauth/     # pkce.ts e id-token.ts (puros, testáveis) + index.ts (troca do código, com o segredo)
       bank-import/      # ofx.ts, csv.ts, decodificação Windows-1252
   lib/                  # puro (cliente e servidor): money, dates, recurrence, validation, constants
   generated/prisma/     # Prisma Client gerado (fora do git)
@@ -121,6 +125,7 @@ tests/                  # testes de integração, fixtures e e2e/
 ### Decisões que atravessam vários arquivos
 
 - **Isolamento multiusuário:** o `userId` vem **sempre** de `requireUserId()`/`getCurrentUser()` (sessão no servidor), nunca do cliente. Repositories filtram por `userId` em toda leitura e escrita (`updateMany`/`deleteMany` com `{ id, userId }`). IDs vindos do cliente que apontam para outra entidade (categoria, anexo) passam por `assertCategory`/`isOwnUpload`. Isso é coberto por `tests/services.test.ts`.
+- **Login com Google:** a ida (`/api/auth/google`) guarda `state`, `nonce` e o verificador PKCE num cookie curto e criptografado (`fin_oauth`, só em `/api/auth/google`); a volta confere o `state`, troca o código no servidor e verifica o ID token (assinatura, `iss`, `aud`, validade, `nonce`). A conta é achada pelo `sub` do Google (`User.googleSub`); a sessão guarda o `User.id` interno, e tudo continua filtrando por ele. Um e-mail que já tem conta com senha **não** é ligado sozinho (o cadastro não confirma e-mails, então alguém poderia ter registrado o endereço de outra pessoa): a tela pede e-mail e senha. Erros voltam como `/login?erro=<código>` (`lib/login-errors.ts`), nunca como texto livre. Contas só-Google têm `passwordHash` nulo e nunca entram por senha.
 - **Dinheiro:** inteiros em centavos (`amountCents`, `...Cents`). `parseMoneyToCents` converte texto ("1.234,56", "1234.56") sem aritmética de ponto flutuante. A formatação acontece só na UI (`formatBRL`).
 - **Datas:** salvas em UTC. Uma data de calendário vira meia-noite de São Paulo (`parseDateInput`). Meses são strings `"YYYY-MM"`, e intervalos e agrupamentos usam `lib/dates.ts` com o fuso de São Paulo.
 - **Gastos fixos:** `Recurring` é um modelo. `ensureOccurrences(userId)` (chamado ao abrir painel, lançamentos e orçamentos) cria as `Transaction`s `PENDING` até o mês atual, com `@@unique([recurringId, period])`. Meses futuros nunca são gravados: aparecem só como projeção em `monthSummary`. Por isso editar um modelo afeta só o que ainda não foi gerado. Excluir uma ocorrência gerada a transforma em `SKIPPED` (lápide, sempre escondida) para ela não ser recriada. Nada é gerado antes do mês em que o modelo foi criado.
@@ -158,8 +163,8 @@ tests/                  # testes de integração, fixtures e e2e/
 4. **Nunca** expor `ANTHROPIC_API_KEY`, `SESSION_SECRET` ou outro segredo ao navegador (nada de `NEXT_PUBLIC_` para segredos, nenhuma chamada à IA a partir do cliente).
 5. **Nunca** versionar `.env`, `prisma/*.db` ou `storage/`, nem colocar chaves e dados reais em código, testes ou fixtures (anonimize CPF, CNPJ e nomes).
 6. **Nunca** apagar ou resetar `prisma/dev.db` (`prisma migrate reset`, deletar o arquivo), nem editar migrations já aplicadas, sem autorização explícita. Os bancos de teste (`test.db`, `e2e.db`) podem ser recriados.
-7. **Nunca** enviar dados do usuário a serviços externos além da Claude API (só fotos de cupom), das páginas públicas da SEFAZ (só a URL do QR Code) e, no `index.html`, do Gist do próprio usuário (só criptografado e só se ele conectar) e do reconhecimento de voz do navegador (só o áudio do lançamento falado, com aviso antes do primeiro uso). Nada de analytics, CDNs de tracking ou bancos em nuvem.
-8. **Nunca** adicionar dependência que obrigue Docker, um serviço pago extra ou infraestrutura externa. O projeto precisa rodar com `npm install && npm run dev`.
+7. **Nunca** enviar dados do usuário a serviços externos além da Claude API (só fotos de cupom), das páginas públicas da SEFAZ (só a URL do QR Code), do login do Google na versão Next.js (só o fluxo OAuth de identidade: `openid email profile`, autorizado pelo usuário em 2026-11-14) e, no `index.html`, do Gist do próprio usuário (só criptografado e só se ele conectar) e do reconhecimento de voz do navegador (só o áudio do lançamento falado, com aviso antes do primeiro uso). Nada de analytics, CDNs de tracking ou bancos em nuvem.
+8. **Nunca** adicionar dependência que obrigue Docker, um serviço pago extra ou infraestrutura externa. O projeto precisa rodar com `npm install && npm run dev` (o login com Google é opcional e usa um projeto gratuito do Google Cloud).
 9. **Nunca** registrar em log o conteúdo de notas, fotos, extratos, senhas ou tokens.
 10. **Nunca** colocar regra de negócio em componentes de UI ou fazer escrita no Prisma fora da camada de repositories.
 11. **Nunca** alterar ocorrências passadas ao editar um gasto fixo, nem duplicar lançamentos já importados.

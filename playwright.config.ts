@@ -15,7 +15,13 @@ export default defineConfig({
   webServer: {
     // Separate database so E2E users never land in the real one.
     command: `npx prisma migrate deploy && npx next dev --port ${PORT}`,
-    env: { DATABASE_URL: "file:./prisma/e2e.db" },
+    // A made-up Google client: enough to show "Continuar com o Google" and test everything up to Google.
+    env: {
+      DATABASE_URL: "file:./prisma/e2e.db",
+      GOOGLE_CLIENT_ID: "e2e-client.apps.googleusercontent.com",
+      GOOGLE_CLIENT_SECRET: "e2e-secret",
+      APP_URL: `http://localhost:${PORT}`,
+    },
     url: `http://localhost:${PORT}/login`,
     reuseExistingServer: false,
     timeout: 180_000,
