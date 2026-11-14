@@ -33,6 +33,21 @@ test("sign up, add an expense, a fixed expense and see them on the dashboard", a
   await page.goto("/dashboard");
   await expect(page.getByText("R$ 99,90 a pagar")).toBeVisible();
   await expect(page.getByText("Alimentação").filter({ visible: true }).first()).toBeVisible();
+
+  // Cash flow: the weekly tab splits the chosen month into calendar weeks, and the choice sticks.
+  await expect(page.getByRole("table", { name: "Entradas e saídas por mês" })).toBeAttached();
+  await page.getByRole("button", { name: "Semanal" }).click();
+  await expect(page.getByRole("button", { name: "Semanal" })).toHaveAttribute("aria-pressed", "true");
+  const weeks = page.getByRole("table", { name: /^Entradas e saídas por semana de / });
+  await expect(weeks).toBeAttached();
+  expect(await weeks.getByRole("row").count()).toBeGreaterThanOrEqual(5); // header + 4 to 6 weeks
+  // Padaria (today) and Internet (this month) both fall in some week of the month.
+  await expect(weeks).toContainText(/R\$\s(12,50|112,40)/);
+  await expect(page.getByRole("button", { name: /^\d+( a \d+)? de .+: entradas/ }).first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Semanal" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Mensal" }).click();
+  await expect(page.getByRole("table", { name: "Entradas e saídas por mês" })).toBeAttached();
 });
 
 test("validation errors keep what the user typed", async ({ page }, testInfo) => {

@@ -193,11 +193,11 @@
   }
 }
 
-/* Chart tokens. Income (green) and expenses (slate) differ in hue and lightness,
-   so the pair stays distinguishable with color-vision deficiency in both themes. */
+/* Chart tokens. Income (green) and expenses (slate blue) pass the dataviz palette checks in both
+   themes: >= 3:1 against the card, chroma >= 0.10 and CVD separation >= 8 (deutan, protan, tritan). */
 :root {
   --chart-income: #059669;
-  --chart-expense: #94a3b8;
+  --chart-expense: #4460a2;
   --chart-net: #00685f;
   --chart-grid: #e2e8f0;
   --chart-axis: #64748b;
@@ -205,8 +205,8 @@
 }
 
 :root[data-theme="dark"] {
-  --chart-income: #34d399;
-  --chart-expense: #64748b;
+  --chart-income: #23ac74;
+  --chart-expense: #5a78bc;
   --chart-net: #6bd8cb;
   --chart-grid: #233149;
   --chart-axis: #94a3b8;

@@ -35,6 +35,35 @@ export function splitExpenses(entries: Entry[], projected: Omit<Entry, "status">
   return split;
 }
 
+export type WeekPoint = { firstDay: number; lastDay: number; income: number; expense: number };
+
+/**
+ * Income and expenses of a month ("YYYY-MM") per calendar week, Monday to Sunday, cut at the
+ * month's edges (so the first and last week may be shorter). `day` is the São Paulo calendar
+ * date, "YYYY-MM-DD"; entries outside the month and tombstones are ignored.
+ */
+export function weeklySeries(
+  entries: { type: string; amountCents: number; status?: string; day: string }[],
+  month: string,
+): WeekPoint[] {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const days = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+  const offset = (new Date(Date.UTC(year, monthNumber - 1, 1)).getUTCDay() + 6) % 7; // Monday = 0
+  const weekOf = (day: number) => Math.floor((day - 1 + offset) / 7);
+
+  const weeks: WeekPoint[] = [];
+  for (let w = 0; w <= weekOf(days); w++) {
+    weeks.push({ firstDay: Math.max(1, w * 7 - offset + 1), lastDay: Math.min(days, w * 7 - offset + 7), income: 0, expense: 0 });
+  }
+  for (const e of entries) {
+    if (e.status === "SKIPPED" || e.day.slice(0, 7) !== month) continue;
+    const week = weeks[weekOf(Number(e.day.slice(8, 10)))];
+    if (e.type === "INCOME") week.income += e.amountCents;
+    else if (e.type === "EXPENSE") week.expense += e.amountCents;
+  }
+  return weeks;
+}
+
 /** part / whole as a 0..1 ratio, 0 when whole is not positive. */
 export function ratio(part: number, whole: number): number {
   return whole > 0 ? part / whole : 0;

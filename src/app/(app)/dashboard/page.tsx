@@ -34,12 +34,12 @@ import {
   monthlySeries,
   monthSummary,
 } from "@/server/services/reports";
-import { percentChange, ratio, splitExpenses } from "@/lib/cashflow";
-import { formatDayMonth, formatMonthLabel, monthRange } from "@/lib/dates";
+import { percentChange, ratio, splitExpenses, weeklySeries } from "@/lib/cashflow";
+import { currentMonth, dateToInput, formatDayMonth, formatMonthLabel, formatMonthShort, monthRange, todayInput } from "@/lib/dates";
 import { formatBRL, formatPercent } from "@/lib/money";
 import { monthParam, type SearchParams } from "@/lib/search-params";
 import { cn } from "@/lib/utils";
-import { CashFlowChart, ChartLegend } from "./cash-flow-chart";
+import { CashFlowPanel, type FlowPoint } from "./cash-flow-chart";
 
 export const metadata: Metadata = { title: "Painel" };
 
@@ -75,6 +75,28 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   const pendingCount = transactions.filter((t) => t.status === "PENDING").length;
   const recent = transactions.slice(0, 6);
   const monthLabel = formatMonthLabel(month);
+  const monthName = monthLabel.split(" ")[0].toLowerCase();
+
+  // Chart columns: the last 6 months, and the chosen month per week (stored + projected entries).
+  const monthlyPoints: FlowPoint[] = series.map((p) => ({
+    key: p.month,
+    label: formatMonthShort(p.month).split("/")[0],
+    longLabel: formatMonthLabel(p.month),
+    income: p.income,
+    expense: p.expense,
+  }));
+  const weeks = weeklySeries(
+    [...transactions, ...projected].map((t) => ({ type: t.type, amountCents: t.amountCents, day: dateToInput(t.date) })),
+    month,
+  );
+  const weeklyPoints: FlowPoint[] = weeks.map((w) => {
+    const days = w.firstDay === w.lastDay ? `${w.firstDay}` : `${w.firstDay}–${w.lastDay}`;
+    const longDays = w.firstDay === w.lastDay ? `${w.firstDay}` : `${w.firstDay} a ${w.lastDay}`;
+    return { key: days, label: days, longLabel: `${longDays} de ${monthName}`, income: w.income, expense: w.expense };
+  });
+  const today = Number(todayInput().slice(8));
+  const currentWeek =
+    month === currentMonth() ? weeks.findIndex((w) => w.firstDay <= today && today <= w.lastDay) : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -247,32 +269,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       {/* 2. Cash flow + distribution */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <Card className="flex flex-col lg:col-span-8">
-          <div className="flex flex-col justify-between gap-3 border-b border-hairline pb-4 sm:flex-row sm:items-start">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h2 className="text-headline-sm text-on-surface">Fluxo de caixa mensal</h2>
-                <Badge tone="success" dot={false}>
-                  <ArrowLeftRight className="size-3" aria-hidden /> Entradas vs. saídas
-                </Badge>
-              </div>
-              <p className="mt-0.5 text-body-sm text-secondary">Receitas contra despesas nos últimos 6 meses.</p>
+          <CashFlowPanel monthly={monthlyPoints} weekly={weeklyPoints} monthName={monthName} currentWeek={currentWeek}>
+            <div className="my-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <FlowStat icon={<ArrowDown className="size-4" />} label="Total entradas" value={`+ ${formatBRL(income)}`} tone="text-success" />
+              <FlowStat icon={<ArrowUp className="size-4" />} label="Total saídas" value={formatBRL(expense)} tone="text-on-surface" />
+              <FlowStat
+                icon={<PiggyBank className="size-4" />}
+                label="Saldo líquido"
+                value={`${income - expense >= 0 ? "+ " : "− "}${formatBRL(Math.abs(income - expense))}`}
+                tone={income - expense >= 0 ? "text-success" : "text-danger"}
+                highlight
+              />
             </div>
-            <ChartLegend />
-          </div>
-
-          <div className="my-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <FlowStat icon={<ArrowDown className="size-4" />} label="Total entradas" value={`+ ${formatBRL(income)}`} tone="text-success" />
-            <FlowStat icon={<ArrowUp className="size-4" />} label="Total saídas" value={formatBRL(expense)} tone="text-on-surface" />
-            <FlowStat
-              icon={<PiggyBank className="size-4" />}
-              label="Saldo líquido"
-              value={`${income - expense >= 0 ? "+ " : "− "}${formatBRL(Math.abs(income - expense))}`}
-              tone={income - expense >= 0 ? "text-success" : "text-danger"}
-              highlight
-            />
-          </div>
-
-          <CashFlowChart data={series} />
+          </CashFlowPanel>
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-4 text-body-md text-secondary">
             <span className="flex items-center gap-1.5">

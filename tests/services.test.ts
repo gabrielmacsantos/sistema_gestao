@@ -7,9 +7,9 @@ import { signUp, verifyCredentials } from "@/server/services/auth";
 import { setBudget } from "@/server/services/budgets";
 import { confirmDrafts } from "@/server/services/imports";
 import { ensureOccurrences, saveRecurring } from "@/server/services/recurring";
-import { monthSummary } from "@/server/services/reports";
+import { monthlySeries, monthSummary } from "@/server/services/reports";
 import { removeTransaction, saveTransaction } from "@/server/services/transactions";
-import { currentMonth, monthRange, parseDateInput } from "@/lib/dates";
+import { addMonths, currentMonth, monthRange, parseDateInput } from "@/lib/dates";
 import { formatBRL } from "@/lib/money";
 
 let alice: string;
@@ -141,6 +141,39 @@ describe("month summary", () => {
     expect(summary.forecast).toBe(367950);
     expect(Object.values(summary).every(Number.isSafeInteger)).toBe(true);
     expect(formatBRL(summary.forecast)).toBe("R$ 3.679,50");
+  });
+});
+
+describe("monthly series", () => {
+  it("counts projected recurring entries in future months, like the month summary", async () => {
+    const userId = (await signUp({ name: "Serie", email: `serie-${Date.now()}@test.dev`, password: "senha-segura" })).id;
+    await saveRecurring(userId, {
+      type: "INCOME",
+      description: "Salário",
+      amountCents: 720000,
+      dayOfMonth: 5,
+      startMonth: currentMonth(),
+      endMonth: null,
+      categoryId: null,
+      paymentMethod: null,
+    });
+    await saveRecurring(bob, {
+      type: "EXPENSE",
+      description: "Aluguel",
+      amountCents: 240000,
+      dayOfMonth: 5,
+      startMonth: currentMonth(),
+      endMonth: null,
+      categoryId: null,
+      paymentMethod: null,
+    });
+
+    const future = addMonths(currentMonth(), 2);
+    const series = await monthlySeries(userId, future);
+    const summary = await monthSummary(userId, future);
+    expect(series.at(-1)).toEqual({ month: future, income: 720000, expense: 0 });
+    expect(series.at(-1)?.income).toBe(summary.incomePaid + summary.incomePending);
+    expect(series.at(-2)?.income).toBe(720000);
   });
 });
 

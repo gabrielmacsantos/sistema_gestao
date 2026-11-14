@@ -70,18 +70,19 @@ export const expensesByCategory = cache(async (userId: string, month: string): P
 
 export type MonthlyPoint = { month: string; income: number; expense: number };
 
+/** Same totals as monthSummary: future months also count their projected recurring entries. */
 export async function monthlySeries(userId: string, lastMonth: string, count = 6): Promise<MonthlyPoint[]> {
   const firstMonth = addMonths(lastMonth, -(count - 1));
+  const months = Array.from({ length: count }, (_, i) => addMonths(firstMonth, i));
   const { start } = monthRange(firstMonth);
   const { end } = monthRange(lastMonth);
-  const rows = await tx.listForPeriod(userId, start, end);
+  const [rows, projected] = await Promise.all([
+    tx.listForPeriod(userId, start, end),
+    Promise.all(months.map((month) => projectedOccurrences(userId, month))),
+  ]);
 
-  const points = new Map<string, MonthlyPoint>();
-  for (let i = 0; i < count; i++) {
-    const month = addMonths(firstMonth, i);
-    points.set(month, { month, income: 0, expense: 0 });
-  }
-  for (const row of rows) {
+  const points = new Map<string, MonthlyPoint>(months.map((month) => [month, { month, income: 0, expense: 0 }]));
+  for (const row of [...rows, ...projected.flat()]) {
     const point = points.get(monthOf(row.date));
     if (!point) continue;
     if (row.type === "INCOME") point.income += row.amountCents;
