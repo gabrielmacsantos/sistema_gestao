@@ -1157,9 +1157,11 @@ async function signUp(token, password) {
 // folder (appDataFolder: only this app sees it, and it does not show among their files). No server and
 // no secret: Google Identity Services gives the browser a short-lived access token (about 1 hour).
 // When it runs out the data stays saved here and a tap renews it. The client id is public.
-const GOOGLE_CLIENT_ID = "";
+// Google Cloud project circular-maxim-446723-m9 ("Minhas Financas"), OAuth client "Site Minhas Finanças"
+// (Web, authorized origin https://gabrielmacsantos.github.io). Published to production.
+const GOOGLE_CLIENT_ID = "404240084515-tgo3q5ptt6tvfujkkkl6psu2gh208u37.apps.googleusercontent.com";
 // Absolute: the app ships index.html only, so the policy always comes from the site.
-const PRIVACY_URL = "https://gabrielmacsantos.github.io/sistema_gestao/privacidade.html"; // from the Google Cloud project ("ID do cliente OAuth", Web)
+const PRIVACY_URL = "https://gabrielmacsantos.github.io/sistema_gestao/privacidade.html";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const GOOGLE_SCOPES = `openid email profile ${DRIVE_SCOPE}`;
 const DRIVE_FILE = "minhas-financas.json";
