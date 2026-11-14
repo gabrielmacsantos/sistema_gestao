@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Política de privacidade · Minhas Finanças</title>
+<meta name="description" content="Como o Minhas Finanças trata os seus dados: eles ficam no seu aparelho e na sua própria conta (Google Drive ou GitHub), sem anúncios, sem rastreamento e sem servidor nosso." />
+<!-- Self-contained on purpose: no external fonts or scripts, so reading the policy sends nothing anywhere. -->
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f8f9ff; --card: #ffffff; --on: #0b1c30; --secondary: #565e74; --primary: #00685f;
+    --hairline: rgb(226 232 240 / .9); --c-low: #eff4ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0b1220; --card: #111a2b; --on: #e6edf8; --secondary: #a9b6cc; --primary: #6bd8cb;
+      --hairline: rgb(52 69 94 / .7); --c-low: #152035;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0b1220; --card: #111a2b; --on: #e6edf8; --secondary: #a9b6cc; --primary: #6bd8cb;
+    --hairline: rgb(52 69 94 / .7); --c-low: #152035;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--on); font: 400 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .logo { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--primary); color: var(--card); flex: none; }
+  h1 { margin: 0; font-size: 26px; line-height: 1.25; letter-spacing: -.01em; }
+  .sub { margin: 2px 0 0; color: var(--secondary); font-size: 14px; }
+  .summary { background: var(--card); border: 1px solid var(--hairline); border-radius: 16px; padding: 20px; margin-bottom: 28px; }
+  .summary ul { margin: 8px 0 0; padding-left: 20px; }
+  .summary li + li { margin-top: 6px; }
+  h2 { font-size: 19px; line-height: 1.3; margin: 32px 0 8px; }
+  h3 { font-size: 16px; margin: 20px 0 4px; }
+  p, li { color: var(--on); }
+  .muted { color: var(--secondary); }
+  a { color: var(--primary); font-weight: 600; text-underline-offset: 2px; overflow-wrap: anywhere; } /* long addresses wrap on phones */
+  ul { padding-left: 22px; }
+  li + li { margin-top: 6px; }
+  .box { background: var(--c-low); border-radius: 12px; padding: 14px 16px; margin: 12px 0; }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--hairline); font-size: 14px; color: var(--secondary); }
+  @media (min-width: 640px) { main { padding: 48px 24px 80px; } h1 { font-size: 30px; } }
+</style>
+<script>
+  // Same theme as the app, when it was chosen there (same site, same storage).
+  try { const t = localStorage.getItem("mf-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+</script>
+</head>
+<body>
+<main>
+  <header>
+    <span class="logo" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+    </span>
+    <div>
+      <h1>Política de privacidade</h1>
+      <p class="sub">Minhas Finanças · atualizada em 14 de novembro de 2026</p>
+    </div>
+  </header>
+
+  <section class="summary" aria-labelledby="resumo">
+    <h2 id="resumo" style="margin-top:0">Em poucas palavras</h2>
+    <ul>
+      <li>Seus dados financeiros ficam <b>no seu aparelho</b> e, se você criar uma conta, <b>na sua própria conta</b>: na pasta do app no seu Google Drive ou, criptografados com a sua senha, no seu GitHub.</li>
+      <li><b>Não temos servidor nem banco de dados.</b> Nós não recebemos, não vemos e não guardamos os seus dados.</li>
+      <li>Sem anúncios, sem rastreamento, sem análise de uso. Nada é vendido ou compartilhado.</li>
+      <li>Você pode apagar tudo quando quiser, e explicamos como abaixo.</li>
+    </ul>
+  </section>
+
+  <h2>Quem somos</h2>
+  <p>O Minhas Finanças é um app pessoal e gratuito de controle de gastos, com o código aberto no <a href="https://github.com/gabrielmacsantos/sistema_gestao">GitHub</a>. Ele funciona como site (<a href="https://gabrielmacsantos.github.io/sistema_gestao/">gabrielmacsantos.github.io/sistema_gestao</a>) e como app para Android.</p>
+
+  <h2>Que dados o app usa</h2>
+  <ul>
+    <li><b>O que você cadastra:</b> lançamentos (descrição, valor, data, categoria, situação, observações), gastos fixos, categorias, orçamentos, metas e viagens.</li>
+    <li><b>Fotos de comprovantes</b> que você mesmo anexa a um lançamento.</li>
+    <li><b>Dados da conta</b>, se você criar uma: com o Google, seu nome, e-mail e o identificador da sua conta Google; com o GitHub, o seu nome de usuário e um código de acesso que você mesmo gera.</li>
+    <li><b>Preferências do aparelho</b>, como tema claro ou escuro e ocultar valores.</li>
+  </ul>
+  <p class="muted">O app não pede CPF, endereço, contatos, localização nem dados de cartão, e não acessa a sua conta bancária.</p>
+
+  <h2>Onde os dados ficam</h2>
+  <h3>No seu aparelho</h3>
+  <p>Tudo o que você cadastra fica guardado no próprio navegador ou app, para funcionar mesmo sem internet. Ao tocar em <b>Sair</b>, o app envia o que falta para a sua conta e apaga os dados deste aparelho.</p>
+  <h3>Conta Google (Google Drive)</h3>
+  <p>Ao entrar com o Google, os dados e as fotos ficam numa <b>pasta oculta do app no seu Google Drive</b>. Só o Minhas Finanças consegue ler essa pasta, e ela não aparece entre os seus arquivos. O app <b>não vê nenhum outro arquivo</b> do seu Drive. Esses dados ficam protegidos pela sua conta Google.</p>
+  <h3>Conta GitHub</h3>
+  <p>Ao entrar com o GitHub, os dados são <b>criptografados no seu aparelho</b> (AES-256-GCM, com uma chave derivada da sua senha) antes de irem para um Gist na sua conta do GitHub. Sem a sua senha, ninguém consegue abrir esse arquivo: nem nós, nem o GitHub. A senha não é guardada em lugar nenhum.</p>
+  <h3>Sem conta</h3>
+  <p>Se você usar sem conta, os dados ficam só neste aparelho. Se o aparelho for perdido ou os dados do navegador forem apagados, eles se perdem. Use o backup em arquivo para guardar uma cópia.</p>
+
+  <h2>Permissões da conta Google</h2>
+  <p>O login com o Google pede só o necessário:</p>
+  <ul>
+    <li><b>Nome, e-mail e identificador da conta</b> (<code>openid</code>, <code>email</code>, <code>profile</code>), para reconhecer você em qualquer aparelho.</li>
+    <li><b>Ver e gerenciar a pasta do próprio app no seu Drive</b> (<code>drive.appdata</code>), para guardar os seus dados lá.</li>
+  </ul>
+  <div class="box">O uso e a transferência, para qualquer outro app, de informações recebidas das APIs do Google seguirão a <a href="https://developers.google.com/terms/api-services-user-data-policy">Política de Dados do Usuário dos Serviços de API do Google</a>, incluindo os requisitos de Uso Limitado. Esses dados servem só para o funcionamento do app para você: não são usados para publicidade, não são vendidos e não são lidos por pessoas.</div>
+
+  <h2>Serviços de outras empresas</h2>
+  <ul>
+    <li><b>GitHub Pages</b> hospeda o site. Como qualquer site, o GitHub recebe dados técnicos de acesso, como o endereço IP. Veja a <a href="https://docs.github.com/pt/site-policy/privacy-policies/github-general-privacy-statement">política do GitHub</a>.</li>
+    <li><b>Google Fonts</b> fornece as fontes do site; o navegador as baixa dos servidores do Google.</li>
+    <li><b>Google</b> (login e Drive) e <b>GitHub</b> (Gist), só se você escolher entrar com eles. Veja a <a href="https://policies.google.com/privacy?hl=pt-BR">política do Google</a>.</li>
+    <li><b>Lançamento por voz</b> (opcional): quem transforma a sua fala em texto é o serviço de voz do aparelho ou do navegador (Google no Android e no Chrome, Apple no Safari), que recebe o áudio do lançamento falado. O app avisa antes do primeiro uso, e você pode simplesmente não usar.</li>
+  </ul>
+
+  <h2>Notificações do banco (app Android)</h2>
+  <p>O app pode ler as notificações de valores dos apps de banco e de carteira digital que você escolher, para sugerir lançamentos. Isso <b>só liga se você habilitar</b> e pode ser desligado a qualquer momento em Configurações. A leitura acontece <b>no seu aparelho</b>: o texto das notificações não é enviado a nenhum servidor. Por padrão, tudo passa por uma tela de revisão antes de virar lançamento.</p>
+
+  <h2>O que não fazemos</h2>
+  <ul>
+    <li>Não vendemos, alugamos ou compartilhamos os seus dados.</li>
+    <li>Não mostramos anúncios e não usamos ferramentas de análise ou rastreamento.</li>
+    <li>Não temos acesso aos seus dados: eles não passam por nenhum servidor nosso.</li>
+  </ul>
+
+  <h2>Como apagar os seus dados</h2>
+  <ul>
+    <li><b>No app:</b> em <b>Backup › Apagar todos os dados</b>, os dados são apagados do aparelho e da sua conta (Google Drive ou GitHub).</li>
+    <li><b>Deste aparelho:</b> toque em <b>Sair</b>.</li>
+    <li><b>No Google:</b> remova o acesso do app em <a href="https://myaccount.google.com/connections">myaccount.google.com/connections</a>. Para apagar a pasta oculta, abra o Google Drive no computador, vá em <b>Configurações › Gerenciar apps</b>, encontre o Minhas Finanças e use <b>Opções › Excluir dados ocultos do app</b>.</li>
+    <li><b>No GitHub:</b> apague os Gists “Minhas Finanças” da sua conta e o código de acesso em <a href="https://github.com/settings/tokens">github.com/settings/tokens</a>.</li>
+  </ul>
+
+  <h2>Segurança</h2>
+  <p>O site só funciona por conexão segura (HTTPS). Na conta GitHub, os dados são criptografados antes de sair do aparelho; na conta Google, ficam numa área do Drive que só o app acessa, protegida pela sua conta. Use uma senha forte e, em computador compartilhado, toque em <b>Sair</b> ao terminar.</p>
+
+  <h2>Crianças</h2>
+  <p>O app não é destinado a menores de 13 anos e não coleta, de propósito, dados de crianças.</p>
+
+  <h2>Mudanças nesta política</h2>
+  <p>Se esta política mudar, a data no topo é atualizada. Mudanças importantes também são avisadas no app.</p>
+
+  <h2>Contato</h2>
+  <p>Dúvidas ou pedidos sobre privacidade: abra um chamado em <a href="https://github.com/gabrielmacsantos/sistema_gestao/issues">github.com/gabrielmacsantos/sistema_gestao/issues</a>.</p>
+
+  <footer><a href="./">Voltar para o Minhas Finanças</a></footer>
+</main>
+</body>
+</html>
