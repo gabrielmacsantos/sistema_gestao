@@ -110,6 +110,17 @@ test("amount mask and switching between expense and income", async ({ page }, te
   await expect(amount5230).toBeHidden();
   await page.getByRole("button", { name: "Ocultar valores" }).click();
   await expect(amount5230).toBeVisible();
+
+  // Phone header: the menu sheet lists every page and keeps the month being viewed.
+  if (testInfo.project.name === "mobile") {
+    await page.goto("/lancamentos?mes=2026-01");
+    await page.getByRole("button", { name: "Mais opções" }).click();
+    const menu = page.getByRole("dialog", { name: "Menu" });
+    await expect(menu.getByRole("button", { name: /^Sair/ })).toBeVisible();
+    await menu.getByRole("link", { name: "Orçamentos" }).click();
+    await expect(page).toHaveURL(/\/orcamentos\?mes=2026-01$/);
+    await expect(menu).toBeHidden();
+  }
 });
 
 test("validation errors keep what the user typed", async ({ page }, testInfo) => {

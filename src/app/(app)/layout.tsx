@@ -1,14 +1,11 @@
 import Link from "next/link";
-import { LogOut, Plus, Tags, Wallet } from "lucide-react";
+import { LogOut, Plus, Wallet } from "lucide-react";
 import { buttonClass } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ValuesToggle } from "@/components/values-toggle";
 import { getCurrentUser } from "@/server/auth";
 import { logoutAction } from "../(auth)/actions";
-import { BottomNav, PageTrail, SideNav } from "./nav";
-
-const iconButton =
-  "flex size-9 items-center justify-center rounded-lg border border-hairline text-secondary transition-colors hover:bg-surface-container-low hover:text-on-surface";
+import { BottomNav, MenuSheet, PageTrail, SideNav } from "./nav";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -77,32 +74,24 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Tier 2: frosted sticky header. */}
         <header className="sticky top-0 z-20 border-b border-hairline bg-surface-container-lowest/82 backdrop-blur-md">
           <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-margin md:px-margin-tablet lg:px-margin-desktop">
-            <div className="flex min-w-0 items-center gap-3 lg:hidden">
-              {/* Small phones: the greeting already names the person, so the initials make room for the
-                  app name, which may take two lines instead of being cut. */}
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-label-md font-bold text-primary ring-1 ring-primary/20 max-[399px]:hidden md:hidden">
-                {initials(user.name)}
+            {/* Same header as index.html: logo and name until lg (two lines below 360px rather than cut),
+                then the "Visão geral › Página" trail. */}
+            <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5 lg:hidden">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary-container text-on-primary-container shadow-sm">
+                <Wallet className="size-5" aria-hidden />
               </span>
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate text-body-sm text-secondary">Olá, {user.name.split(" ")[0]}</span>
-                <span className="truncate font-display text-headline-sm font-bold tracking-tight text-on-surface max-[399px]:text-[16px] max-[399px]:leading-[18px] max-[399px]:whitespace-normal">
-                  Minhas Finanças
-                </span>
+              <span className="truncate font-display text-[18px] leading-6 font-bold tracking-[-0.01em] text-primary max-[359px]:text-[16px] max-[359px]:leading-[18px] max-[359px]:whitespace-normal">
+                Minhas Finanças
               </span>
-            </div>
+            </Link>
             <PageTrail />
 
             <div className="flex shrink-0 items-center gap-2">
               <ValuesToggle />
               <ThemeToggle />
-              <Link href="/categorias" className={`${iconButton} md:hidden`} aria-label="Categorias" title="Categorias">
-                <Tags className="size-[18px]" aria-hidden />
-              </Link>
-              <form action={logoutAction} className="md:hidden">
-                <button type="submit" className={iconButton} aria-label="Sair" title="Sair">
-                  <LogOut className="size-[18px]" aria-hidden />
-                </button>
-              </form>
+              <span className="md:hidden">
+                <MenuSheet account={user.name} />
+              </span>
               <span className="hidden md:block">
                 <Link href="/lancamentos/novo" className={buttonClass("primary", "sm")}>
                   <Plus className="size-[18px]" aria-hidden /> Novo gasto

@@ -40,7 +40,7 @@ export function ValuesToggle() {
       aria-pressed={hidden}
       aria-label="Ocultar valores"
       title={hidden ? "Mostrar valores" : "Ocultar valores"}
-      className="flex size-9 items-center justify-center rounded-lg border border-hairline text-secondary transition-colors hover:bg-surface-container-low hover:text-on-surface"
+      className="relative flex size-9 items-center justify-center rounded-lg border border-hairline text-secondary transition-colors after:absolute after:-inset-[5px] hover:bg-surface-container-low hover:text-on-surface"
     >
       {hidden ? <EyeOff className="size-[18px]" aria-hidden /> : <Eye className="size-[18px]" aria-hidden />}
     </button>

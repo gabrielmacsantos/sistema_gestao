@@ -235,3 +235,11 @@
   left: 0;
   visibility: visible;
 }
+
+/* The phone menu sheet slides up like the dialogs of index.html. */
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
