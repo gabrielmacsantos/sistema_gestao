@@ -559,6 +559,93 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .drop:hover, .drop.over { border-color: var(--primary); }
 .welcome { background: linear-gradient(135deg, var(--c-low), var(--card)); border-color: color-mix(in srgb, var(--primary) 25%, transparent); }
 .kbd-note { font-size: 12px; color: var(--secondary); text-align: center; margin-top: 32px; }
+
+/* Quick assistant: a floating balloon that morphs into a menu, the chat or the calculator (transitions.dev "Dropdown menu morph"). */
+:root {
+  --morph-dur: 350ms; --morph-ease: cubic-bezier(.22,1,.36,1); --morph-distance: 8px; --morph-blur: 4px; --morph-scale: .96; --morph-stagger: 40ms;
+  --stage-bg: var(--card); --stage-fg: var(--on); --stage-border: var(--hairline); --stage-hover: var(--c-low);
+  --stage-accent: var(--primary); --stage-accent-fg: var(--on-primary); --stage-shadow: 0 12px 32px -8px rgb(15 23 42 / .28);
+}
+.asst {
+  --w-menu: 248px; --h-menu: 136px;
+  --w-chat: min(380px, calc(100vw - 32px)); --h-chat: min(560px, calc(100dvh - 176px - env(safe-area-inset-bottom)));
+  --w-calc: min(312px, calc(100vw - 32px)); --h-calc: min(500px, calc(100dvh - 176px - env(safe-area-inset-bottom)));
+  position: fixed; z-index: 45; right: max(16px, env(safe-area-inset-right)); bottom: calc(92px + env(safe-area-inset-bottom));
+  width: 56px; height: 56px; border-radius: 28px; overflow: hidden; transform-origin: bottom right;
+  background: var(--stage-accent); color: var(--stage-accent-fg); border: 1px solid transparent; box-shadow: var(--stage-shadow);
+  transition: width var(--morph-dur) var(--morph-ease), height var(--morph-dur) var(--morph-ease), border-radius var(--morph-dur) var(--morph-ease), background-color var(--morph-dur) var(--morph-ease), color var(--morph-dur) var(--morph-ease), border-color var(--morph-dur) var(--morph-ease);
+}
+@media (min-width: 768px) { .asst { bottom: calc(24px + env(safe-area-inset-bottom)); --h-chat: min(560px, calc(100dvh - 112px)); --h-calc: min(500px, calc(100dvh - 112px)); } }
+.asst:not([data-state="closed"]) { background: var(--stage-bg); color: var(--stage-fg); border-color: var(--stage-border); }
+.asst[data-state="menu"] { width: var(--w-menu); height: var(--h-menu); border-radius: 20px; }
+.asst[data-state="chat"] { width: var(--w-chat); height: var(--h-chat); border-radius: 24px; }
+.asst[data-state="calc"] { width: var(--w-calc); height: var(--h-calc); border-radius: 24px; }
+.asst-trigger { position: absolute; inset: 0; display: grid; place-items: center; width: 100%; height: 100%; padding: 0; border: 0; background: none; color: inherit; cursor: pointer;
+  transition: opacity calc(var(--morph-dur) * .5) ease, transform var(--morph-dur) var(--morph-ease), filter calc(var(--morph-dur) * .5) ease; }
+.asst-trigger svg.i { width: 26px; height: 26px; }
+.asst-trigger:focus-visible, .asst button:focus-visible, .asst input:focus-visible, .asst select:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.asst:not([data-state="closed"]) .asst-trigger { opacity: 0; transform: scale(.6); filter: blur(var(--morph-blur)); pointer-events: none; }
+.asst-layer { position: absolute; right: 0; bottom: 0; display: flex; flex-direction: column; opacity: 0; visibility: hidden; pointer-events: none;
+  transform: translateY(var(--morph-distance)) scale(var(--morph-scale)); transform-origin: bottom right; filter: blur(var(--morph-blur));
+  transition: opacity calc(var(--morph-dur) * .5) ease, transform calc(var(--morph-dur) * .5) ease, filter calc(var(--morph-dur) * .5) ease, visibility 0s linear calc(var(--morph-dur) * .5); }
+.asst-layer[data-layer="menu"] { width: var(--w-menu); height: var(--h-menu); }
+.asst-layer[data-layer="chat"] { width: var(--w-chat); height: var(--h-chat); }
+.asst-layer[data-layer="calc"] { width: var(--w-calc); height: var(--h-calc); }
+.asst[data-state="menu"] .asst-layer[data-layer="menu"], .asst[data-state="chat"] .asst-layer[data-layer="chat"], .asst[data-state="calc"] .asst-layer[data-layer="calc"] {
+  opacity: 1; visibility: visible; pointer-events: auto; transform: none; filter: none;
+  transition: opacity var(--morph-dur) var(--morph-ease) calc(var(--morph-dur) * .3), transform var(--morph-dur) var(--morph-ease) calc(var(--morph-dur) * .3), filter var(--morph-dur) var(--morph-ease) calc(var(--morph-dur) * .3), visibility 0s;
+}
+.asst-menu { padding: 8px; gap: 4px; justify-content: center; }
+.asst-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 12px; border: 0; border-radius: 14px; background: none; color: inherit; font: 600 14px/1.2 var(--font); text-align: left; cursor: pointer;
+  opacity: 0; transform: translateY(var(--morph-distance)); transition: background-color 150ms ease, opacity var(--morph-dur) var(--morph-ease), transform var(--morph-dur) var(--morph-ease); }
+.asst[data-state="menu"] .asst-item { opacity: 1; transform: none; transition-delay: 0s, calc(120ms + var(--i) * var(--morph-stagger)), calc(120ms + var(--i) * var(--morph-stagger)); }
+.asst-item:hover { background: var(--stage-hover); }
+.asst-item-ic { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--primary-fixed); color: var(--on-primary-fixed); }
+.asst-item small { display: block; margin-top: 2px; font: 400 12px/1.2 var(--font); color: var(--on-var); }
+.asst-head { display: flex; align-items: center; gap: 4px; flex: none; padding: 6px 6px 6px 8px; border-bottom: 1px solid var(--stage-border); }
+.asst-head h3 { flex: 1; margin: 0; font: 600 15px/1.2 var(--display); }
+.asst-head .icon-btn { width: 44px; height: 44px; }
+.asst-log { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 14px; overscroll-behavior: contain; }
+.asst-msg { display: flex; flex-direction: column; gap: 8px; max-width: 92%; }
+.asst-msg p { margin: 0; padding: 9px 13px; border-radius: 18px; font-size: 14px; line-height: 20px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.asst-msg.bot { align-self: flex-start; } .asst-msg.bot p { background: var(--c-low); border-bottom-left-radius: 6px; }
+.asst-msg.user { align-self: flex-end; } .asst-msg.user p { background: var(--primary); color: var(--on-primary); border-bottom-right-radius: 6px; }
+.asst-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.asst-chip { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--outline-var); background: var(--card); color: var(--on); font: 600 13px/1 var(--font); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease; }
+.asst-chip:hover { background: var(--c-low); border-color: var(--primary); }
+.asst-chip.muted { color: var(--on-var); font-weight: 500; }
+.asst-card { align-self: stretch; display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 16px; border: 1px solid var(--stage-border); background: var(--card); box-shadow: var(--shadow); }
+.asst-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.asst-tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; } .asst-tag.exp { color: var(--danger); } .asst-tag.inc { color: var(--success); }
+.asst-amt { font: 700 17px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+.asst-card-desc { margin: 0; font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.asst-card-meta { margin: 0; font-size: 12px; color: var(--on-var); }
+.asst-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.asst-card-actions .btn { height: 44px; }
+.asst-edit { display: flex; flex-direction: column; gap: 8px; }
+.asst-edit label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--on-var); }
+.asst-edit .money span { color: var(--on-var); }
+.asst-composer { display: flex; align-items: center; gap: 6px; flex: none; padding: 8px; border-top: 1px solid var(--stage-border); }
+.asst-composer .input { flex: 1; min-width: 0; border-radius: 22px; }
+.asst-composer .icon-btn { width: 44px; height: 44px; flex: none; }
+.asst-composer .asst-mic.is-live { background: var(--danger-c); color: var(--danger); }
+.asst-composer .asst-send { background: var(--primary); color: var(--on-primary); border-radius: 50%; }
+.asst-calc { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 12px; }
+.asst-screen { flex: none; min-height: 72px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end; padding: 8px 12px; border-radius: 14px; background: var(--c-low); }
+.asst-expr { min-height: 18px; font-size: 13px; color: var(--on-var); font-variant-numeric: tabular-nums; }
+.asst-val { max-width: 100%; font: 700 30px/1.2 var(--display); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; text-align: right; }
+.asst-val.is-error { font-size: 15px; color: var(--danger); }
+.asst-keys { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: minmax(40px, 1fr); gap: 6px; }
+.asst-key { border: 0; border-radius: 12px; background: var(--c-low); color: var(--on); font: 600 18px/1 var(--font); cursor: pointer; transition: background-color 120ms ease, transform 120ms ease; }
+.asst-key:hover { background: var(--c-high); } .asst-key:active { transform: scale(.96); }
+.asst-key.op { background: var(--secondary-c); color: var(--on-secondary-c); }
+.asst-key.eq { background: var(--primary); color: var(--on-primary); }
+.asst-key.wide { grid-column: span 2; }
+.asst-use { flex: none; height: 48px; width: 100%; }
+@media (prefers-reduced-motion: reduce) {
+  .asst, .asst-trigger, .asst-layer, .asst-item, .asst-key, .asst-chip { transition: none !important; }
+  .asst-item { opacity: 1; transform: none; } .asst-key:active { transform: none; }
+}
 </style>
 </head>
 <body>
@@ -627,6 +714,9 @@ const ICONS = {
   arrowLeft: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
   cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
   github: '<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>',
+  chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  calculator: '<rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/>',
+  send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
   sparkles: '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
 };
 const icon = (name, extra = "") => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true" ${extra}>${ICONS[name] || ""}</svg>`;
@@ -875,6 +965,131 @@ const parseSpokenTransaction = (() => {
   return parseSpokenTransaction;
 })();
 // </voice-parser>
+
+// <calculator> Self-contained: tests/calculator.test.ts loads this block from the file.
+/**
+ * Offline pocket calculator in integer cents: no floating point anywhere.
+ * Typed numbers are read as cents ("12,5" -> 1250); × and ÷ go through BigInt and round half away from zero.
+ */
+const CALC_MAX_CENTS = 99999999999; // R$ 999.999.999,99, same ceiling as the money fields
+const CALC_OPS = ["+", "-", "×", "÷"];
+const calcNew = () => ({ acc: null, op: null, entry: "", fresh: false, error: "" });
+const calcEntryCents = (entry) => { const [i = "", d = ""] = entry.split(","); return Number(i || "0") * 100 + Number((d + "00").slice(0, 2)); };
+/** a * b / c rounded half away from zero. */
+function calcMulDiv(a, b, c) {
+  const n = BigInt(a) * BigInt(b), d = BigInt(c), neg = (n < 0n) !== (d < 0n);
+  const an = n < 0n ? -n : n, ad = d < 0n ? -d : d, q = (2n * an + ad) / (2n * ad);
+  return Number(neg ? -q : q);
+}
+/** acc (cents) op b (a number in cents, so 150 is "1,50"); null when it cannot be computed. */
+function calcApply(acc, op, b) {
+  let r = null;
+  if (op === "+") r = acc + b;
+  else if (op === "-") r = acc - b;
+  else if (op === "×") r = calcMulDiv(acc, b, 100);
+  else if (op === "÷" && b !== 0) r = calcMulDiv(acc, 100, b);
+  return r !== null && Math.abs(r) <= CALC_MAX_CENTS ? r : null;
+}
+function calcFormat(cents) {
+  const abs = Math.abs(cents), rest = abs % 100, whole = String((abs - rest) / 100).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${cents < 0 ? "-" : ""}${whole},${String(rest).padStart(2, "0")}`;
+}
+const calcFail = (op, b) => (op === "÷" && b === 0 ? "Não dá para dividir por zero" : "Valor grande demais");
+function calcPress(state, key) {
+  if (key === "C") return calcNew();
+  let s = state.error ? calcNew() : state;
+  if (/^\d$/.test(key) || key === ",") {
+    const base = s.fresh ? calcNew() : s;
+    let entry = base.entry;
+    if (key === ",") { if (entry.includes(",")) return s; entry = (entry || "0") + ","; }
+    else {
+      const [i, d] = entry.split(",");
+      if (d !== undefined ? d.length >= 2 : i.length >= 9) return s;
+      entry = entry === "0" ? key : entry + key;
+    }
+    return { ...base, entry, fresh: false };
+  }
+  if (key === "⌫") return s.entry && !s.fresh ? { ...s, entry: s.entry.slice(0, -1) } : s;
+  if (CALC_OPS.includes(key)) {
+    if (s.entry === "") return s.acc === null ? s : { ...s, op: key, fresh: false };
+    const v = calcEntryCents(s.entry);
+    if (s.acc === null || s.op === null) return { ...s, acc: v, op: key, entry: "", fresh: false };
+    const r = calcApply(s.acc, s.op, v);
+    return r === null ? { ...calcNew(), error: calcFail(s.op, v) } : { acc: r, op: key, entry: "", fresh: false, error: "" };
+  }
+  if (key === "=") {
+    if (s.entry === "") return s;
+    const v = calcEntryCents(s.entry);
+    if (s.op === null || s.acc === null) return { ...calcNew(), acc: v, fresh: true };
+    const r = calcApply(s.acc, s.op, v);
+    return r === null ? { ...calcNew(), error: calcFail(s.op, v) } : { acc: r, op: null, entry: "", fresh: true, error: "" };
+  }
+  if (key === "%") {
+    if (s.entry === "") return s;
+    const v = calcEntryCents(s.entry);
+    // 100 + 10% adds 10 of the 100; 200 × 10% multiplies by 0,10; a lone 50% is 0,50.
+    const c = (s.op === "+" || s.op === "-") && s.acc !== null ? calcMulDiv(s.acc, v, 10000) : calcMulDiv(v, 1, 100);
+    if (Math.abs(c) > CALC_MAX_CENTS) return { ...calcNew(), error: "Valor grande demais" };
+    return { ...s, entry: `${(c - (c % 100)) / 100},${String(c % 100).padStart(2, "0")}`, fresh: false };
+  }
+  return s;
+}
+/** What the big line shows. */
+function calcDisplay(s) {
+  if (s.error) return s.error;
+  if (s.entry !== "") { const [i, d] = s.entry.split(","); return i.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + (d !== undefined ? "," + d : ""); }
+  return calcFormat(s.acc ?? 0);
+}
+/** The small line above: "1.000,00 ×". */
+const calcExpression = (s) => (!s.error && s.op !== null && s.acc !== null ? `${calcFormat(s.acc)} ${s.op === "-" ? "−" : s.op}` : "");
+/** The number the calculator stands at (cents), or null when empty or in error. */
+function calcValue(s) {
+  if (s.error) return null;
+  if (s.entry !== "") return s.op !== null && s.acc !== null ? calcApply(s.acc, s.op, calcEntryCents(s.entry)) : calcEntryCents(s.entry);
+  return s.acc;
+}
+// </calculator>
+
+// <assistant-flow> Self-contained: tests/assistant-flow.test.ts loads this block from the file.
+/**
+ * The chat's guided flow. A draft is what parseSpokenTransaction returned; the chat asks only for what is
+ * still missing (the amount, then the category) and then saves. Money stays in integer cents.
+ */
+const ASSISTANT_MAX_CENTS = 99999999999;
+const assistantValidCents = (c) => Number.isInteger(c) && c > 0 && c <= ASSISTANT_MAX_CENTS;
+function assistantDraft(parsed) {
+  return { ...parsed, amountCents: assistantValidCents(parsed.amountCents) ? parsed.amountCents : null };
+}
+/** "amount", then "category", or null when it can be saved. A category of "" means "no category", chosen on purpose. */
+function assistantMissing(draft) {
+  if (!assistantValidCents(draft.amountCents)) return "amount";
+  if (draft.categoryId === null || draft.categoryId === undefined) return "category";
+  return null;
+}
+/** Folds the answer to the last question into the draft; an answer it cannot read leaves it unchanged. */
+function assistantReply(draft, awaiting, text, { categories, today, parse, parseMoney }) {
+  const next = { ...draft };
+  if (awaiting === "amount") {
+    const cents = parse(text, categories, today).amountCents ?? parseMoney(text);
+    if (assistantValidCents(cents)) next.amountCents = cents;
+  } else if (awaiting === "category") {
+    const id = parse.guessCategory(text, categories, draft.type);
+    if (id) next.categoryId = id;
+  }
+  return next;
+}
+/** The fields of the transaction to save (amount already in cents). */
+function assistantTransaction(draft, today, categoryName) {
+  return {
+    type: draft.type === "INCOME" ? "INCOME" : "EXPENSE",
+    description: (draft.description || categoryName || (draft.type === "INCOME" ? "Receita" : "Despesa")).slice(0, 120),
+    amountCents: draft.amountCents,
+    date: draft.date || today,
+    categoryId: draft.categoryId || null,
+    status: draft.status === "PENDING" ? "PENDING" : "PAID",
+  };
+}
+// </assistant-flow>
 
 // <notification-parser> Self-contained: tests/notification-parser.test.ts loads this block from the file.
 /**
@@ -2452,12 +2667,14 @@ function renderPage() {
   if (AUTH_PAGES.includes(r.path) && sync) { history.replaceState(null, "", href("painel")); r = route(); }
   if (!AUTH_PAGES.includes(r.path) && !sync && !isLocalMode()) { history.replaceState(null, "", href("entrar")); r = route(); }
   if (AUTH_PAGES.includes(r.path)) {
+    unmountAssistant();
     document.getElementById("app").innerHTML = viewAuth();
     document.title = "Entrar · Minhas Finanças";
     return;
   }
   document.getElementById("app").innerHTML = shell(r, VIEWS[r.path](r));
   paintReels();
+  mountAssistant();
   if (hasIncoming()) flushIncoming();
   document.title = `${ROUTES.find((x) => x.path === r.path).label} · Minhas Finanças`;
 }
@@ -2876,6 +3093,7 @@ function voiceButton() {
 }
 
 function startVoice() {
+  stopAsstVoice();
   let rec;
   try { rec = new SpeechRec(); } catch { return toast("Não foi possível usar o microfone neste navegador."); }
   rec.lang = "pt-BR"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
@@ -2920,6 +3138,292 @@ function finishVoice(session) {
   fill("categoryId", p.categoryId);
   fill("status", p.status);
 }
+
+// ---------- Quick assistant (floating balloon: chat + calculator) ----------
+// One balloon on every screen of the app. It morphs into a menu, then into the chat or the calculator
+// (transitions.dev "Dropdown menu morph"). It lives outside #app so a render never resets a conversation.
+// The chat saves as soon as the sentence is complete (the user can edit or delete in the card);
+// the voice is the same speech service as the transaction form, with the same notice before the first use.
+const asst = { view: "closed", msgs: [], draft: null, awaiting: null, calc: calcNew(), voice: null, greeted: false };
+const asstEl = () => document.getElementById("asst");
+const asstBot = (text, chips = null) => ({ from: "bot", text, chips });
+const CALC_KEYS = [
+  ["C", "op", "Limpar"], ["⌫", "op", "Apagar"], ["%", "op", "Porcentagem"], ["÷", "op", "Dividir"],
+  ["7"], ["8"], ["9"], ["×", "op", "Multiplicar"],
+  ["4"], ["5"], ["6"], ["-", "op", "Menos"],
+  ["1"], ["2"], ["3"], ["+", "op", "Mais"],
+  ["0", "wide"], [","], ["=", "eq", "Igual"],
+];
+function assistantHtml() {
+  const keys = CALC_KEYS.map(([k, cls = "", label]) => `<button type="button" class="asst-key ${cls}" data-asst="key" data-key="${k}"${label ? ` aria-label="${label}"` : k === "," ? ' aria-label="Vírgula"' : ""}>${k === "-" ? "−" : k}</button>`).join("");
+  const head = (title) => `<header class="asst-head"><button type="button" class="icon-btn" data-asst="back" aria-label="Voltar ao menu">${icon("left")}</button><h3>${title}</h3><button type="button" class="icon-btn" data-asst="close" aria-label="Fechar">${icon("x")}</button></header>`;
+  return `<div class="asst" id="asst" data-state="closed">
+    <button type="button" class="asst-trigger" data-asst="toggle" aria-label="Atalhos rápidos: chat de lançamentos e calculadora" aria-haspopup="dialog" aria-expanded="false">${icon("sparkles")}</button>
+    <div class="asst-layer asst-menu" data-layer="menu" role="dialog" aria-label="Atalhos rápidos" inert>
+      <button type="button" class="asst-item" style="--i:0" data-asst="open" data-view="chat"><span class="asst-item-ic">${icon("chat")}</span><span>Chat de lançamentos<small>Fale ou escreva</small></span></button>
+      <button type="button" class="asst-item" style="--i:1" data-asst="open" data-view="calc"><span class="asst-item-ic">${icon("calculator")}</span><span>Calculadora<small>Funciona sem internet</small></span></button>
+    </div>
+    <section class="asst-layer" data-layer="chat" role="dialog" aria-label="Chat de lançamentos" inert>
+      ${head("Chat de lançamentos")}
+      <div class="asst-log" role="log" aria-live="polite"></div>
+      <form class="asst-composer" data-asst-form autocomplete="off">
+        <input class="input" name="text" placeholder="Ex.: gastei 45,90 no almoço" aria-label="Escreva o lançamento" maxlength="200" enterkeyhint="send">
+        ${SpeechRec ? `<button type="button" class="icon-btn asst-mic" data-asst="mic" aria-pressed="false" aria-label="Falar o lançamento">${icon("mic")}</button>` : ""}
+        <button type="submit" class="icon-btn asst-send" aria-label="Enviar">${icon("send")}</button>
+      </form>
+    </section>
+    <section class="asst-layer" data-layer="calc" role="dialog" aria-label="Calculadora" inert>
+      ${head("Calculadora")}
+      <div class="asst-calc">
+        <div class="asst-screen"><span class="asst-expr" aria-hidden="true"></span><output class="asst-val" aria-live="polite">0,00</output></div>
+        <div class="asst-keys">${keys}</div>
+        <button type="button" class="btn btn-primary asst-use" data-asst="use" disabled>${icon("check")} Usar valor no lançamento</button>
+      </div>
+    </section>
+  </div>`;
+}
+
+function mountAssistant() {
+  if (asstEl()) return;
+  document.body.insertAdjacentHTML("beforeend", assistantHtml());
+  const root = asstEl();
+  root.addEventListener("click", onAsstClick);
+  root.addEventListener("submit", onAsstSubmit);
+}
+function unmountAssistant() { stopAsstVoice(); asstEl()?.remove(); asst.view = "closed"; }
+
+// view: closed | menu | chat | calc. The layers swap by CSS (data-state); inert keeps the hidden ones out of reach.
+function asstSet(view, { focus = true } = {}) {
+  const root = asstEl(); if (!root) return;
+  if (asst.view === "chat" && view !== "chat") stopAsstVoice();
+  asst.view = view; root.dataset.state = view;
+  root.querySelectorAll(".asst-layer").forEach((l) => { l.inert = l.dataset.layer !== view; });
+  const trigger = root.querySelector(".asst-trigger");
+  trigger.setAttribute("aria-expanded", String(view !== "closed"));
+  trigger.inert = view !== "closed";
+  if (view === "chat") {
+    if (!asst.greeted) { asst.greeted = true; asst.msgs.push(asstBot("Oi! Diga ou escreva o lançamento, como “Gastei 45,90 no almoço hoje”. Se faltar algo, eu pergunto.")); }
+    paintChat();
+  }
+  if (view === "calc") paintCalc();
+  if (!focus) return;
+  setTimeout(() => {
+    const layer = root.querySelector(`[data-layer="${view}"]`);
+    const target = view === "closed" ? trigger : view === "chat" && matchMedia("(min-width: 768px)").matches ? layer.querySelector('input[name="text"]') : layer.querySelector("button");
+    target?.focus({ preventScroll: true });
+  }, 0);
+}
+
+// ----- Chat -----
+function paintChat() {
+  const log = asstEl()?.querySelector(".asst-log"); if (!log) return;
+  log.innerHTML = asst.msgs.map((m, i) => m.from === "card" ? asstCardHtml(m, i)
+    : `<div class="asst-msg ${m.from}"><p>${esc(m.text)}</p>${m.chips?.length ? `<div class="asst-chips">${m.chips.map((c, j) => `<button type="button" class="asst-chip ${c.muted ? "muted" : ""}" data-asst="chip" data-m="${i}" data-c="${j}">${esc(c.label)}</button>`).join("")}</div>` : ""}</div>`).join("");
+  log.scrollTop = log.scrollHeight;
+}
+function paintComposer() {
+  const mic = asstEl()?.querySelector(".asst-mic"); if (!mic) return;
+  const live = !!asst.voice;
+  mic.classList.toggle("is-live", live);
+  mic.setAttribute("aria-pressed", String(live));
+  mic.setAttribute("aria-label", live ? "Parar de falar" : "Falar o lançamento");
+}
+function asstCardHtml(m, i) {
+  const tx = state.transactions.find((t) => t.id === m.id);
+  if (!tx) return `<div class="asst-msg bot"><p>Esse lançamento foi excluído.</p></div>`;
+  const income = tx.type === "INCOME";
+  if (m.editing) {
+    return `<form class="asst-card asst-edit" data-m="${i}" novalidate>
+      <label>Descrição<input class="input" name="description" value="${esc(tx.description)}" maxlength="120"></label>
+      <label>Valor<div class="money"><span>R$</span><input class="input" name="amount" inputmode="numeric" autocomplete="off" placeholder="0,00" data-money-mask="" value="${formatCentsInput(tx.amountCents)}"></div></label>
+      <label>Categoria<select class="input" name="categoryId">${catOptions(tx.type, tx.categoryId)}</select></label>
+      <label>Data<input class="input" name="date" type="date" value="${esc(tx.date)}"></label>
+      <label>Situação<select class="input" name="status"><option value="PAID" ${tx.status !== "PENDING" ? "selected" : ""}>${income ? "Recebido" : "Pago"}</option><option value="PENDING" ${tx.status === "PENDING" ? "selected" : ""}>Pendente</option></select></label>
+      <div class="asst-card-actions"><button type="button" class="btn btn-secondary btn-sm" data-asst="edit-cancel" data-m="${i}">Cancelar</button><button type="submit" class="btn btn-primary btn-sm">${icon("check")} Salvar</button></div></form>`;
+  }
+  const cat = catById(tx.categoryId);
+  const actions = m.confirmDel
+    ? `<button type="button" class="btn btn-danger btn-sm" data-asst="del-yes" data-m="${i}">${icon("trash")} Confirmar exclusão</button><button type="button" class="btn btn-secondary btn-sm" data-asst="del-no" data-m="${i}">Manter</button>`
+    : `<button type="button" class="btn btn-secondary btn-sm" data-asst="edit" data-m="${i}">Editar</button><button type="button" class="btn btn-secondary btn-sm" data-asst="del" data-m="${i}">Excluir</button>`;
+  return `<div class="asst-card">
+    <div class="asst-card-top"><span class="asst-tag ${income ? "inc" : "exp"}">${income ? "Receita" : "Despesa"}</span><b class="asst-amt">${income ? "+" : "−"}${fmt(tx.amountCents)}</b></div>
+    <p class="asst-card-desc">${esc(tx.description)}</p>
+    <p class="asst-card-meta">${esc(cat?.name || "Sem categoria")} · ${formatDate(tx.date)} · ${tx.status === "PENDING" ? "Pendente" : income ? "Recebido" : "Pago"}</p>
+    <div class="asst-card-actions">${actions}</div></div>`;
+}
+
+function asstCancel(text = "Tudo bem, cancelei. Quando quiser, é só falar de novo.") {
+  asst.draft = null; asst.awaiting = null;
+  asst.msgs.push(asstBot(text)); paintChat();
+}
+function asstSubmit(raw) {
+  const text = String(raw).trim().slice(0, 200); if (!text) return;
+  const last = asst.msgs[asst.msgs.length - 1]; if (last?.chips) last.chips = null;
+  asst.msgs.push({ from: "user", text });
+  if (/^cancel/i.test(text.normalize("NFD").replace(/[̀-ͯ]/g, ""))) return asstCancel();
+  const ctx = { categories: state.categories, today: todayISO(), parse: parseSpokenTransaction, parseMoney: parseMoneyToCents };
+  if (asst.awaiting && asst.draft) {
+    const next = assistantReply(asst.draft, asst.awaiting, text, ctx);
+    const understood = asst.awaiting === "amount" ? next.amountCents !== asst.draft.amountCents : next.categoryId !== asst.draft.categoryId;
+    const fresh = assistantDraft(parseSpokenTransaction(text, state.categories, ctx.today));
+    if (understood) asst.draft = next;
+    else if (asst.awaiting === "category" && fresh.amountCents) asst.draft = fresh; // a whole new sentence instead of a category
+    else if (asst.awaiting === "amount") { asst.msgs.push(asstBot("Não entendi o valor. Diga ou escreva, por exemplo, 45,90.", [{ label: "Cancelar", kind: "cancel", muted: true }])); return paintChat(); }
+    else { asst.msgs.push(asstBot("Não achei essa categoria. Escolha uma das opções:")); return asstAsk(); }
+  } else {
+    asst.draft = assistantDraft(parseSpokenTransaction(text, state.categories, ctx.today));
+  }
+  asst.awaiting = null;
+  asstAdvance();
+}
+// Asks for what is missing, or saves when nothing is.
+function asstAdvance() {
+  const d = asst.draft;
+  if (assistantMissing(d) === "category" && !state.categories.some((c) => c.type === d.type)) d.categoryId = "";
+  if (assistantMissing(d)) return asstAsk();
+  const t = assistantTransaction(d, todayISO(), catById(d.categoryId)?.name);
+  const tx = { id: uid(), source: "MANUAL", recurringId: null, period: null, notes: "", createdAt: Date.now(), ...t };
+  state.transactions.push(tx); save(); render();
+  asst.draft = null; asst.awaiting = null;
+  asst.msgs.push(asstBot(t.type === "INCOME" ? "Receita lançada." : "Gasto lançado. Toque em Editar para ajustar."), { from: "card", id: tx.id, editing: false, confirmDel: false });
+  paintChat();
+}
+function asstAsk() {
+  const d = asst.draft, cancel = { label: "Cancelar", kind: "cancel", muted: true };
+  if (assistantMissing(d) === "amount") {
+    asst.awaiting = "amount";
+    asst.msgs.push(asstBot(`Qual foi o valor${d.description ? ` de “${d.description}”` : ""}?`, [cancel]));
+  } else {
+    asst.awaiting = "category";
+    const cats = state.categories.filter((c) => c.type === d.type).sort((a, b) => a.name.localeCompare(b.name));
+    const income = d.type === "INCOME";
+    asst.msgs.push(asstBot(`Qual a categoria ${income ? "desta receita" : "deste gasto"}${d.description ? ` (${d.description} · ${fmt(d.amountCents)})` : ""}?`, [
+      ...cats.map((c) => ({ label: c.name, kind: "cat", value: c.id })),
+      { label: income ? "É uma despesa" : "É uma receita", kind: "type", muted: true },
+      { label: "Sem categoria", kind: "cat", value: "", muted: true }, cancel,
+    ]));
+  }
+  paintChat();
+}
+function asstChip(m, c) {
+  const msg = asst.msgs[m], chip = msg?.chips?.[c]; if (!chip) return;
+  msg.chips = null;
+  if (chip.kind === "voice-ok") { try { localStorage.setItem(VOICE_OK_KEY, "1"); } catch {} paintChat(); return startAsstVoice(); }
+  if (chip.kind === "voice-no") return paintChat();
+  if (chip.kind === "cancel") return asstCancel();
+  if (!asst.draft) return paintChat();
+  asst.msgs.push({ from: "user", text: chip.label });
+  if (chip.kind === "type") { asst.draft.type = asst.draft.type === "INCOME" ? "EXPENSE" : "INCOME"; asst.draft.categoryId = null; }
+  else asst.draft.categoryId = chip.value;
+  asst.awaiting = null;
+  asstAdvance();
+}
+function asstSaveEdit(form) {
+  const msg = asst.msgs[Number(form.dataset.m)], tx = state.transactions.find((t) => t.id === msg?.id); if (!tx) return;
+  const f = new FormData(form), description = String(f.get("description")).trim(), cents = parseMoneyToCents(f.get("amount")), date = String(f.get("date")), categoryId = String(f.get("categoryId") || "");
+  if (!description) return toast("Informe uma descrição.");
+  if (cents === null || cents <= 0 || cents > ASSISTANT_MAX_CENTS) return toast("Informe um valor maior que zero.");
+  if (!isDate(date)) return toast("Data inválida.");
+  Object.assign(tx, { description: description.slice(0, 120), amountCents: cents, date, categoryId: catById(categoryId)?.type === tx.type ? categoryId : null, status: f.get("status") === "PENDING" ? "PENDING" : "PAID" });
+  save(); render(); msg.editing = false; paintChat();
+}
+
+// ----- Voice (same service and notice as the transaction form) -----
+function asstVoiceButton() {
+  if (asst.voice) { try { asst.voice.rec.stop(); } catch {} return; }
+  let ok = false; try { ok = localStorage.getItem(VOICE_OK_KEY) === "1"; } catch {}
+  if (ok) return startAsstVoice();
+  asst.msgs.push(asstBot("Antes de falar: quem transforma sua fala em texto é o serviço de voz do navegador (Google no Chrome e no Android, Apple no Safari), que recebe o áudio. Depois, o lançamento é salvo na hora e você pode editar ou excluir no cartão.", [{ label: "Entendi, falar", kind: "voice-ok" }, { label: "Agora não", kind: "voice-no", muted: true }]));
+  paintChat();
+}
+function startAsstVoice() {
+  stopVoice();
+  let rec;
+  try { rec = new SpeechRec(); } catch { return toast("Não foi possível usar o microfone neste navegador."); }
+  rec.lang = "pt-BR"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+  const session = { rec, text: "", error: "" };
+  const field = () => asstEl()?.querySelector('input[name="text"]');
+  rec.onresult = (e) => {
+    if (asst.voice !== session) return;
+    session.text = Array.from(e.results, (r) => r[0].transcript).join(" ").replace(/\s+/g, " ").trim();
+    const el = field(); if (el) el.value = session.text;
+  };
+  rec.onerror = (e) => { session.error = e.error; };
+  rec.onend = () => {
+    if (asst.voice !== session) return;
+    asst.voice = null; paintComposer();
+    const el = field(); if (el) el.value = "";
+    if (session.text) asstSubmit(session.text);
+    else if (session.error !== "aborted") toast(VOICE_ERRORS[session.error] || "Não ouvi nada. Toque no microfone e fale de novo.");
+  };
+  asst.voice = session; paintComposer();
+  try { rec.start(); } catch { asst.voice = null; paintComposer(); toast("Não foi possível usar o microfone neste navegador."); }
+}
+function stopAsstVoice() {
+  if (!asst.voice) return;
+  const s = asst.voice; asst.voice = null;
+  try { s.rec.abort(); } catch {}
+  paintComposer();
+  const el = asstEl()?.querySelector('input[name="text"]'); if (el) el.value = "";
+}
+
+// ----- Calculator -----
+function paintCalc() {
+  const root = asstEl(); if (!root) return;
+  const s = asst.calc, val = root.querySelector(".asst-val");
+  val.textContent = calcDisplay(s); val.classList.toggle("is-error", !!s.error);
+  root.querySelector(".asst-expr").textContent = calcExpression(s);
+  root.querySelector(".asst-use").disabled = !(calcValue(s) > 0);
+}
+// Hands the result to a new transaction, still in cents.
+function calcUse() {
+  const cents = calcValue(asst.calc); if (!(cents > 0)) return;
+  asstSet("closed", { focus: false });
+  txForm(null);
+  const el = document.querySelector('#modal [name="amount"]'); if (el) el.value = formatCentsInput(cents);
+}
+
+function onAsstClick(e) {
+  const el = e.target.closest("[data-asst]"); if (!el) return;
+  const k = el.dataset.asst, m = Number(el.dataset.m);
+  if (k === "toggle") asstSet("menu");
+  else if (k === "open") asstSet(el.dataset.view);
+  else if (k === "back") asstSet("menu");
+  else if (k === "close") asstSet("closed");
+  else if (k === "chip") asstChip(m, Number(el.dataset.c));
+  else if (k === "mic") asstVoiceButton();
+  else if (k === "key") { asst.calc = calcPress(asst.calc, el.dataset.key); paintCalc(); }
+  else if (k === "use") calcUse();
+  else if (["edit", "edit-cancel", "del", "del-no", "del-yes"].includes(k)) {
+    const msg = asst.msgs[m]; if (!msg) return;
+    if (k === "del-yes") {
+      state.transactions = state.transactions.filter((t) => t.id !== msg.id);
+      save(); render();
+    } else { msg.editing = k === "edit"; msg.confirmDel = k === "del"; }
+    paintChat();
+  }
+}
+function onAsstSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  if (form.matches("[data-asst-form]")) { const text = form.elements.text.value; form.elements.text.value = ""; stopAsstVoice(); asstSubmit(text); }
+  else if (form.matches(".asst-edit")) asstSaveEdit(form);
+}
+// Outside tap and Esc close it (not while a dialog is open); physical keys drive the calculator.
+document.addEventListener("pointerdown", (e) => {
+  if (asst.view !== "closed" && !e.target.closest("#asst") && !document.getElementById("modal")) asstSet("closed", { focus: false });
+});
+document.addEventListener("keydown", (e) => {
+  if (asst.view === "closed" || document.getElementById("modal")) return;
+  if (e.key === "Escape") { asstSet("closed"); return; }
+  if (asst.view !== "calc" || e.ctrlKey || e.metaKey || e.altKey || e.target.closest?.("input, select, textarea")) return;
+  const map = { ".": ",", "*": "×", "/": "÷", Enter: "=", Backspace: "⌫", Delete: "C", c: "C", C: "C" };
+  const key = map[e.key] || e.key;
+  if (!/^(\d|,|\+|-|×|÷|%|=|⌫|C)$/.test(key)) return;
+  if (e.key === "Enter" && e.target.closest?.("button")) return; // the focused key handles its own Enter
+  e.preventDefault();
+  asst.calc = calcPress(asst.calc, key); paintCalc();
+});
 
 function recForm(rec) {
   let type = rec?.type || "EXPENSE";
@@ -3043,6 +3547,7 @@ function menuSheet() {
 // not rendered while the app is in testing. The read state is per account and stays on this device.
 const NOTICES = [
   { id: "2026-11-15-google-login", title: "Entrar com o Google", body: "Agora você entra com a sua conta Google, sem criar token nem senha extra.", date: "2026-11-15" },
+  { id: "2026-11-15-quick-assistant", title: "Atalhos rápidos", body: "O balão no canto da tela abre o chat de lançamentos (fale ou escreva) e uma calculadora que funciona sem internet.", date: "2026-11-15" },
   { id: "2026-11-14-voice-assistant", title: "Assistente de voz", body: "Fale o lançamento no formulário e o app preenche valor, categoria e data para você revisar.", date: "2026-11-14" },
   { id: "2026-11-10-hide-values", title: "Ocultar valores", body: "Toque no olho do cabeçalho para esconder os valores da tela quando houver alguém por perto.", date: "2026-11-10" },
 ];
