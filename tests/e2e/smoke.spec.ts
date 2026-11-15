@@ -28,7 +28,9 @@ test("sign up, add an expense, a fixed expense and see them on the dashboard", a
   await expect(page.getByText("Internet")).toBeVisible();
 
   await page.goto("/dashboard");
-  await expect(page.getByText("R$ 99,90 a pagar")).toBeVisible();
+  // The amount is a spinning counter: its text sits in an sr-only span beside the reels, so match the pill by it.
+  const payable = page.locator("span", { has: page.getByText("R$ 99,90", { exact: true }) }).filter({ hasText: "a pagar" });
+  await expect(payable.first()).toBeVisible();
   await expect(page.getByText("Alimentação").filter({ visible: true }).first()).toBeVisible();
 
   // Cash flow: the weekly tab splits the chosen month into calendar weeks, and the choice sticks.

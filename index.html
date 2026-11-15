@@ -21,6 +21,8 @@
   } catch (e) {
     document.documentElement.dataset.theme = "light";
   }
+  // Same for a collapsed side menu, so the wide one never flashes on load.
+  try { if (localStorage.getItem("mf-rail-collapsed") === "1") document.documentElement.dataset.rail = "collapsed"; } catch (e) {}
 </script>
 <style>
 /* ===== Sovereign Financial design tokens (Design-google/sovereign_financial/DESIGN.md) ===== */
@@ -75,7 +77,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .t-income { color: var(--success); } .t-danger { color: var(--danger); } .t-warning { color: var(--warning); } .t-primary { color: var(--primary); } .t-tertiary { color: var(--tertiary); }
 
 /* ===== Shell ===== */
-.rail { display: none; position: fixed; inset: 0 auto 0 0; width: 80px; z-index: 30; background: var(--card); border-right: 1px solid var(--hairline); padding: 16px; flex-direction: column; justify-content: space-between; overflow-y: auto; }
+.rail { display: none; position: fixed; inset: 0 auto 0 0; width: 80px; z-index: 30; background: var(--card); border-right: 1px solid var(--hairline); padding: 16px; flex-direction: column; justify-content: space-between; overflow-y: auto; transition: width var(--rail-dur) var(--rail-ease); }
 .brand { display: flex; align-items: center; gap: 12px; justify-content: center; }
 .brand-logo { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--primary-c); color: var(--on-primary-c); flex: none; box-shadow: var(--shadow); }
 .brand-text { display: none; min-width: 0; }
@@ -89,7 +91,28 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .rail .btn-new { margin-top: 24px; width: 100%; padding: 0; }
 .rail .btn-new .lbl { display: none; }
 .rail-foot { border-top: 1px solid var(--hairline); padding-top: 16px; margin-top: 24px; display: flex; flex-direction: column; gap: 4px; }
-.page { min-height: 100dvh; display: flex; flex-direction: column; }
+.page { min-height: 100dvh; display: flex; flex-direction: column; transition: padding-left var(--rail-dur) var(--rail-ease); }
+/* Collapsible rail (>= 1024px; below that it is already an 80px icon dock). <html data-rail="collapsed"> is set
+   before paint from localStorage, or by the toggle. The width is --rail-w, shared by the rail, the page padding
+   and the toggle so they move together. Labels fade first and only then drop to zero width, so no text wraps
+   or truncates while the rail narrows. */
+:root { --rail-dur: 300ms; --rail-ease: cubic-bezier(.22,1,.36,1); --rail-w: var(--rail); }
+:root[data-rail="collapsed"] { --rail-w: 80px; }
+.rail-toggle { display: none; position: fixed; top: 18px; left: calc(var(--rail-w) - 22px); z-index: 31; width: 44px; height: 44px; padding: 0; border: 0; background: none; place-items: center; color: var(--secondary); transition: left var(--rail-dur) var(--rail-ease); }
+.rail-toggle .rail-disc { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--hairline); background: var(--card); box-shadow: var(--shadow); transition: color .15s; }
+.rail-toggle:hover { color: var(--on); }
+.rail-toggle:focus-visible { outline: none; }
+.rail-toggle:focus-visible .rail-disc { outline: 2px solid var(--primary); outline-offset: 2px; }
+.rail-toggle svg.i { width: 16px; height: 16px; transition: transform var(--rail-dur) var(--rail-ease); }
+:root[data-rail="collapsed"] .rail-toggle svg.i { transform: rotate(180deg); }
+/* Icon swap (transitions.dev): two icons stacked in one slot; data-state "a" or "b" picks the visible one
+   (the other fades out with blur and scale). Used by the phone menu button: hamburger <-> close. */
+:root { --icon-swap-dur: 250ms; --icon-swap-blur: 2px; --icon-swap-start-scale: .25; --icon-swap-ease: ease-in-out; }
+.t-icon-swap { position: relative; display: inline-grid; }
+.t-icon-swap .t-icon { grid-area: 1 / 1; display: grid; place-items: center; transition: opacity var(--icon-swap-dur) var(--icon-swap-ease), filter var(--icon-swap-dur) var(--icon-swap-ease), transform var(--icon-swap-dur) var(--icon-swap-ease); will-change: opacity, filter, transform; }
+.t-icon-swap[data-state="a"] .t-icon[data-icon="a"], .t-icon-swap[data-state="b"] .t-icon[data-icon="b"] { opacity: 1; filter: blur(0); transform: scale(1); }
+.t-icon-swap[data-state="a"] .t-icon[data-icon="b"], .t-icon-swap[data-state="b"] .t-icon[data-icon="a"] { opacity: 0; filter: blur(var(--icon-swap-blur)); transform: scale(var(--icon-swap-start-scale)); }
+@media (prefers-reduced-motion: reduce) { .t-icon-swap .t-icon, .rail, .page, .rail-toggle, .rail-toggle svg.i, .nav a, .brand, .btn-new, .account, .brand-text, .nav .lbl { transition: none !important; } }
 .topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--card) 82%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--hairline); padding-top: env(safe-area-inset-top); }
 .topbar-in { max-width: 1280px; margin: 0 auto; height: 64px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .trail { display: none; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--secondary); }
@@ -147,12 +170,21 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
   main { padding: 24px 24px 40px; }
 }
 @media (min-width: 1024px) {
-  .rail { width: var(--rail); }
-  .page { padding-left: var(--rail); }
-  .brand { justify-content: flex-start; }
-  .brand-text, .nav .lbl, .rail .btn-new .lbl { display: block; }
-  .nav a { justify-content: flex-start; padding: 10px 12px; }
-  .rail .btn-new { padding: 0 16px; }
+  .rail { width: var(--rail-w); }
+  .page { padding-left: var(--rail-w); }
+  .rail-toggle { display: grid; }
+  .brand { justify-content: flex-start; transition: gap var(--rail-dur) var(--rail-ease), padding var(--rail-dur) var(--rail-ease); }
+  .brand-text, .nav .lbl, .rail .btn-new .lbl { display: block; opacity: 1; transition: opacity 180ms ease 120ms; }
+  .nav a { justify-content: flex-start; padding: 10px 12px; transition: gap var(--rail-dur) var(--rail-ease), padding var(--rail-dur) var(--rail-ease), background .15s, color .15s; }
+  .rail .btn-new { padding: 0 16px; transition: gap var(--rail-dur) var(--rail-ease), padding var(--rail-dur) var(--rail-ease), background .15s, transform .15s, color .15s; }
+  .account { transition: gap var(--rail-dur) var(--rail-ease), padding var(--rail-dur) var(--rail-ease); }
+  :root[data-rail="collapsed"] .brand { gap: 0; padding-inline: 4px; }
+  :root[data-rail="collapsed"] .nav a { gap: 0; padding-inline: 14px; } /* 20px icon centered in the 48px content */
+  :root[data-rail="collapsed"] .rail .btn-new { gap: 0; padding: 0; }
+  :root[data-rail="collapsed"] .account { gap: 0; padding: 6px; }
+  :root[data-rail="collapsed"] .brand-text, :root[data-rail="collapsed"] .nav .lbl, :root[data-rail="collapsed"] .rail .btn-new .lbl {
+    opacity: 0; max-width: 0; overflow: hidden; white-space: nowrap; transition: opacity 120ms ease, max-width 0s linear var(--rail-dur);
+  }
   .trail { display: flex; }
   .mob-brand { display: none; }
   .topbar-in { padding: 0 40px; }
@@ -612,6 +644,13 @@ const HIDDEN_AMOUNT = "R$ •••••";
 const fmt = (cents) => (hideValues ? HIDDEN_AMOUNT : brl.format(cents / 100));
 const fmtCompact = (cents) => (hideValues ? "R$ •••" : brlCompact.format(cents / 100));
 const fmtPct = (r) => pct.format(r);
+// <rail-state> Self-contained, same as src/lib/rail-state.ts: tests/rail-state.test.ts loads this block from the file.
+const RAIL_KEY = "mf-rail-collapsed";
+const parseRailCollapsed = (raw) => raw === "1";
+const serializeRailCollapsed = (collapsed) => (collapsed ? "1" : "0");
+const railToggleLabel = (collapsed) => (collapsed ? "Expandir menu" : "Recolher menu");
+// </rail-state>
+const isRailCollapsed = () => document.documentElement.dataset.rail === "collapsed";
 // <reel> Self-contained, same as src/lib/reel.ts: tests/reel.test.ts loads this block from the file.
 const REEL_SPINS = 1;
 function reelChars(text) {
@@ -1710,8 +1749,10 @@ function shell(r, content) {
   const bottom = (path, label, ic) => `<li><a href="${navHref(path)}" class="${r.path === path ? "active" : ""}" ${r.path === path ? 'aria-current="page"' : ""}>${icon(ic)}${label}</a></li>`;
   const dark = document.documentElement.dataset.theme === "dark";
   const current = ROUTES.find((x) => x.path === r.path);
+  const railLabel = railToggleLabel(isRailCollapsed());
   return `
-  <aside class="rail" aria-label="Menu">
+  <button class="rail-toggle" data-act="rail-toggle" aria-label="${railLabel}" aria-expanded="${!isRailCollapsed()}" aria-controls="rail" title="${railLabel}"><span class="rail-disc">${icon("left")}</span></button>
+  <aside class="rail" id="rail" aria-label="Menu">
     <div>
       <a class="brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="brand-text"><span class="brand-name">Minhas Finanças</span><br><span class="brand-sub">Fluxo de caixa pessoal</span></span></a>
       <button class="btn btn-primary btn-new" data-act="new-tx" title="Novo gasto">${icon("plus")}<span class="lbl">Novo gasto</span></button>
@@ -1730,7 +1771,7 @@ function shell(r, content) {
         ${bellButton()}
         <button class="icon-btn" data-act="toggle-values" aria-label="Ocultar valores" aria-pressed="${hideValues}" title="${hideValues ? "Mostrar valores" : "Ocultar valores"}">${icon(hideValues ? "eyeOff" : "eye")}</button>
         <button class="icon-btn" data-act="theme" aria-label="Tema escuro" aria-pressed="${dark}" title="Alternar tema">${icon(dark ? "sun" : "moon")}</button>
-        <button class="icon-btn mob-only" data-act="menu" aria-label="Mais opções" aria-haspopup="dialog">${icon("menu")}</button>
+        <button class="icon-btn mob-only" data-act="menu" aria-label="Mais opções" aria-haspopup="dialog" aria-expanded="${menuOpen}"><span class="t-icon-swap" data-state="${menuOpen ? "b" : "a"}"><span class="t-icon" data-icon="a">${icon("menu")}</span><span class="t-icon" data-icon="b">${icon("x")}</span></span></button>
         <button class="btn btn-primary btn-sm desk-only" data-act="new-tx">${icon("plus")} Novo gasto</button>
       </div>
     </div></header>
@@ -2431,7 +2472,16 @@ function openModal({ title, sub = "", body, foot, wide = false, onSubmit }) {
   const first = document.querySelector("#modal [autofocus]") || document.querySelector("#modal .modal-body input, #modal .modal-body select");
   if (first && matchMedia("(min-width: 640px)").matches) first.focus();
 }
-const closeModal = () => { stopVoice(); document.getElementById("layer").innerHTML = ""; modalSubmit = null; };
+// The phone menu button swaps hamburger <-> X while its sheet is open (Icon swap, no re-render).
+let menuOpen = false;
+function setMenuOpen(open) {
+  menuOpen = open;
+  const button = document.querySelector('[data-act="menu"]');
+  if (!button) return;
+  button.setAttribute("aria-expanded", String(open));
+  button.querySelector(".t-icon-swap")?.setAttribute("data-state", open ? "b" : "a");
+}
+const closeModal = () => { stopVoice(); document.getElementById("layer").innerHTML = ""; modalSubmit = null; if (menuOpen) setMenuOpen(false); };
 // <toast-timer> Self-contained: tests/toast-timer.test.ts loads this block from the file.
 const TOAST_MIN_MS = 4000, TOAST_MAX_MS = 4500, TOAST_SHORT_CHARS = 40, TOAST_LONG_CHARS = 120;
 /** 4 s for short messages, growing linearly to 4.5 s for long ones. */
@@ -2985,6 +3035,7 @@ function menuSheet() {
     ? `<a href="javascript:void 0" data-act="logout">${icon("logout")} Sair (${esc(accountLabel())})</a>`
     : `<a href="${href("entrar")}" data-act="close-nav">${icon("lock")} Entrar com o Google</a>`;
   openModal({ title: "Menu", body: `<nav class="sheet-nav">${ROUTES.map((x) => `<a href="${navHref(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}${account}</nav>` });
+  setMenuOpen(true);
 }
 
 // ---------- Update notices (bell) ----------
@@ -3449,6 +3500,15 @@ document.addEventListener("click", (e) => {
   const actions = {
     "theme": () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem("mf-theme", t); } catch {} render(); },
     "menu": menuSheet, "close": closeModal, "notices": noticesSheet,
+    "rail-toggle": () => {
+      const collapsed = !isRailCollapsed();
+      if (collapsed) document.documentElement.dataset.rail = "collapsed"; else delete document.documentElement.dataset.rail;
+      try { localStorage.setItem(RAIL_KEY, serializeRailCollapsed(collapsed)); } catch {}
+      // Updated in place (no render) so the width transition plays.
+      const label = railToggleLabel(collapsed);
+      el.setAttribute("aria-label", label); el.setAttribute("title", label); el.setAttribute("aria-expanded", String(!collapsed));
+      document.getElementById("live").textContent = collapsed ? "Menu recolhido" : "Menu expandido";
+    },
     "notice-read": () => { writeNoticeIds([...readNoticeIds(), id]); refreshNotices(); },
     "notices-read-all": () => { writeNoticeIds([...readNoticeIds(), ...NOTICES.map((n) => n.id)]); refreshNotices(); }, "pick-month": monthSheet, "reload": () => location.reload(),
     "flow-view": () => setFlowView(el.dataset.view), "flow-col": () => selectFlowColumn(el),
