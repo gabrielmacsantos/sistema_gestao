@@ -381,6 +381,7 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .auth-note { margin-top: 12px; font-size: 12px; color: var(--secondary); text-align: center; }
 /* "Continuar com o Google": colors, "G" and Roboto Medium follow Google's branding, so no tokens. */
 .btn-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 44px; padding: 0 16px; border: 1px solid #747775; border-radius: 999px; background: #fff; color: #1f1f1f; font: 500 14px/20px Roboto, var(--font); cursor: pointer; transition: background .15s; }
+.auth-google .btn-google { height: 52px; font-size: 16px; }
 .btn-google:hover { background: #f8f9fa; }
 .btn-google:disabled { cursor: wait; opacity: .8; }
 :root[data-theme="dark"] .btn-google { border-color: #8e918f; background: #131314; color: #e3e3e3; }
@@ -1169,44 +1170,6 @@ async function pullFromDrive() {
   } catch (e) { setSyncStatus(e.reauth ? "reauth" : "error"); }
 }
 
-/** Login on any device: GitHub username + password. The token comes out of the decrypted file. */
-async function logIn(username, password) {
-  let gists;
-  try { gists = await gh(`/users/${encodeURIComponent(username)}/gists?per_page=100`); }
-  catch (e) { if (e.notFound) throw new Error("Usuário do GitHub não encontrado. Confira como ele aparece no seu perfil (github.com/usuario)."); throw e; }
-  const found = ownGist(gists);
-  if (!found) throw new Error(`Não encontramos uma conta do Minhas Finanças para @${username}. Use “Criar conta”.`);
-  const file = await readGistFile(await gh(`/gists/${found.id}`));
-  const salt = fromB64(file.salt), key = await deriveKey(password, salt);
-  let opened;
-  try { opened = await decryptFile(file, key); } catch { throw new Error("Usuário ou senha incorretos."); }
-  if (!opened.token) throw new Error("Esta conta foi criada numa versão anterior. Use “Criar conta” uma vez, com o código de acesso e a mesma senha.");
-  const user = await gh("/user", opened.token);
-  return { settings: { token: opened.token, gistId: found.id, login: user.login, salt: file.salt, key: await exportKey(key) }, data: opened.data };
-}
-
-/** Sign-up: token + password. Reuses an existing file (same password) or creates the account gist. */
-async function signUp(token, password) {
-  const user = await gh("/user", token);
-  const found = ownGist(await gh("/gists?per_page=100", token));
-  if (found) {
-    const file = await readGistFile(await gh(`/gists/${found.id}`, token));
-    const key = await deriveKey(password, fromB64(file.salt));
-    let opened;
-    try { opened = await decryptFile(file, key); } catch { throw Object.assign(new Error(`Você já tem uma conta (@${user.login}). Entre com seu usuário e a senha que criou.`), { exists: true }); }
-    const settings = { token, gistId: found.id, login: user.login, salt: file.salt, key: await exportKey(key) };
-    if (found.public) return { settings, data: opened.data, existed: true };
-    // Older secret backup: move it to a public account gist so username + password login works.
-    replaceState(opened.data);
-    const gist = await gh("/gists", token, { method: "POST", body: JSON.stringify({ description: "Minhas Finanças: dados criptografados (não apague)", public: true, files: { [GIST_FILE]: { content: await encryptState(key, fromB64(file.salt), token) } } }) });
-    return { settings: { ...settings, gistId: gist.id }, data: opened.data, existed: true };
-  }
-  const salt = crypto.getRandomValues(new Uint8Array(16)), key = await deriveKey(password, salt);
-  if (!state.savedAt) state.savedAt = Date.now();
-  const gist = await gh("/gists", token, { method: "POST", body: JSON.stringify({ description: "Minhas Finanças: dados criptografados (não apague)", public: true, files: { [GIST_FILE]: { content: await encryptState(key, salt, token) } } }) });
-  return { settings: { token, gistId: gist.id, login: user.login, salt: toB64(salt), key: await exportKey(key) }, data: null, existed: false };
-}
-
 // ---------- Accounts (Google) ----------
 // "Continuar com o Google": the data lives in the person's own Google Drive, in the app's hidden
 // folder (appDataFolder: only this app sees it, and it does not show among their files). No server and
@@ -1708,7 +1671,7 @@ function shell(r, content) {
     </div>
     <div class="rail-foot nav">${navLink(ROUTES.find((x) => x.path === "backup"))}${sync
       ? `<a href="javascript:void 0" data-act="logout" title="Sair">${icon("logout")}<span class="lbl">Sair</span></a><div class="account" title="${esc(accountLabel())}"><span class="avatar">${esc(accountInitials())}</span><span class="lbl"><b>${esc(accountLabel())}</b><br><span class="hint">Dados salvos no ${providerName()}</span></span></div>`
-      : `<a href="${href("entrar")}" title="Entrar">${icon("github")}<span class="lbl">Entrar / criar conta</span></a>`}</div>
+      : `<a href="${href("entrar")}" title="Entrar">${icon("lock")}<span class="lbl">Entrar com o Google</span></a>`}</div>
   </aside>
   <div class="page">
     <header class="topbar"><div class="topbar-in">
@@ -1939,12 +1902,12 @@ function viewPainel(r) {
         <span class="chip" style="background:var(--c-high);color:var(--primary);width:40px;height:40px">${icon("sparkles")}</span>
         <div style="flex:1;min-width:0">
           <h2 class="h-card">Bem-vindo ao Minhas Finanças 👋</h2>
-          <p class="muted" style="margin-top:4px">Comece cadastrando seu salário e seus gastos fixos (aluguel, contas, assinaturas). Você está usando <b>sem conta</b>: os dados ficam só neste navegador. Crie uma conta para salvar no GitHub e usar em qualquer aparelho.</p>
+          <p class="muted" style="margin-top:4px">Comece cadastrando seu salário e seus gastos fixos (aluguel, contas, assinaturas). Você está usando <b>sem conta</b>: os dados ficam só neste navegador. Entre com o Google para salvar no seu Drive e usar em qualquer aparelho.</p>
           <div class="actions" style="margin-top:16px">
             <button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Lançar salário</button>
             <button class="btn btn-secondary btn-sm" data-act="new-rec">${icon("calendar")} Cadastrar gasto fixo</button>
             <button class="btn btn-ghost btn-sm" data-act="demo">${icon("sparkles")} Ver com dados de exemplo</button>
-            ${sync ? "" : `<a class="btn btn-ghost btn-sm" href="${href("cadastro")}">${icon("github")} Criar conta</a>`}
+            ${sync ? "" : `<a class="btn btn-ghost btn-sm" href="${href("entrar")}">${icon("lock")} Entrar com o Google</a>`}
           </div>
         </div>
       </div>
@@ -2191,12 +2154,11 @@ function viewBackup() {
         <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="push-now">${icon("cloud")} Salvar agora</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon("logout")} Sair</button></div>
       </section>`
     : `<section class="card welcome" style="grid-column:1/-1">
-        <h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("github")} Você está sem conta</h2>
-        <p class="muted" style="margin:6px 0 16px">Os dados estão só neste navegador. Crie uma conta para salvá-los ${googleReady() ? "no seu Google Drive ou criptografados no seu GitHub" : "criptografados no seu GitHub"} e entrar de qualquer aparelho. O que você já lançou aqui vai junto.</p>
-        ${googleReady() ? `<div style="max-width:320px;margin-bottom:12px">${googleButton("Criar conta com o Google")}</div>` : ""}
-        <div class="actions"><a class="btn btn-primary" href="${href("cadastro")}">${icon("github")} Criar conta${googleReady() ? " com o GitHub" : ""}</a><a class="btn btn-secondary" href="${href("entrar")}">Já tenho conta</a></div>
+        <h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("lock")} Você está sem conta</h2>
+        <p class="muted" style="margin:6px 0 16px">Os dados estão só neste navegador. Entre com o Google para salvá-los no seu Google Drive e acessar de qualquer aparelho. O que você já lançou aqui vai junto.</p>
+        ${googleReady() ? `<div style="max-width:320px">${googleButton("Continuar com o Google")}</div>` : ""}
       </section>`;
-  return `${pageHead("Backup e dados", sync ? "Seus dados são salvos automaticamente na sua conta do GitHub." : "Sem conta, os dados ficam só neste navegador.")}
+  return `${pageHead("Backup e dados", sync ? `Seus dados são salvos automaticamente na sua conta (${providerName()}).` : "Sem conta, os dados ficam só neste navegador.")}
   <div class="grid-2">
     ${github}
     <section class="card"><h2 class="h-card">Exportar</h2><p class="muted" style="margin:6px 0 16px">Baixa um arquivo .json (sem as fotos de comprovante) com ${n} lançamentos, ${state.recurrings.length} fixos, ${state.categories.length} categorias, orçamentos e metas.</p><button class="btn btn-primary" data-act="export">${icon("save")} Baixar backup</button></section>
@@ -2355,8 +2317,8 @@ function renderPage() {
   if (AUTH_PAGES.includes(r.path) && sync) { history.replaceState(null, "", href("painel")); r = route(); }
   if (!AUTH_PAGES.includes(r.path) && !sync && !isLocalMode()) { history.replaceState(null, "", href("entrar")); r = route(); }
   if (AUTH_PAGES.includes(r.path)) {
-    document.getElementById("app").innerHTML = viewAuth(r.path);
-    document.title = `${r.path === "entrar" ? "Entrar" : "Criar conta"} · Minhas Finanças`;
+    document.getElementById("app").innerHTML = viewAuth();
+    document.title = "Entrar · Minhas Finanças";
     return;
   }
   document.getElementById("app").innerHTML = shell(r, VIEWS[r.path](r));
@@ -2888,87 +2850,31 @@ function confirmDialog(title, text, label, onYes) {
 function menuSheet() {
   const account = sync
     ? `<a href="javascript:void 0" data-act="logout">${icon("logout")} Sair (${esc(accountLabel())})</a>`
-    : `<a href="${href("entrar")}" data-act="close-nav">${icon("github")} Entrar / criar conta</a>`;
+    : `<a href="${href("entrar")}" data-act="close-nav">${icon("lock")} Entrar com o Google</a>`;
   openModal({ title: "Menu", body: `<nav class="sheet-nav">${ROUTES.map((x) => `<a href="${navHref(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}${account}</nav>` });
 }
 
-// ---------- Login / sign-up pages ----------
-function viewAuth(page) {
-  const login = page === "entrar";
-  const tokenUrl = "https://github.com/settings/tokens/new?scopes=gist&description=Minhas%20Finan%C3%A7as";
+// ---------- Login page ----------
+// Google is the only way to have an account (e-mail + password would need a server to send the
+// confirmation code, which this static site does not have). "entrar" and "cadastro" show the same screen.
+function viewAuth() {
   const hasLocal = state.transactions.length || state.recurrings.length;
-  const form = login
-    ? `<form class="auth-form" id="auth-form" data-page="entrar" novalidate>
-        ${field("Usuário do GitHub", "username", input("username", "", `autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="seu-usuario"${googleReady() ? "" : " autofocus"}`))}
-        ${field("Senha", "password", input("password", "", 'type="password" autocomplete="current-password" placeholder="Sua senha"'))}
-        <button type="submit" class="btn btn-primary" style="width:100%">Entrar</button>
-      </form>
-      <p class="auth-switch">Não tem conta? <a href="${href("cadastro")}">Criar conta</a></p>`
-    : `<ol class="steps">
-        <li>Tenha uma conta no GitHub (grátis). Não tem? <a href="https://github.com/signup" target="_blank" rel="noopener">Crie aqui</a>.</li>
-        <li><a href="${tokenUrl}" target="_blank" rel="noopener">Gere seu código de acesso</a>: em <i>Expiration</i> escolha <b>No expiration</b> e clique em <b>Generate token</b>. A permissão <b>gist</b> já vem marcada.</li>
-        <li>Cole o código abaixo e crie sua senha. Depois disso você entra só com <b>usuário do GitHub e senha</b>.</li>
-      </ol>
-      <form class="auth-form" id="auth-form" data-page="cadastro" novalidate style="margin-top:20px">
-        ${field("Código de acesso do GitHub", "token", input("token", "", 'type="password" autocomplete="off" spellcheck="false" placeholder="ghp_..."'), "", "Usado só uma vez. Fica guardado criptografado na sua conta.")}
-        ${field("Crie uma senha", "password", input("password", "", 'type="password" autocomplete="new-password" placeholder="Crie uma senha"'), "", `Mínimo de ${MIN_PASSWORD} caracteres. Sem ela ninguém abre seus dados, nem o GitHub. Por isso, não a perca.`)}
-        ${field("Repita a senha", "password2", input("password2", "", 'type="password" autocomplete="new-password" placeholder="Repita a senha"'))}
-        <button type="submit" class="btn btn-primary" style="width:100%">Criar conta</button>
-      </form>
-      ${hasLocal ? `<p class="hint" style="margin-top:12px">Os dados que você já lançou neste navegador vão para a nova conta.</p>` : ""}
-      <p class="auth-switch">Já tem conta? <a href="${href("entrar")}">Entrar</a></p>`;
   return `<main class="auth">
     <div class="auth-box">
       <div class="auth-brand"><span class="brand-logo">${icon("wallet")}</span><div><h1 class="brand-name" style="font-size:22px;line-height:28px">Minhas Finanças</h1><p class="muted">Controle financeiro pessoal</p></div></div>
       <div class="card auth-card">
-        <div class="tabs" role="tablist" style="margin-bottom:20px"><a role="tab" class="${login ? "on" : ""}" href="${href("entrar")}" aria-selected="${login}">Entrar</a><a role="tab" class="${login ? "" : "on"}" href="${href("cadastro")}" aria-selected="${!login}">Criar conta</a></div>
-        ${googleReady() ? `${googleButton(login ? "Continuar com o Google" : "Criar conta com o Google")}<div class="auth-or">ou com o GitHub</div>` : ""}
-        ${form}
+        <h2 class="h-card" style="text-align:center">Entre para guardar seus dados</h2>
+        <p class="muted" style="text-align:center;margin:6px 0 20px">Use sua conta do Google. Seus dados ficam guardados no seu Google Drive, numa pasta que só este app enxerga, e você acessa de qualquer aparelho.</p>
+        ${googleReady() ? `<div class="auth-google">${googleButton("Continuar com o Google")}</div>` : `<p class="muted" style="text-align:center">O login com o Google não está disponível agora. Você pode usar o app sem conta.</p>`}
+        ${hasLocal ? `<p class="hint" style="margin-top:12px;text-align:center">Os dados que você já lançou neste navegador vão para a sua conta.</p>` : ""}
       </div>
       <div class="auth-foot">
         <button class="btn btn-ghost btn-sm" data-act="use-local">${hasLocal ? "Continuar sem conta" : "Usar sem conta (só neste aparelho)"}</button>
         <button class="icon-btn" data-act="theme" aria-label="Alternar tema claro/escuro">${icon(document.documentElement.dataset.theme === "dark" ? "sun" : "moon")}</button>
       </div>
-      <p class="auth-note">${icon("lock", 'style="width:14px;height:14px"')} ${googleReady() ? "Seus dados ficam na sua própria conta: na pasta do app no seu Google Drive, ou criptografados com sua senha no seu GitHub." : "Seus dados são criptografados no seu aparelho e guardados na sua própria conta do GitHub."} <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Política de privacidade</a></p>
+      <p class="auth-note">${icon("lock", 'style="width:14px;height:14px"')} Seus dados ficam na sua própria conta: na pasta do app no seu Google Drive. <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Política de privacidade</a></p>
     </div>
   </main>`;
-}
-
-async function submitAuth(form) {
-  const page = form.dataset.page, v = Object.fromEntries(new FormData(form).entries()), errors = {};
-  const btn = form.querySelector('button[type="submit"]');
-  if (page === "entrar") {
-    if (!/^[a-z\d](?:[a-z\d-]{0,38})$/i.test(v.username.trim().replace(/^@/, ""))) errors.username = "Informe seu usuário do GitHub (o nome que aparece em github.com/usuario).";
-    if (!v.password) errors.password = "Informe sua senha.";
-  } else {
-    if (!/^(ghp_|github_pat_|gho_)\w{20,}$/.test(v.token.trim())) errors.token = "Cole o código completo gerado no GitHub (começa com ghp_).";
-    if (v.password.length < MIN_PASSWORD) errors.password = `Use pelo menos ${MIN_PASSWORD} caracteres.`;
-    else if (v.password !== v.password2) errors.password2 = "As senhas não são iguais.";
-  }
-  if (Object.keys(errors).length) return showErrors(errors, form);
-  const label = btn.textContent; btn.disabled = true; btn.textContent = page === "entrar" ? "Entrando…" : "Criando conta…";
-  try {
-    if (page === "entrar") {
-      const { settings, data } = await logIn(v.username.trim().replace(/^@/, ""), v.password);
-      storeSync(settings); await clearPhotos(); replaceState(data); persist();
-      setLocalMode(false); syncStatus = "ok";
-      location.hash = href("painel"); render();
-      toast(`Bem-vindo de volta, @${settings.login}!`);
-    } else {
-      const { settings, data, existed } = await signUp(v.token.trim(), v.password);
-      storeSync(settings);
-      if (data) { replaceState(data); persist(); } else { save(); }
-      setLocalMode(false); syncStatus = "ok";
-      location.hash = href("painel"); render();
-      toast(existed ? `Conta @${settings.login} encontrada. Dados carregados.` : `Conta criada! Bem-vindo, @${settings.login}.`);
-      if (existed && data) pushNow();
-      syncPhotos();
-    }
-  } catch (e) {
-    btn.disabled = false; btn.textContent = label;
-    const key = page === "entrar" ? (/[Ss]enha|incorretos/.test(e.message) ? "password" : "username") : (/[Ss]enha|já tem uma conta/.test(e.message) ? "password" : "token");
-    showErrors({ [key]: e.message }, form);
-  }
 }
 
 /** Saves what is pending to GitHub and then clears this browser, so another person can use it. */
@@ -3452,7 +3358,6 @@ document.addEventListener("click", (e) => {
 });
 document.addEventListener("submit", (e) => {
   if (e.target.id === "modal") { e.preventDefault(); modalSubmit?.(); }
-  else if (e.target.id === "auth-form") { e.preventDefault(); submitAuth(e.target); }
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.querySelector(".overlay")) closeModal(); });
 document.addEventListener("change", (e) => {
