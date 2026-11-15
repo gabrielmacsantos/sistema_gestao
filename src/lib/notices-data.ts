@@ -4,6 +4,12 @@ import type { AppNotice } from "./notifications";
 // Keep `actionUrl` empty until the store listings exist.
 export const NOTICES: AppNotice[] = [
   {
+    id: "2026-11-15-quick-assistant",
+    title: "Atalhos rápidos",
+    body: "O balão no canto da tela abre o chat de lançamentos (fale ou escreva) e uma calculadora que funciona sem internet.",
+    date: "2026-11-15",
+  },
+  {
     id: "2026-11-15-google-login",
     title: "Entrar com o Google",
     body: "Agora você entra com a sua conta Google, sem criar token nem senha extra.",
