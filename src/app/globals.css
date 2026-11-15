@@ -305,7 +305,7 @@
 @media (prefers-reduced-motion: reduce) {
   .va-bubble-row, .va-mic.is-live .va-wave i, .va-card.is-live .va-glow { animation: none !important; }
   .va-swap, .va-glow, .va-mic { transition: none !important; }
-  .va-w { transition: none !important; filter: none !important; }
+  .va-w { transition: none !important; }
   .va-mic:active { transform: none; }
 }
 
@@ -351,20 +351,17 @@
 /* Spinning counter (transitions.dev): each digit is a clipped reel of 0-9 that spins up and lands.
    AnimatedCurrency sets --reel-cell to 1.3em so the reels follow the font size of each figure. */
 :root {
-  --reel-dur: 1400ms;
+  --reel-dur: 650ms;
   --reel-cell: 30px;
-  --reel-spin-blur: 3px;
-  --reel-stagger: 90ms;
+  --reel-stagger: 30ms;
   --reel-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 .t-reel { display: inline-flex; align-items: center; vertical-align: middle; height: var(--reel-cell); font-variant-numeric: tabular-nums; }
 .t-reel-char { white-space: pre; }
 .t-reel-col {
   position: relative; height: var(--reel-cell); overflow: hidden;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%);
 }
-.t-reel-strip { display: flex; flex-direction: column; will-change: transform, filter; }
+.t-reel-strip { display: flex; flex-direction: column; }
 .t-reel-digit { height: var(--reel-cell); display: flex; align-items: center; justify-content: center; }
 @media (prefers-reduced-motion: reduce) {
   .t-reel-strip { transition: none !important; filter: none !important; }

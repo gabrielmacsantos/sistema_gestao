@@ -1,5 +1,5 @@
 /** Full turns a digit reel makes before it lands on the target digit. */
-export const REEL_SPINS = 2;
+export const REEL_SPINS = 1;
 
 export type ReelChar = {
   /** Position counted from the end, so a digit keeps its reel when the number grows ("999,99" -> "1.000,00"). */
