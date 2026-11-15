@@ -389,13 +389,56 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .thumb { width: 64px; height: 64px; padding: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--hairline); background: var(--c-low); flex: none; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .clip { display: inline-flex; vertical-align: -3px; margin-right: 4px; color: var(--primary); }
-.voice-btn { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; border: 1px dashed var(--outline-var); background: var(--c-low); color: var(--on); text-align: left; }
-.voice-btn > svg.i { width: 40px; height: 40px; padding: 10px; border-radius: 999px; background: var(--primary); color: var(--on-primary); }
-.voice-btn > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
-.voice-btn.on { border-style: solid; border-color: var(--primary); }
-.voice-btn.on > svg.i { animation: pulse 1.2s ease-in-out infinite; }
-@keyframes pulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary) 22%, transparent); } }
-@media (prefers-reduced-motion: reduce) { .voice-btn.on > svg.i { animation: none; } }
+.va-card { --stream-fade: 350ms; --stream-blur: 1px; --stream-ease: cubic-bezier(.22,1,.36,1); --swap-dur: 150ms; --swap-y: 4px; --swap-blur: 2px; --wave-dur: 900ms; --wave-min: .35; --float-dur: 4000ms; --float-distance: 3px; --press-dur: 150ms; --ease-out: cubic-bezier(.22,1,.36,1);
+  --bubble: color-mix(in srgb, var(--on) 6%, var(--card)); position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 268px; border-radius: 24px; background: var(--card); color: var(--on); border: 1px solid var(--hairline); box-shadow: 0 8px 32px -4px rgb(0 0 0 / .06); }
+:root[data-theme="dark"] .va-card { --bubble: color-mix(in srgb, var(--on) 9%, var(--card)); }
+.va-glow { position: absolute; inset: auto 0 0 0; height: 70%; z-index: 0; pointer-events: none; opacity: 0; transform: translateY(30%); transition: opacity 500ms var(--ease-out), transform 500ms var(--ease-out);
+  background: radial-gradient(120% 90% at 50% 110%, color-mix(in srgb, var(--primary) 55%, transparent), color-mix(in srgb, var(--primary) 18%, transparent) 45%, transparent 70%); }
+.va-card.is-live .va-glow { opacity: 1; transform: none; animation: va-glow 1.6s ease-in-out infinite; }
+@keyframes va-glow { 50% { opacity: .65; } }
+.va-content { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
+.va-top { display: flex; align-items: center; gap: 12px; padding: 16px; }
+.va-av { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--primary) 16%, var(--card)); color: var(--primary); }
+.va-av svg.i { width: 18px; height: 18px; }
+.va-top-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.va-name { font-size: 16px; line-height: 22px; font-weight: 500; }
+.va-meta { font-size: 12px; line-height: 16px; color: var(--on-var); overflow-wrap: anywhere; }
+.va-divider { height: 1px; flex: none; background: linear-gradient(90deg, transparent, var(--hairline) 20%, var(--hairline) 80%, transparent); }
+.va-body { padding: 20px 24px 0; display: flex; flex-direction: column; gap: 14px; }
+.va-bubble-row { padding-left: 8px; animation: va-float var(--float-dur) ease-in-out infinite; }
+@keyframes va-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(var(--float-distance) * -1)); } }
+.va-bubble { position: relative; display: inline-block; max-width: 260px; margin: 0; padding: 8px 12px; border-radius: 18px; background: var(--bubble); font-size: 14px; line-height: 20px; }
+.va-bubble span { position: relative; z-index: 1; }
+.va-bubble::before { content: ""; position: absolute; bottom: 0; left: -7px; width: 20px; height: 20px; background: var(--bubble); border-bottom-right-radius: 16px 14px; }
+.va-bubble::after { content: ""; position: absolute; bottom: 0; left: -26px; width: 26px; height: 20px; background: var(--card); border-bottom-right-radius: 10px; }
+.va-transcript { margin: 0; min-height: 20px; padding-left: 32px; font-size: 14px; line-height: 20px; text-align: right; text-wrap: pretty; overflow-wrap: anywhere; }
+.va-w { opacity: 0; filter: blur(var(--stream-blur)); transition: opacity var(--stream-fade) var(--stream-ease), filter var(--stream-fade) var(--stream-ease); }
+.va-w.is-in { opacity: 1; filter: blur(0); }
+.va-bottom { margin-top: auto; padding: 12px 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.va-caption { font-size: 12px; line-height: 16px; color: var(--on-var); }
+.va-swap { display: inline-block; transition: transform var(--swap-dur) ease-in-out, filter var(--swap-dur) ease-in-out, opacity var(--swap-dur) ease-in-out; }
+.va-swap.is-exit { transform: translateY(calc(var(--swap-y) * -1)); filter: blur(var(--swap-blur)); opacity: 0; }
+.va-swap.is-enter { transform: translateY(var(--swap-y)); filter: blur(var(--swap-blur)); opacity: 0; transition: none; }
+.va-mic { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; border: 0; padding: 0; background: color-mix(in srgb, var(--card) 60%, var(--c-high)); box-shadow: 0 1px 3px rgb(0 0 0 / .04), inset 0 0 0 1px color-mix(in srgb, var(--on) 10%, transparent); color: var(--on); transition: transform var(--press-dur) var(--ease-out); }
+.va-mic:active { transform: scale(.95); }
+.va-mic:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.va-wave { display: flex; align-items: center; gap: 2px; height: 20px; }
+.va-wave i { display: block; width: 2px; border-radius: 1px; background: currentColor; transform-origin: center; }
+.va-wave i:nth-child(1), .va-wave i:nth-child(5) { height: 6px; }
+.va-wave i:nth-child(2), .va-wave i:nth-child(4) { height: 12px; }
+.va-wave i:nth-child(3) { height: 18px; }
+.va-mic.is-live .va-wave i { animation: va-wave var(--wave-dur) ease-in-out infinite; }
+.va-mic.is-live .va-wave i:nth-child(2) { animation-delay: calc(var(--wave-dur) * -.3); }
+.va-mic.is-live .va-wave i:nth-child(3) { animation-delay: calc(var(--wave-dur) * -.6); }
+.va-mic.is-live .va-wave i:nth-child(4) { animation-delay: calc(var(--wave-dur) * -.15); }
+.va-mic.is-live .va-wave i:nth-child(5) { animation-delay: calc(var(--wave-dur) * -.45); }
+@keyframes va-wave { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(var(--wave-min)); } }
+@media (prefers-reduced-motion: reduce) {
+  .va-bubble-row, .va-mic.is-live .va-wave i, .va-card.is-live .va-glow { animation: none !important; }
+  .va-swap, .va-glow, .va-mic { transition: none !important; }
+  .va-w { transition: none !important; filter: none !important; }
+  .va-mic:active { transform: none; }
+}
 .voice-note { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--hairline); background: var(--c-low); font-size: 14px; }
 .notice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent); background: var(--c-low); }
 .notice p { flex: 1; min-width: 160px; }
@@ -2604,8 +2647,63 @@ function renderVoiceSlot() {
   }
   const listening = mode === "listening";
   const income = txForm.getType?.() === "INCOME";
-  const hint = listening ? text || (income ? "Fale a entrada, o valor e quando foi…" : "Fale o gasto, o valor e quando foi…") : mode === "done" ? `Ouvi: “${text}”. Confira os campos antes de salvar.` : VOICE_EXAMPLE[income ? "INCOME" : "EXPENSE"];
-  slot.innerHTML = `<button type="button" class="voice-btn ${listening ? "on" : ""}" data-act="voice" aria-pressed="${listening}">${icon("mic")}<span><b>${listening ? "Ouvindo… toque para parar" : mode === "done" ? "Falar de novo" : "Falar o lançamento"}</b><span class="hint voice-text">${esc(hint)}</span></span></button>`;
+  let card = slot.querySelector(".va-card");
+  if (!card) {
+    slot.innerHTML = `<div class="va-card">
+      <div class="va-glow" aria-hidden="true"></div>
+      <div class="va-content">
+        <header class="va-top"><span class="va-av" aria-hidden="true">${icon("mic")}</span>
+          <div class="va-top-text"><span class="va-name">Assistente de voz</span><span class="va-meta"></span></div></header>
+        <div class="va-divider" aria-hidden="true"></div>
+        <div class="va-body">
+          <div class="va-bubble-row"><p class="va-bubble"><span></span></p></div>
+          <p class="va-transcript" aria-live="polite"></p>
+        </div>
+        <div class="va-bottom">
+          <span class="va-caption"><span class="va-swap" aria-live="polite"></span></span>
+          <button type="button" class="va-mic" data-act="voice" aria-pressed="false"><span class="va-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>
+        </div>
+      </div></div>`;
+    card = slot.firstElementChild;
+  }
+  card.classList.toggle("is-live", listening);
+  const mic = card.querySelector(".va-mic");
+  mic.classList.toggle("is-live", listening);
+  mic.setAttribute("aria-pressed", String(listening));
+  mic.setAttribute("aria-label", listening ? "Parar de falar" : "Falar o lançamento");
+  card.querySelector(".va-bubble span").textContent = income ? "Qual receita você quer lançar?" : "Qual gasto você quer lançar?";
+  card.querySelector(".va-meta").textContent = mode === "done" ? "Confira os campos antes de salvar." : VOICE_EXAMPLE[income ? "INCOME" : "EXPENSE"];
+  swapText(card.querySelector(".va-swap"), listening ? "Ouvindo… toque para parar" : mode === "done" ? "Toque para falar de novo" : "Toque para falar");
+  setTranscript(card.querySelector(".va-transcript"), text);
+}
+
+// Caption swap: the old text blurs up and out, the new one comes in from below (150 ms).
+function swapText(el, value) {
+  if (el.textContent === "") { el.textContent = value; return; }
+  if (el.dataset.next === value || (!el.dataset.next && el.textContent === value)) return;
+  el.dataset.next = value;
+  el.classList.add("is-exit");
+  setTimeout(() => {
+    el.textContent = el.dataset.next; delete el.dataset.next;
+    el.classList.remove("is-exit"); el.classList.add("is-enter");
+    void el.offsetHeight;
+    el.classList.remove("is-enter");
+  }, 150);
+}
+
+// The transcript streams in word by word: new words fade in, a corrected prefix redraws the line.
+function setTranscript(el, text) {
+  const words = text ? text.split(" ") : [];
+  const have = Array.from(el.children);
+  if (have.length > words.length || have.some((w, i) => w.textContent.trim() !== words[i])) { el.textContent = ""; have.length = 0; }
+  const fresh = [];
+  for (let i = el.children.length; i < words.length; i++) {
+    const w = document.createElement("span");
+    w.className = "va-w"; w.textContent = words[i] + (i < words.length - 1 ? " " : "");
+    el.append(w); fresh.push(w);
+  }
+  if (el.children.length > 1) { const last = el.children[el.children.length - 2]; if (!last.textContent.endsWith(" ")) last.textContent += " "; }
+  if (fresh.length) { void el.offsetHeight; fresh.forEach((w) => w.classList.add("is-in")); }
 }
 
 function voiceButton() {
@@ -2622,7 +2720,7 @@ function startVoice() {
   rec.onresult = (e) => {
     if (voice !== session) return;
     session.text = Array.from(e.results, (r) => r[0].transcript).join(" ").replace(/\s+/g, " ").trim();
-    const el = document.querySelector("#voice-slot .voice-text"); if (el) el.textContent = session.text;
+    const el = document.querySelector("#voice-slot .va-transcript"); if (el) setTranscript(el, session.text);
   };
   rec.onerror = (e) => { session.error = e.error; };
   rec.onend = () => { if (voice === session) { voice = null; finishVoice(session); } };
