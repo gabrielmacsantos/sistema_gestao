@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, type CSSProperties } from "react";
 import { formatBRL } from "@/lib/money";
 import { REEL_SPINS, reelCell, reelChars } from "@/lib/reel";
 
@@ -8,17 +8,10 @@ const DIGITS = Array.from({ length: (REEL_SPINS + 1) * 10 }, (_, i) => i % 10);
 
 const at = (cell: number) => `translateY(calc(var(--reel-cell) * -${cell}))`;
 
-function cssNumber(style: CSSStyleDeclaration, name: string): number {
-  const n = Number.parseFloat(style.getPropertyValue(name));
-  return Number.isFinite(n) ? n : 0;
-}
-
 /** One digit: a strip of 0-9 cells that spins up and lands on `digit`. Spins on mount and on change. */
 function Reel({ digit, order }: { digit: number; order: number }) {
   const strip = useRef<HTMLSpanElement>(null);
-  const blur = useRef<SVGFEGaussianBlurElement>(null);
   const previous = useRef<number | null>(null);
-  const filterId = useId();
 
   useLayoutEffect(() => {
     const el = strip.current;
@@ -35,37 +28,13 @@ function Reel({ digit, order }: { digit: number; order: number }) {
     el.style.transition = "none";
     el.style.transform = at(from ?? 0);
     void el.offsetHeight;
-    const css = getComputedStyle(el);
-    const duration = cssNumber(css, "--reel-dur");
-    const delay = order * cssNumber(css, "--reel-stagger");
-    const spinBlur = cssNumber(css, "--reel-spin-blur");
-    el.style.transition = `transform var(--reel-dur) var(--reel-ease) ${delay}ms`;
+    const stagger = Number.parseFloat(getComputedStyle(el).getPropertyValue("--reel-stagger")) || 0;
+    el.style.transition = `transform var(--reel-dur) var(--reel-ease) ${order * stagger}ms`;
     el.style.transform = at(reelCell(digit));
-    el.style.filter = `url(#${CSS.escape(filterId)})`;
-
-    // Vertical-only blur (CSS blur() would smear sideways), decaying as this reel settles.
-    const start = performance.now();
-    let raf = 0;
-    const tick = (now: number) => {
-      const t = Math.min(Math.max((now - start - delay) / duration, 0), 1);
-      blur.current?.setAttribute("stdDeviation", `0 ${(spinBlur * (1 - t) ** 2).toFixed(2)}`);
-      if (t < 1) raf = requestAnimationFrame(tick);
-      else el.style.filter = "";
-    };
-    raf = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(raf);
-      el.style.filter = "";
-    };
-  }, [digit, order, filterId]);
+  }, [digit, order]);
 
   return (
     <span className="t-reel-col">
-      <svg aria-hidden width="0" height="0" style={{ position: "absolute" }}>
-        <filter id={filterId} x="-10%" y="-50%" width="120%" height="200%">
-          <feGaussianBlur ref={blur} stdDeviation="0 0" />
-        </filter>
-      </svg>
       <span ref={strip} className="t-reel-strip" style={{ transform: at(reelCell(digit)) }}>
         {DIGITS.map((d, i) => (
           <span key={i} className="t-reel-digit">{d}</span>

@@ -110,13 +110,13 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 @keyframes t-badge-in { 0% { opacity: 0; transform: scale(var(--badge-scale-from)); filter: blur(var(--badge-blur)); } 60% { opacity: 1; transform: scale(var(--badge-scale-peak)); filter: blur(0); } 100% { opacity: 1; transform: scale(1); filter: blur(0); } }
 @media (prefers-reduced-motion: reduce) { .bell-badge.t-badge { animation: none !important; } }
 /* Spinning counter (transitions.dev): each digit is a clipped reel of 0-9 that spins up and lands. */
-:root { --reel-dur: 1400ms; --reel-spin-blur: 3px; --reel-stagger: 90ms; --reel-ease: cubic-bezier(.16,1,.3,1); }
+:root { --reel-dur: 650ms; --reel-stagger: 30ms; --reel-ease: cubic-bezier(.16,1,.3,1); }
 .t-reel { --reel-cell: 1.3em; display: inline-flex; align-items: center; vertical-align: middle; height: var(--reel-cell); font-variant-numeric: tabular-nums; }
 .t-reel-char { white-space: pre; }
-.t-reel-col { position: relative; height: var(--reel-cell); overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%); }
-.t-reel-strip { display: flex; flex-direction: column; will-change: transform, filter; }
+.t-reel-col { position: relative; height: var(--reel-cell); overflow: hidden; }
+.t-reel-strip { display: flex; flex-direction: column; }
 .t-reel-digit { height: var(--reel-cell); display: flex; align-items: center; justify-content: center; }
-@media (prefers-reduced-motion: reduce) { .t-reel-strip { transition: none !important; filter: none !important; } }
+@media (prefers-reduced-motion: reduce) { .t-reel-strip { transition: none !important; } }
 .notice-list { list-style: none; margin: 0; padding: 0; }
 .notice-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--c-low); }
 .notice-item:last-child { border-bottom: 0; }
@@ -598,7 +598,7 @@ const fmt = (cents) => (hideValues ? HIDDEN_AMOUNT : brl.format(cents / 100));
 const fmtCompact = (cents) => (hideValues ? "R$ •••" : brlCompact.format(cents / 100));
 const fmtPct = (r) => pct.format(r);
 // <reel> Self-contained, same as src/lib/reel.ts: tests/reel.test.ts loads this block from the file.
-const REEL_SPINS = 2;
+const REEL_SPINS = 1;
 function reelChars(text) {
   const chars = Array.from(text);
   return chars.map((char, i) => ({ key: chars.length - 1 - i, char, digit: /^[0-9]$/.test(char) ? Number(char) : null }));
@@ -1750,7 +1750,6 @@ const pageHead = (title, desc, actions = "") => `<div class="page-head"><div><h1
 const reelMemory = new Map();
 const reelCells = Array.from({ length: (REEL_SPINS + 1) * 10 }, (_, i) => `<span class="t-reel-digit">${i % 10}</span>`).join("");
 const reelAt = (cell) => `translateY(calc(var(--reel-cell) * -${cell}))`;
-let reelSeq = 0;
 function amountHtml(cents, key, prefix = "") {
   if (hideValues || !Number.isSafeInteger(cents)) return esc(prefix) + fmt(cents);
   return `<span class="t-reelnum" data-reel="${esc(key)}">${esc(prefix + brl.format(cents / 100))}</span>`;
@@ -1775,29 +1774,15 @@ function paintReels() {
     if (!reduced) jobs.push({ strips: el.querySelectorAll(".t-reel-strip"), spins });
   });
   if (!jobs.length) return;
-  let fx = document.getElementById("reel-fx");
-  if (!fx) { document.body.insertAdjacentHTML("beforeend", `<svg id="reel-fx" aria-hidden="true" width="0" height="0" style="position:absolute"></svg>`); fx = document.getElementById("reel-fx"); }
   const cssMs = (s, name) => parseFloat(s.getPropertyValue(name)) || 0;
   for (const { strips, spins } of jobs) for (const sp of spins) {
     const strip = strips[sp.index];
     strip.style.transition = "none";
     strip.style.transform = reelAt(sp.from);
     void strip.offsetHeight;
-    const css = getComputedStyle(strip), dur = cssMs(css, "--reel-dur"), delay = sp.index * cssMs(css, "--reel-stagger"), spinBlur = cssMs(css, "--reel-spin-blur");
+    const delay = sp.index * cssMs(getComputedStyle(strip), "--reel-stagger");
     strip.style.transition = `transform var(--reel-dur) var(--reel-ease) ${delay}ms`;
     strip.style.transform = reelAt(reelCell(sp.digit));
-    // Vertical-only blur (CSS blur() would smear sideways), decaying as this reel settles.
-    const id = `reel-f${++reelSeq}`;
-    fx.insertAdjacentHTML("beforeend", `<filter id="${id}" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="0 0"/></filter>`);
-    const blur = fx.querySelector(`#${id} feGaussianBlur`), start = performance.now();
-    strip.style.filter = `url(#${id})`;
-    const tick = (now) => {
-      const t = Math.min(Math.max((now - start - delay) / dur, 0), 1);
-      blur.setAttribute("stdDeviation", `0 ${(spinBlur * (1 - t) ** 2).toFixed(2)}`);
-      if (t < 1 && strip.isConnected) requestAnimationFrame(tick);
-      else { strip.style.filter = ""; document.getElementById(id)?.remove(); }
-    };
-    requestAnimationFrame(tick);
   }
 }
 const metric = ({ label, ic, chip, value, cents, prefix = "", valueCls = "", pill = "", meter = null, cls = "" }) => {
