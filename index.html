@@ -1099,6 +1099,11 @@ function assistantReply(draft, awaiting, text, { categories, today, parse, parse
   }
   return next;
 }
+/** The user picked "despesa" or "receita" first: that wins over what the sentence suggested, and the category is looked up again for it. */
+function assistantForceType(parsed, type, guessCategory) {
+  if (!type || parsed.type === type) return parsed;
+  return { ...parsed, type, categoryId: guessCategory(type) };
+}
 /** The fields of the transaction to save (amount already in cents). */
 function assistantTransaction(draft, today, categoryName) {
   return {
@@ -3174,7 +3179,7 @@ function finishVoice(session) {
 // (transitions.dev "Dropdown menu morph"). It lives outside #app so a render never resets a conversation.
 // The chat saves as soon as the sentence is complete (the user can edit or delete in the card);
 // the voice is the same speech service as the transaction form, with the same notice before the first use.
-const asst = { view: "closed", msgs: [], draft: null, awaiting: null, calc: calcNew(), voice: null, voiceMode: "idle", greeted: false, said: null };
+const asst = { view: "closed", msgs: [], draft: null, awaiting: null, calc: calcNew(), voice: null, voiceMode: "idle", greeted: false, said: null, preType: null };
 const asstEl = () => document.getElementById("asst");
 const asstBot = (text, chips = null) => ({ from: "bot", text, chips });
 const CALC_KEYS = [
@@ -3190,7 +3195,7 @@ function assistantHtml() {
   return `<div class="asst" id="asst" data-state="closed">
     <button type="button" class="asst-trigger" data-asst="toggle" aria-label="Atalhos rápidos: chat de lançamentos e calculadora" aria-haspopup="dialog" aria-expanded="false">${icon("sparkles")}</button>
     <div class="asst-layer asst-menu" data-layer="menu" role="dialog" aria-label="Atalhos rápidos" inert>
-      <button type="button" class="asst-item" style="--i:0" data-asst="open" data-view="chat"><span class="asst-item-ic">${icon("chat")}</span><span>Chat de lançamentos<small>Fale ou escreva</small></span></button>
+      <button type="button" class="asst-item" style="--i:0" data-asst="open" data-view="chat"><span class="asst-item-ic">${icon("chat")}</span><span>Chat de lançamentos<small>Despesas e receitas, por voz ou texto</small></span></button>
       <button type="button" class="asst-item" style="--i:1" data-asst="open" data-view="calc"><span class="asst-item-ic">${icon("calculator")}</span><span>Calculadora<small>Funciona sem internet</small></span></button>
     </div>
     <section class="asst-layer" data-layer="chat" role="dialog" aria-label="Chat de lançamentos" inert>
@@ -3198,7 +3203,7 @@ function assistantHtml() {
       <div class="asst-log"></div>
       <div class="asst-voice"></div>
       <form class="asst-composer" data-asst-form autocomplete="off">
-        <input class="input" name="text" placeholder="Ex.: gastei 45,90 no almoço" aria-label="Escreva o lançamento" maxlength="200" enterkeyhint="send">
+        <input class="input" name="text" placeholder="Ex.: gastei 45,90 no almoço ou recebi 2500" aria-label="Escreva o lançamento" maxlength="200" enterkeyhint="send">
         ${SpeechRec ? `<button type="button" class="icon-btn asst-mic" data-asst="mic" aria-pressed="false" aria-label="Falar o lançamento">${icon("mic")}</button>` : ""}
         <button type="submit" class="icon-btn asst-send" aria-label="Enviar">${icon("send")}</button>
       </form>
@@ -3233,7 +3238,12 @@ function asstSet(view, { focus = true } = {}) {
   trigger.setAttribute("aria-expanded", String(view !== "closed"));
   trigger.inert = view !== "closed";
   if (view === "chat") {
-    if (!asst.greeted) { asst.greeted = true; asst.msgs.push(asstBot("Oi! Diga ou escreva o lançamento, como “Gastei 45,90 no almoço hoje”. Eu preencho Descrição, Valor, Categoria, Data e Situação. Se faltar algo, eu pergunto.")); }
+    if (!asst.greeted) {
+      asst.greeted = true;
+      asst.msgs.push(asstBot("Oi! Diga ou escreva um lançamento, seja uma despesa (“Gastei 45,90 no almoço hoje”) ou uma receita (“Recebi 2.500 de salário”). Eu preencho Descrição, Valor, Categoria, Data e Situação. Se faltar algo, eu pergunto.", [
+        { label: "Registrar despesa", kind: "type-set", value: "EXPENSE" }, { label: "Registrar receita", kind: "type-set", value: "INCOME" },
+      ]));
+    }
     paintChat();
   }
   if (view === "calc") paintCalc();
@@ -3295,7 +3305,7 @@ let renderTimer = null;
 function renderSoon() { clearTimeout(renderTimer); renderTimer = setTimeout(render, 160); }
 
 function asstCancel(text = "Tudo bem, cancelei. Quando quiser, é só falar de novo.") {
-  asst.draft = null; asst.awaiting = null;
+  asst.draft = null; asst.awaiting = null; asst.preType = null;
   asst.msgs.push(asstBot(text)); paintChat();
 }
 function asstSubmit(raw) {
@@ -3313,7 +3323,9 @@ function asstSubmit(raw) {
     else if (asst.awaiting === "amount") { asst.msgs.push(asstBot("Não entendi o Valor. Diga ou escreva, por exemplo, 45,90.", [{ label: "Cancelar", kind: "cancel", muted: true }])); return paintChat(); }
     else { asst.msgs.push(asstBot("Não achei essa Categoria. Escolha uma das opções:")); return asstAsk(); }
   } else {
-    asst.draft = assistantDraft(parseSpokenTransaction(text, state.categories, ctx.today));
+    const parsed = parseSpokenTransaction(text, state.categories, ctx.today);
+    asst.draft = assistantDraft(assistantForceType(parsed, asst.preType, (type) => parseSpokenTransaction.guessCategory(text, state.categories, type)));
+    asst.preType = null;
   }
   asst.awaiting = null;
   asstAdvance();
@@ -3327,7 +3339,7 @@ function asstAdvance() {
   const tx = { id: uid(), source: "MANUAL", recurringId: null, period: null, notes: "", createdAt: Date.now(), ...t };
   state.transactions.push(tx); save(); renderSoon();
   asst.draft = null; asst.awaiting = null;
-  asst.msgs.push(asstBot(t.type === "INCOME" ? "Receita lançada." : "Gasto lançado. Toque em Editar para ajustar."), { from: "card", id: tx.id, editing: false, confirmDel: false });
+  asst.msgs.push(asstBot((t.type === "INCOME" ? "Receita lançada." : "Despesa lançada.") + " Toque em Editar para ajustar."), { from: "card", id: tx.id, editing: false, confirmDel: false });
   paintChat();
 }
 function asstAsk() {
@@ -3353,6 +3365,12 @@ function asstChip(m, c) {
   const msg = asst.msgs[m], chip = msg?.chips?.[c]; if (!chip) return;
   msg.chips = null;
   if (chip.kind === "cancel") return asstCancel();
+  if (chip.kind === "type-set") {
+    asst.preType = chip.value;
+    asst.msgs.push({ from: "user", text: chip.label });
+    asst.msgs.push(asstBot(chip.value === "INCOME" ? "Receita: diga ou escreva, por exemplo, “Recebi 2.500 de salário hoje”." : "Despesa: diga ou escreva, por exemplo, “Gastei 45,90 no almoço hoje”."));
+    return paintChat();
+  }
   if (!asst.draft) return paintChat();
   asst.msgs.push({ from: "user", text: chip.label });
   if (chip.kind === "type") { asst.draft.type = asst.draft.type === "INCOME" ? "EXPENSE" : "INCOME"; asst.draft.categoryId = null; }
@@ -3384,7 +3402,7 @@ function paintAsstVoice() {
   }
   paintVoiceCard(slot, {
     listening: true, text: asst.voice?.text || "", micAttr: 'data-asst="mic"',
-    bubble: asstPrompt(), meta: asst.awaiting ? "Fale a resposta." : VOICE_EXAMPLE.EXPENSE, caption: "Ouvindo… toque para parar",
+    bubble: asstPrompt(), meta: asst.awaiting ? "Fale a resposta." : "Ex.: “Gastei 52,30 no mercado” ou “Recebi 2500 de salário”", caption: "Ouvindo… toque para parar",
   });
 }
 function asstVoiceButton() {

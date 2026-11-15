@@ -11,6 +11,7 @@ type Api = {
   assistantMissing: (d: Draft) => "amount" | "category" | null;
   assistantReply: (d: Draft, awaiting: string, text: string, ctx: Record<string, unknown>) => Draft;
   assistantTransaction: (d: Draft, today: string, categoryName?: string) => Record<string, unknown>;
+  assistantForceType: (p: Draft, type: string | null, guess: (type: string) => string | null) => Draft;
   parseMoneyToCents: (s: string) => number | null;
 };
 
@@ -24,9 +25,9 @@ const money = /\/\*\* Text -> integer cents[\s\S]*?\nconst centsToInput/.exec(ht
 if (!money) throw new Error("parseMoneyToCents not found in index.html");
 const api = new Function(
   `${pick("voice-parser")}\n${money}\n${pick("assistant-flow")}
-   return { parse: parseSpokenTransaction, parseMoneyToCents, assistantDraft, assistantMissing, assistantReply, assistantTransaction };`,
+   return { parse: parseSpokenTransaction, parseMoneyToCents, assistantDraft, assistantMissing, assistantReply, assistantTransaction, assistantForceType };`,
 )() as Api;
-const { parse, parseMoneyToCents, assistantDraft, assistantMissing, assistantReply, assistantTransaction } = api;
+const { parse, parseMoneyToCents, assistantDraft, assistantMissing, assistantReply, assistantTransaction, assistantForceType } = api;
 
 const categories: Category[] = [
   { id: "food", type: "EXPENSE", name: "Alimentação" },
@@ -94,5 +95,22 @@ describe("assistant flow", () => {
   it("keeps a pending status and a spoken date", () => {
     const d = assistantDraft(parse("Gastei 45,90 no almoço ontem pendente", categories, today));
     expect(assistantTransaction(d, today)).toMatchObject({ amountCents: 4590, date: "2026-11-14", status: "PENDING", categoryId: "food" });
+  });
+
+  it("a chosen type wins over the sentence, with the category looked up for it", () => {
+    const text = "3000 salário";
+    const guess = (type: string) => parse.guessCategory(text, categories, type);
+    const parsed = parse(text, categories, today);
+    expect(assistantForceType(parsed, "EXPENSE", guess)).toMatchObject({ type: "EXPENSE", categoryId: null });
+    const food = parse("45 almoço", categories, today);
+    const asIncome = assistantForceType(food, "INCOME", (type) => parse.guessCategory("45 almoço", categories, type));
+    expect(asIncome).toMatchObject({ type: "INCOME", amountCents: 4500, categoryId: null });
+    expect(assistantMissing(assistantDraft(asIncome))).toBe("category");
+  });
+
+  it("keeps the parsed draft when no type was chosen or it already matches", () => {
+    const parsed = parse("Recebi 2500 de salário", categories, today);
+    expect(assistantForceType(parsed, null, () => "x")).toBe(parsed);
+    expect(assistantForceType(parsed, "INCOME", () => "x")).toBe(parsed);
   });
 });
