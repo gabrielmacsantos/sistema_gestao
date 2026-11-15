@@ -45,11 +45,12 @@ import {
   type MessagePart,
 } from "@/lib/cashflow";
 import { currentMonth, dateToInput, formatDayMonth, formatMonthLabel, formatMonthShort, monthRange, todayInput } from "@/lib/dates";
-import { formatBRL, formatPercent } from "@/lib/money";
+import { formatPercent } from "@/lib/money";
 import { monthParam, type SearchParams } from "@/lib/search-params";
 import { cn } from "@/lib/utils";
 import { CashFlowPanel, type FlowPoint } from "./cash-flow-chart";
 import { RecentLedger, type RecentViews } from "./recent-ledger";
+import { AnimatedCurrency } from "@/components/animated-currency";
 import { Money } from "@/components/money";
 
 export const metadata: Metadata = { title: "Painel" };
@@ -170,7 +171,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           className={KPI_TOP}
           icon={<ArrowDown className="size-[18px]" />}
           iconClassName="bg-success-container text-success"
-          value={formatBRL(income)}
+          cents={income}
           valueClassName="text-success"
           pill={
             incomeDelta !== null ? (
@@ -180,7 +181,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
                 {formatPercent(incomeDelta)} vs. anterior
               </Pill>
             ) : summary.incomePending ? (
-              <Pill className="bg-surface-container text-secondary"><Money cents={summary.incomePending} /> a receber</Pill>
+              <Pill className="bg-surface-container text-secondary"><AnimatedCurrency cents={summary.incomePending} /> a receber</Pill>
             ) : undefined
           }
           meter={{ ratio: income > 0 ? 1 : 0, className: "bg-success" }}
@@ -190,7 +191,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           className={KPI_TOP}
           icon={<Banknote className="size-[18px]" />}
           iconClassName="bg-surface-container-high text-primary"
-          value={formatBRL(expense)}
+          cents={expense}
           pill={
             income > 0 ? (
               <Pill className={expense > income ? "bg-danger-container text-danger" : "bg-error-container/60 text-error"}>
@@ -198,7 +199,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
                 {formatPercent(ratio(expense, income))} da receita
               </Pill>
             ) : summary.expensePending ? (
-              <Pill className="bg-warning-container text-warning"><Money cents={summary.expensePending} /> a pagar</Pill>
+              <Pill className="bg-warning-container text-warning"><AnimatedCurrency cents={summary.expensePending} /> a pagar</Pill>
             ) : undefined
           }
           meter={{ ratio: ratio(expense, income), className: "bg-primary" }}
@@ -208,7 +209,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           className={KPI_TOP}
           icon={<Lock className="size-[18px]" />}
           iconClassName="bg-secondary-container text-on-secondary-container"
-          value={formatBRL(split.fixedCents)}
+          cents={split.fixedCents}
           pill={
             split.fixedCount > 0 ? (
               <Pill className="bg-surface-container-high text-primary">
@@ -224,7 +225,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           className={KPI_BOTTOM}
           icon={<ShoppingBag className="size-[18px]" />}
           iconClassName="bg-surface-container-low text-tertiary"
-          value={formatBRL(split.variableCents)}
+          cents={split.variableCents}
           pill={
             <Pill className="bg-surface-container text-secondary">
               <ArrowLeftRight className="size-3" aria-hidden />
@@ -237,7 +238,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           label="Saldo livre previsto"
           icon={<PiggyBank className="size-[18px]" />}
           iconClassName="bg-tertiary-fixed text-on-tertiary-fixed"
-          value={formatBRL(free)}
+          cents={free}
           valueClassName={free < 0 ? "text-danger" : "text-tertiary"}
           className={cn("col-span-2", KPI_BOTTOM)}
           pill={
@@ -314,12 +315,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         <Card className="flex flex-col lg:col-span-8">
           <CashFlowPanel monthly={monthlyPoints} weekly={weeklyPoints} monthName={monthName} currentWeek={currentWeek}>
             <div className="my-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <FlowStat icon={<ArrowDown className="size-4" />} label="Total entradas" value={`+ ${formatBRL(income)}`} tone="text-success" />
-              <FlowStat icon={<ArrowUp className="size-4" />} label="Total saídas" value={formatBRL(expense)} tone="text-on-surface" />
+              <FlowStat icon={<ArrowDown className="size-4" />} label="Total entradas" prefix="+ " cents={income} tone="text-success" />
+              <FlowStat icon={<ArrowUp className="size-4" />} label="Total saídas" cents={expense} tone="text-on-surface" />
               <FlowStat
                 icon={<PiggyBank className="size-4" />}
                 label="Saldo líquido"
-                value={`${income - expense >= 0 ? "+ " : "− "}${formatBRL(Math.abs(income - expense))}`}
+                prefix={income - expense >= 0 ? "+ " : "− "}
+                cents={Math.abs(income - expense)}
                 tone={income - expense >= 0 ? "text-success" : "text-danger"}
                 highlight
               />
@@ -457,13 +459,15 @@ function ReserveText({ parts }: { parts: MessagePart[] }) {
 function FlowStat({
   icon,
   label,
-  value,
+  prefix,
+  cents,
   tone,
   highlight,
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  prefix?: string;
+  cents: number;
   tone: string;
   highlight?: boolean;
 }) {
@@ -486,7 +490,7 @@ function FlowStat({
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-label-md text-secondary">{label}</span>
         <span className={cn("truncate text-numeric-data tabular-nums", tone)}>
-          <span data-money>{value}</span>
+          <AnimatedCurrency cents={cents} prefix={prefix} />
         </span>
       </span>
     </div>

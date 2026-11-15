@@ -12,7 +12,7 @@ import { formatDate } from "@/lib/dates";
 import { monthParam, type SearchParams } from "@/lib/search-params";
 import { deleteBudgetAction, deleteGoalAction } from "./actions";
 import { BudgetForm, DepositForm, GoalForm } from "./forms";
-import { Money } from "@/components/money";
+import { AnimatedCurrency } from "@/components/animated-currency";
 
 export const metadata: Metadata = { title: "Orçamentos e metas" };
 
@@ -47,10 +47,10 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Sear
                       </div>
                       <ProgressBar ratio={s.ratio} tone={tone} label={`Orçamento de ${s.categoryName}`} />
                       <p className="text-body-sm text-secondary">
-                        <Money cents={s.spentCents} /> de <Money cents={s.limitCents} />
+                        <AnimatedCurrency cents={s.spentCents} /> de <AnimatedCurrency cents={s.limitCents} />
                         {tone === "over" && (
                           <span className="ml-1 font-medium text-danger">
-                            · estourou <Money cents={s.spentCents - s.limitCents} />
+                            · estourou <AnimatedCurrency cents={s.spentCents - s.limitCents} />
                           </span>
                         )}
                         {tone === "warn" && (
@@ -88,7 +88,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Sear
                       </div>
                       <ProgressBar ratio={ratio} tone="ok" label={`Progresso da meta ${g.name}`} />
                       <p className="text-body-sm text-secondary">
-                        <Money cents={g.savedCents} /> de <Money cents={g.targetCents} /> ({Math.round(ratio * 100)}%)
+                        <AnimatedCurrency cents={g.savedCents} /> de <AnimatedCurrency cents={g.targetCents} /> ({Math.round(ratio * 100)}%)
                         {g.deadline && ` · até ${formatDate(g.deadline)}`}
                         {ratio >= 1 && (
                           <span className="ml-1 font-medium text-primary">· concluída!</span>
