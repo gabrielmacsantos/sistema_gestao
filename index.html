@@ -385,8 +385,22 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .modal-foot .left { margin-right: auto; }
 @keyframes fade { from { opacity: 0; } }
 @keyframes up { from { transform: translateY(16px); opacity: 0; } }
-.toast { position: fixed; z-index: 70; left: 50%; bottom: 96px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; background: #213145; color: #eaf1ff; box-shadow: var(--shadow-3); font-weight: 500; animation: up .2s; max-width: calc(100% - 32px); }
-@media (min-width: 768px) { .toast { left: auto; right: 24px; bottom: 24px; transform: none; } }
+/* Toast: Material inverse surface (contrast >= 4.5:1 in both themes) + the "Texts reveal" transition (transitions.dev). */
+:root { --toast-bg: #213145; --toast-fg: #eaf1ff; --toast-accent: #89f5e7; --stagger-dur: 500ms; --stagger-distance: 12px; --stagger-stagger: 40ms; --stagger-blur: 3px; --stagger-ease: cubic-bezier(0.22, 1, 0.36, 1); }
+:root[data-theme="dark"] { --toast-bg: #dce6f5; --toast-fg: #0b1c30; --toast-accent: #00685f; }
+.t-stagger-line { display: block; opacity: 0; transform: translateY(var(--stagger-distance)); filter: blur(var(--stagger-blur)); transition: opacity var(--stagger-dur) var(--stagger-ease), transform var(--stagger-dur) var(--stagger-ease), filter var(--stagger-dur) var(--stagger-ease); will-change: transform, opacity, filter; }
+.t-stagger.is-shown .t-stagger-line { opacity: 1; transform: translateY(0); filter: blur(0); }
+.t-stagger.is-hiding .t-stagger-line { opacity: 0; transform: translateY(0); filter: blur(0); transition: opacity 200ms ease, transform 0s linear, filter 0s linear; transition-delay: 0s; }
+@media (prefers-reduced-motion: reduce) { .t-stagger-line { transition: none !important; } .toast { animation: none !important; transition: none !important; } }
+#toast-region { position: fixed; z-index: 70; left: 0; right: 0; bottom: calc(96px + env(safe-area-inset-bottom)); display: flex; justify-content: center; padding: 0 16px; pointer-events: none; }
+.toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 4px 4px 4px 16px; border-radius: 12px; background: var(--toast-bg); color: var(--toast-fg); box-shadow: var(--shadow-3); font-weight: 500; animation: up .2s; max-width: 100%; transition: opacity .2s; }
+.toast.is-leaving { opacity: 0; }
+.toast .toast-icon { display: flex; color: var(--toast-accent); }
+.toast .toast-text { min-width: 0; overflow-wrap: anywhere; padding: 8px 0; }
+.toast .toast-close { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border: 0; border-radius: 12px; background: transparent; color: var(--toast-fg); }
+.toast .toast-close:hover { background: color-mix(in srgb, var(--toast-fg) 12%, transparent); }
+.toast .toast-close:focus-visible { outline: 2px solid var(--toast-fg); outline-offset: -4px; }
+@media (min-width: 768px) { #toast-region { justify-content: flex-end; padding: 0 24px; bottom: max(24px, env(safe-area-inset-bottom)); } }
 .sync { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 12px; font-weight: 600; }
 .sync.ok { color: var(--success); } .sync.err { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
 .sync .txt { display: none; }
@@ -520,6 +534,7 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 <div id="app"><div class="boot" aria-busy="true" aria-label="Carregando"><div></div><div></div><div></div><p>Demorando mais que o normal? <a href="">Recarregar</a></p></div></div>
 <div id="layer"></div>
 <div id="live" class="sr-only" aria-live="polite"></div>
+<div id="toast-region" role="status" aria-live="polite"></div>
 
 <script>
 "use strict";
@@ -2417,13 +2432,51 @@ function openModal({ title, sub = "", body, foot, wide = false, onSubmit }) {
   if (first && matchMedia("(min-width: 640px)").matches) first.focus();
 }
 const closeModal = () => { stopVoice(); document.getElementById("layer").innerHTML = ""; modalSubmit = null; };
-let toastTimer;
+// <toast-timer> Self-contained: tests/toast-timer.test.ts loads this block from the file.
+const TOAST_MIN_MS = 4000, TOAST_MAX_MS = 4500, TOAST_SHORT_CHARS = 40, TOAST_LONG_CHARS = 120;
+/** 4 s for short messages, growing linearly to 4.5 s for long ones. */
+function toastDuration(text) {
+  const t = Math.min(Math.max((text.length - TOAST_SHORT_CHARS) / (TOAST_LONG_CHARS - TOAST_SHORT_CHARS), 0), 1);
+  return Math.round(TOAST_MIN_MS + t * (TOAST_MAX_MS - TOAST_MIN_MS));
+}
+/** A timeout that can be paused and resumed with the time it had left. */
+function pausableTimer(ms, onDone, clock = { now: () => Date.now(), set: (f, d) => setTimeout(f, d), clear: (i) => clearTimeout(i) }) {
+  let left = ms, started = null, id = null, done = false;
+  const run = () => { started = clock.now(); id = clock.set(() => { done = true; onDone(); }, left); };
+  run();
+  return {
+    pause() { if (started === null || done) return; clock.clear(id); left = Math.max(left - (clock.now() - started), 0); started = null; },
+    resume() { if (started !== null || done) return; run(); },
+    cancel() { clock.clear(id); done = true; },
+  };
+}
+// </toast-timer>
+let toastCurrent = null;
 function toast(msg) {
-  clearTimeout(toastTimer);
-  let el = document.querySelector(".toast"); if (el) el.remove();
-  el = document.createElement("div"); el.className = "toast"; el.setAttribute("role", "status");
-  el.innerHTML = `<span style="color:#89f5e7;display:flex">${icon("checkCircle")}</span>${esc(msg)}`;
-  document.body.appendChild(el); toastTimer = setTimeout(() => el.remove(), 2800);
+  if (toastCurrent) toastCurrent.dispose();
+  const region = document.getElementById("toast-region");
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const el = document.createElement("div"); el.className = "toast";
+  el.innerHTML = `<span class="toast-icon">${icon("checkCircle")}</span><span class="toast-text t-stagger"><span class="t-stagger-line">${esc(msg)}</span></span><button type="button" class="toast-close" aria-label="Fechar notificação">${icon("x")}</button>`;
+  const text = el.querySelector(".t-stagger");
+  let hovered = false, focused = false, hideTimer = null;
+  const timer = pausableTimer(toastDuration(msg), () => hide());
+  const dispose = () => { timer.cancel(); clearTimeout(hideTimer); el.remove(); if (toastCurrent && toastCurrent.el === el) toastCurrent = null; };
+  function hide() {
+    timer.cancel();
+    if (reduced) return dispose();
+    text.classList.add("is-hiding"); text.classList.remove("is-shown"); el.classList.add("is-leaving");
+    hideTimer = setTimeout(dispose, 200);
+  }
+  const sync = () => (hovered || focused ? timer.pause() : timer.resume());
+  el.addEventListener("pointerenter", () => { hovered = true; sync(); });
+  el.addEventListener("pointerleave", () => { hovered = false; sync(); });
+  el.addEventListener("focusin", () => { focused = true; sync(); });
+  el.addEventListener("focusout", () => { focused = false; sync(); });
+  el.querySelector(".toast-close").addEventListener("click", () => dispose());
+  region.appendChild(el);
+  void el.offsetHeight; text.classList.add("is-shown");
+  toastCurrent = { el, dispose };
 }
 /** Replays the shake from a clean baseline; a newer shake is not cut short by an older timer. */
 function shakeInput(input) {
