@@ -572,13 +572,12 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
   --w-calc: min(312px, calc(100vw - 32px)); --h-calc: min(500px, calc(100dvh - 176px - env(safe-area-inset-bottom)));
   position: fixed; z-index: 45; right: max(16px, env(safe-area-inset-right)); bottom: calc(92px + env(safe-area-inset-bottom));
   width: 56px; height: 56px; border-radius: 28px; overflow: hidden; transform-origin: bottom right;
-  background: color-mix(in srgb, var(--card) 70%, transparent); color: var(--primary); border: 1px solid var(--stage-border); box-shadow: 0 4px 14px -4px rgb(15 23 42 / .18);
-  -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); opacity: .72;
-  transition: width var(--morph-dur) var(--morph-ease), height var(--morph-dur) var(--morph-ease), border-radius var(--morph-dur) var(--morph-ease), background-color var(--morph-dur) var(--morph-ease), color var(--morph-dur) var(--morph-ease), border-color var(--morph-dur) var(--morph-ease), box-shadow var(--morph-dur) var(--morph-ease), opacity 200ms ease;
+  background: var(--card); color: var(--primary); border: 1px solid var(--stage-border); box-shadow: 0 4px 14px -4px rgb(15 23 42 / .18); opacity: .72;
+  transition: width var(--morph-dur) var(--morph-ease), height var(--morph-dur) var(--morph-ease), border-radius var(--morph-dur) var(--morph-ease), background-color var(--morph-dur) var(--morph-ease), color var(--morph-dur) var(--morph-ease), border-color var(--morph-dur) var(--morph-ease), opacity 200ms ease;
 }
 @media (min-width: 768px) { .asst { bottom: calc(24px + env(safe-area-inset-bottom)); --h-chat: min(560px, calc(100dvh - 112px)); --h-calc: min(500px, calc(100dvh - 112px)); } }
 .asst[data-state="closed"]:hover, .asst[data-state="closed"]:focus-within { opacity: 1; }
-.asst:not([data-state="closed"]) { background: color-mix(in srgb, var(--stage-bg) 94%, transparent); color: var(--stage-fg); border-color: var(--stage-border); opacity: 1; box-shadow: 0 24px 48px -12px rgb(15 23 42 / .32), 0 0 0 1px rgb(15 23 42 / .02); }
+.asst:not([data-state="closed"]) { background: var(--stage-bg); color: var(--stage-fg); border-color: var(--stage-border); opacity: 1; box-shadow: 0 24px 48px -12px rgb(15 23 42 / .32), 0 0 0 1px rgb(15 23 42 / .02); }
 .asst[data-state="menu"] { width: var(--w-menu); height: var(--h-menu); border-radius: 24px; }
 .asst[data-state="chat"] { width: var(--w-chat); height: var(--h-chat); border-radius: 28px; }
 .asst[data-state="calc"] { width: var(--w-calc); height: var(--h-calc); border-radius: 28px; }
@@ -588,14 +587,14 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .asst-trigger:focus-visible, .asst button:focus-visible, .asst input:focus-visible, .asst select:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .asst:not([data-state="closed"]) .asst-trigger { opacity: 0; transform: scale(.6); filter: blur(var(--morph-blur)); pointer-events: none; }
 .asst-layer { position: absolute; right: 0; bottom: 0; display: flex; flex-direction: column; opacity: 0; visibility: hidden; pointer-events: none;
-  transform: translateY(var(--morph-distance)) scale(var(--morph-scale)); transform-origin: bottom right; filter: blur(var(--morph-blur));
-  transition: opacity calc(var(--morph-dur) * .5) ease, transform calc(var(--morph-dur) * .5) ease, filter calc(var(--morph-dur) * .5) ease, visibility 0s linear calc(var(--morph-dur) * .5); }
+  transform: translateY(var(--morph-distance)) scale(var(--morph-scale)); transform-origin: bottom right;
+  transition: opacity calc(var(--morph-dur) * .5) ease, transform calc(var(--morph-dur) * .5) ease, visibility 0s linear calc(var(--morph-dur) * .5); }
 .asst-layer[data-layer="menu"] { width: var(--w-menu); height: var(--h-menu); }
 .asst-layer[data-layer="chat"] { width: var(--w-chat); height: var(--h-chat); }
 .asst-layer[data-layer="calc"] { width: var(--w-calc); height: var(--h-calc); }
 .asst[data-state="menu"] .asst-layer[data-layer="menu"], .asst[data-state="chat"] .asst-layer[data-layer="chat"], .asst[data-state="calc"] .asst-layer[data-layer="calc"] {
-  opacity: 1; visibility: visible; pointer-events: auto; transform: none; filter: none;
-  transition: opacity var(--morph-dur) var(--morph-ease) calc(var(--morph-dur) * .3), transform var(--morph-dur) var(--morph-ease) calc(var(--morph-dur) * .3), filter var(--morph-dur) var(--morph-ease) calc(var(--morph-dur) * .3), visibility 0s;
+  opacity: 1; visibility: visible; pointer-events: auto; transform: none;
+  transition: opacity var(--morph-dur) var(--morph-ease) calc(var(--morph-dur) * .3), transform var(--morph-dur) var(--morph-ease) calc(var(--morph-dur) * .3), visibility 0s;
 }
 .asst-menu { padding: 10px; gap: 6px; justify-content: center; }
 .asst-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 12px; border: 0; border-radius: 14px; background: none; color: inherit; font: 600 14px/1.2 var(--font); text-align: left; cursor: pointer;
@@ -611,7 +610,7 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .asst-head-ic svg.i { width: 16px; height: 16px; }
 .asst-head .icon-btn { width: 44px; height: 44px; border: 0; background: none; box-shadow: none; color: var(--on-var); }
 .asst-head .icon-btn:hover { background: var(--c-low); color: var(--on); }
-.asst-log { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 6px 16px 16px; overscroll-behavior: contain; mask-image: linear-gradient(to bottom, transparent 0, #000 14px); -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14px); }
+.asst-log { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 6px 16px 16px; overscroll-behavior: contain; }
 .asst-msg { display: flex; flex-direction: column; gap: 8px; max-width: 92%; }
 .asst-msg p { margin: 0; padding: 10px 14px; border-radius: 20px; font-size: 14px; line-height: 20px; overflow-wrap: anywhere; white-space: pre-wrap; }
 .asst-msg.bot { align-self: flex-start; } .asst-msg.bot p { background: color-mix(in srgb, var(--on) 5%, var(--card)); border-bottom-left-radius: 6px; }
@@ -633,6 +632,12 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .asst-edit { display: flex; flex-direction: column; gap: 8px; }
 .asst-edit label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--on-var); }
 .asst-edit .money span { color: var(--on-var); }
+.asst-voice { flex: none; padding: 0 12px 12px; }
+.asst-voice:empty { display: none; }
+.asst-voice .va-card { min-height: 0; }
+.asst-voice .va-body { padding-top: 12px; }
+.asst-voice .va-bottom { padding-bottom: 14px; }
+.asst-layer[data-voice="on"] .asst-composer { display: none; }
 .asst-composer { display: flex; align-items: center; gap: 4px; flex: none; margin: 0 10px 10px; padding: 4px; border-radius: 28px; background: var(--c-low); }
 .asst-composer .input { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border: 0; border-radius: 22px; background: transparent; box-shadow: none; }
 .asst-composer .input:focus { outline: none; }
@@ -3036,8 +3041,17 @@ function renderVoiceSlot() {
       <div class="actions"><button type="button" class="btn btn-secondary btn-sm" data-act="voice-cancel">Agora não</button><button type="button" class="btn btn-primary btn-sm" data-act="voice-accept">${icon("mic")} Entendi, falar</button></div></div>`;
     return;
   }
-  const listening = mode === "listening";
   const income = txForm.getType?.() === "INCOME";
+  paintVoiceCard(slot, {
+    listening: mode === "listening", text, micAttr: 'data-act="voice"',
+    bubble: income ? "Qual receita você quer lançar?" : "Qual gasto você quer lançar?",
+    meta: mode === "done" ? "Confira os campos antes de salvar." : VOICE_EXAMPLE[income ? "INCOME" : "EXPENSE"],
+    caption: mode === "listening" ? "Ouvindo… toque para parar" : mode === "done" ? "Toque para falar de novo" : "Toque para falar",
+  });
+}
+
+// The "Assistente de voz" card, shared by the transaction form and the quick assistant's chat.
+function paintVoiceCard(slot, { listening, bubble, meta, caption, text, micAttr }) {
   let card = slot.querySelector(".va-card");
   if (!card) {
     slot.innerHTML = `<div class="va-card">
@@ -3052,7 +3066,7 @@ function renderVoiceSlot() {
         </div>
         <div class="va-bottom">
           <span class="va-caption"><span class="va-swap" aria-live="polite"></span></span>
-          <button type="button" class="va-mic" data-act="voice" aria-pressed="false"><span class="va-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>
+          <button type="button" class="va-mic" ${micAttr} aria-pressed="false"><span class="va-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>
         </div>
       </div></div>`;
     card = slot.firstElementChild;
@@ -3062,9 +3076,9 @@ function renderVoiceSlot() {
   mic.classList.toggle("is-live", listening);
   mic.setAttribute("aria-pressed", String(listening));
   mic.setAttribute("aria-label", listening ? "Parar de falar" : "Falar o lançamento");
-  card.querySelector(".va-bubble span").textContent = income ? "Qual receita você quer lançar?" : "Qual gasto você quer lançar?";
-  card.querySelector(".va-meta").textContent = mode === "done" ? "Confira os campos antes de salvar." : VOICE_EXAMPLE[income ? "INCOME" : "EXPENSE"];
-  swapText(card.querySelector(".va-swap"), listening ? "Ouvindo… toque para parar" : mode === "done" ? "Toque para falar de novo" : "Toque para falar");
+  card.querySelector(".va-bubble span").textContent = bubble;
+  card.querySelector(".va-meta").textContent = meta;
+  swapText(card.querySelector(".va-swap"), caption);
   setTranscript(card.querySelector(".va-transcript"), text);
 }
 
@@ -3155,7 +3169,7 @@ function finishVoice(session) {
 // (transitions.dev "Dropdown menu morph"). It lives outside #app so a render never resets a conversation.
 // The chat saves as soon as the sentence is complete (the user can edit or delete in the card);
 // the voice is the same speech service as the transaction form, with the same notice before the first use.
-const asst = { view: "closed", msgs: [], draft: null, awaiting: null, calc: calcNew(), voice: null, greeted: false };
+const asst = { view: "closed", msgs: [], draft: null, awaiting: null, calc: calcNew(), voice: null, voiceMode: "idle", greeted: false, said: null };
 const asstEl = () => document.getElementById("asst");
 const asstBot = (text, chips = null) => ({ from: "bot", text, chips });
 const CALC_KEYS = [
@@ -3176,7 +3190,8 @@ function assistantHtml() {
     </div>
     <section class="asst-layer" data-layer="chat" role="dialog" aria-label="Chat de lançamentos" inert>
       ${head("Chat de lançamentos", "chat")}
-      <div class="asst-log" role="log" aria-live="polite"></div>
+      <div class="asst-log"></div>
+      <div class="asst-voice"></div>
       <form class="asst-composer" data-asst-form autocomplete="off">
         <input class="input" name="text" placeholder="Ex.: gastei 45,90 no almoço" aria-label="Escreva o lançamento" maxlength="200" enterkeyhint="send">
         ${SpeechRec ? `<button type="button" class="icon-btn asst-mic" data-asst="mic" aria-pressed="false" aria-label="Falar o lançamento">${icon("mic")}</button>` : ""}
@@ -3231,6 +3246,8 @@ function paintChat() {
   log.innerHTML = asst.msgs.map((m, i) => m.from === "card" ? asstCardHtml(m, i)
     : `<div class="asst-msg ${m.from}"><p>${esc(m.text)}</p>${m.chips?.length ? `<div class="asst-chips">${m.chips.map((c, j) => `<button type="button" class="asst-chip ${c.muted ? "muted" : ""}" data-asst="chip" data-m="${i}" data-c="${j}">${esc(c.label)}</button>`).join("")}</div>` : ""}</div>`).join("");
   log.scrollTop = log.scrollHeight;
+  const last = asst.msgs[asst.msgs.length - 1];
+  if (last && last !== asst.said) { asst.said = last; if (last.from === "bot") document.getElementById("live").textContent = last.text; }
 }
 function paintComposer() {
   const mic = asstEl()?.querySelector(".asst-mic"); if (!mic) return;
@@ -3263,6 +3280,10 @@ function asstCardHtml(m, i) {
     <div class="asst-card-actions">${actions}</div></div>`;
 }
 
+// The page behind redraws after the chat has painted, so the answer never waits for a full render.
+let renderTimer = null;
+function renderSoon() { clearTimeout(renderTimer); renderTimer = setTimeout(render, 160); }
+
 function asstCancel(text = "Tudo bem, cancelei. Quando quiser, é só falar de novo.") {
   asst.draft = null; asst.awaiting = null;
   asst.msgs.push(asstBot(text)); paintChat();
@@ -3294,7 +3315,7 @@ function asstAdvance() {
   if (assistantMissing(d)) return asstAsk();
   const t = assistantTransaction(d, todayISO(), catById(d.categoryId)?.name);
   const tx = { id: uid(), source: "MANUAL", recurringId: null, period: null, notes: "", createdAt: Date.now(), ...t };
-  state.transactions.push(tx); save(); render();
+  state.transactions.push(tx); save(); renderSoon();
   asst.draft = null; asst.awaiting = null;
   asst.msgs.push(asstBot(t.type === "INCOME" ? "Receita lançada." : "Gasto lançado. Toque em Editar para ajustar."), { from: "card", id: tx.id, editing: false, confirmDel: false });
   paintChat();
@@ -3319,8 +3340,6 @@ function asstAsk() {
 function asstChip(m, c) {
   const msg = asst.msgs[m], chip = msg?.chips?.[c]; if (!chip) return;
   msg.chips = null;
-  if (chip.kind === "voice-ok") { try { localStorage.setItem(VOICE_OK_KEY, "1"); } catch {} paintChat(); return startAsstVoice(); }
-  if (chip.kind === "voice-no") return paintChat();
   if (chip.kind === "cancel") return asstCancel();
   if (!asst.draft) return paintChat();
   asst.msgs.push({ from: "user", text: chip.label });
@@ -3336,46 +3355,61 @@ function asstSaveEdit(form) {
   if (cents === null || cents <= 0 || cents > ASSISTANT_MAX_CENTS) return toast("Informe um valor maior que zero.");
   if (!isDate(date)) return toast("Data inválida.");
   Object.assign(tx, { description: description.slice(0, 120), amountCents: cents, date, categoryId: catById(categoryId)?.type === tx.type ? categoryId : null, status: f.get("status") === "PENDING" ? "PENDING" : "PAID" });
-  save(); render(); msg.editing = false; paintChat();
+  save(); renderSoon(); msg.editing = false; paintChat();
 }
 
-// ----- Voice (same service and notice as the transaction form) -----
+// ----- Voice: the same "Assistente de voz" card, service and notice as the transaction form -----
+const asstPrompt = () => (asst.awaiting === "amount" ? "Qual foi o valor?" : asst.awaiting === "category" ? "Qual a categoria?" : "O que você quer lançar?");
+function paintAsstVoice() {
+  const layer = asstEl()?.querySelector('[data-layer="chat"]'); if (!layer) return;
+  const slot = layer.querySelector(".asst-voice"), mode = asst.voiceMode;
+  layer.dataset.voice = mode === "idle" ? "off" : "on";
+  if (mode === "idle") { slot.innerHTML = ""; return; }
+  if (mode === "consent") {
+    slot.innerHTML = `<div class="voice-note"><p><b>Antes de falar:</b> quem transforma sua fala em texto é o serviço de voz do navegador (Google no Chrome e no Android, Apple no Safari), que recebe o áudio. Depois, o lançamento é salvo na hora e você pode editar ou excluir no cartão.</p>
+      <div class="actions"><button type="button" class="btn btn-secondary btn-sm" data-asst="voice-no">Agora não</button><button type="button" class="btn btn-primary btn-sm" data-asst="voice-ok">${icon("mic")} Entendi, falar</button></div></div>`;
+    return;
+  }
+  paintVoiceCard(slot, {
+    listening: true, text: asst.voice?.text || "", micAttr: 'data-asst="mic"',
+    bubble: asstPrompt(), meta: asst.awaiting ? "Fale a resposta." : VOICE_EXAMPLE.EXPENSE, caption: "Ouvindo… toque para parar",
+  });
+  const log = layer.querySelector(".asst-log"); log.scrollTop = log.scrollHeight;
+}
 function asstVoiceButton() {
   if (asst.voice) { try { asst.voice.rec.stop(); } catch {} return; }
+  if (asst.voiceMode === "consent") return;
   let ok = false; try { ok = localStorage.getItem(VOICE_OK_KEY) === "1"; } catch {}
   if (ok) return startAsstVoice();
-  asst.msgs.push(asstBot("Antes de falar: quem transforma sua fala em texto é o serviço de voz do navegador (Google no Chrome e no Android, Apple no Safari), que recebe o áudio. Depois, o lançamento é salvo na hora e você pode editar ou excluir no cartão.", [{ label: "Entendi, falar", kind: "voice-ok" }, { label: "Agora não", kind: "voice-no", muted: true }]));
-  paintChat();
+  asst.voiceMode = "consent"; paintAsstVoice();
 }
 function startAsstVoice() {
   stopVoice();
   let rec;
-  try { rec = new SpeechRec(); } catch { return toast("Não foi possível usar o microfone neste navegador."); }
+  try { rec = new SpeechRec(); } catch { asst.voiceMode = "idle"; paintAsstVoice(); return toast("Não foi possível usar o microfone neste navegador."); }
   rec.lang = "pt-BR"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
   const session = { rec, text: "", error: "" };
-  const field = () => asstEl()?.querySelector('input[name="text"]');
   rec.onresult = (e) => {
     if (asst.voice !== session) return;
     session.text = Array.from(e.results, (r) => r[0].transcript).join(" ").replace(/\s+/g, " ").trim();
-    const el = field(); if (el) el.value = session.text;
+    const el = asstEl()?.querySelector(".asst-voice .va-transcript"); if (el) setTranscript(el, session.text);
   };
   rec.onerror = (e) => { session.error = e.error; };
   rec.onend = () => {
     if (asst.voice !== session) return;
-    asst.voice = null; paintComposer();
-    const el = field(); if (el) el.value = "";
+    asst.voice = null; asst.voiceMode = "idle"; paintAsstVoice(); paintComposer();
     if (session.text) asstSubmit(session.text);
     else if (session.error !== "aborted") toast(VOICE_ERRORS[session.error] || "Não ouvi nada. Toque no microfone e fale de novo.");
   };
-  asst.voice = session; paintComposer();
-  try { rec.start(); } catch { asst.voice = null; paintComposer(); toast("Não foi possível usar o microfone neste navegador."); }
+  asst.voice = session; asst.voiceMode = "listening"; paintAsstVoice(); paintComposer();
+  try { rec.start(); } catch { asst.voice = null; asst.voiceMode = "idle"; paintAsstVoice(); paintComposer(); toast("Não foi possível usar o microfone neste navegador."); }
 }
 function stopAsstVoice() {
-  if (!asst.voice) return;
   const s = asst.voice; asst.voice = null;
-  try { s.rec.abort(); } catch {}
-  paintComposer();
-  const el = asstEl()?.querySelector('input[name="text"]'); if (el) el.value = "";
+  if (!s && asst.voiceMode === "idle") return;
+  asst.voiceMode = "idle";
+  try { s?.rec.abort(); } catch {}
+  paintAsstVoice(); paintComposer();
 }
 
 // ----- Calculator -----
@@ -3403,13 +3437,15 @@ function onAsstClick(e) {
   else if (k === "close") asstSet("closed");
   else if (k === "chip") asstChip(m, Number(el.dataset.c));
   else if (k === "mic") asstVoiceButton();
+  else if (k === "voice-ok") { try { localStorage.setItem(VOICE_OK_KEY, "1"); } catch {} startAsstVoice(); }
+  else if (k === "voice-no") { asst.voiceMode = "idle"; paintAsstVoice(); }
   else if (k === "key") { asst.calc = calcPress(asst.calc, el.dataset.key); paintCalc(); }
   else if (k === "use") calcUse();
   else if (["edit", "edit-cancel", "del", "del-no", "del-yes"].includes(k)) {
     const msg = asst.msgs[m]; if (!msg) return;
     if (k === "del-yes") {
       state.transactions = state.transactions.filter((t) => t.id !== msg.id);
-      save(); render();
+      save(); renderSoon();
     } else { msg.editing = k === "edit"; msg.confirmDel = k === "del"; }
     paintChat();
   }
