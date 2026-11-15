@@ -11,7 +11,6 @@ import { listCategories } from "@/server/repositories/categories";
 import { ensureOccurrences } from "@/server/services/recurring";
 import { searchTransactions } from "@/server/services/transactions";
 import { formatMonthLabel, monthRange } from "@/lib/dates";
-import { formatBRL } from "@/lib/money";
 import { monthParam, param, type SearchParams } from "@/lib/search-params";
 import { cn } from "@/lib/utils";
 import { LedgerFilters } from "./ledger-filters";
@@ -84,20 +83,20 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           label="Entradas"
           icon={<ArrowDown className="size-[18px]" />}
           iconClassName="bg-success-container text-success"
-          value={formatBRL(income)}
+          cents={income}
           valueClassName="text-success"
         />
         <MetricCard
           label="Saídas"
           icon={<ArrowUp className="size-[18px]" />}
           iconClassName="bg-surface-container-high text-primary"
-          value={formatBRL(expense)}
+          cents={expense}
         />
         <MetricCard
           label="Pendente"
           icon={<Clock className="size-[18px]" />}
           iconClassName="bg-warning-container text-warning"
-          value={formatBRL(pending)}
+          cents={pending}
           valueClassName={pending ? "text-warning" : undefined}
           className="col-span-2 lg:col-span-1"
         />

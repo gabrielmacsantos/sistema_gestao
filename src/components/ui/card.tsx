@@ -1,4 +1,6 @@
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
+import { AnimatedCurrency } from "@/components/animated-currency";
+import { formatBRL } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 /** Tier 1 panel: white plane, 16px radius, hairline border. */
@@ -98,7 +100,7 @@ export function MetricCard({
   label,
   icon,
   iconClassName,
-  value,
+  cents,
   valueClassName,
   pill,
   meter,
@@ -107,7 +109,8 @@ export function MetricCard({
   label: string;
   icon: ReactNode;
   iconClassName?: string;
-  value: string;
+  /** The figure, in integer cents. */
+  cents: number;
   valueClassName?: string;
   pill?: ReactNode;
   meter?: { ratio: number; className: string };
@@ -130,9 +133,9 @@ export function MetricCard({
             "metric-value font-display font-bold tracking-tight tabular-nums text-on-surface",
             valueClassName,
           )}
-          style={{ "--chars": value.length } as CSSProperties}
+          style={{ "--chars": formatBRL(cents).length } as CSSProperties}
         >
-          <span data-money>{value}</span>
+          <AnimatedCurrency cents={cents} />
         </p>
         {pill && <div className="mt-2 flex">{pill}</div>}
       </div>

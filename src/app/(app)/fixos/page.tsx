@@ -7,7 +7,6 @@ import { Card, CardTitle, EmptyState, MetricCard, PageHeader } from "@/component
 import { requireUserId } from "@/server/auth";
 import { listRecurrings } from "@/server/services/recurring";
 import { currentMonth, formatMonthShort } from "@/lib/dates";
-import { formatBRL } from "@/lib/money";
 import { Money } from "@/components/money";
 
 export const metadata: Metadata = { title: "Gastos fixos" };
@@ -39,13 +38,13 @@ export default async function RecurringPage() {
           label="Despesas fixas/mês"
           icon={<Lock className="size-[18px]" />}
           iconClassName="bg-secondary-container text-on-secondary-container"
-          value={formatBRL(total("EXPENSE"))}
+          cents={total("EXPENSE")}
         />
         <MetricCard
           label="Receitas fixas/mês"
           icon={<ArrowDown className="size-[18px]" />}
           iconClassName="bg-success-container text-success"
-          value={formatBRL(total("INCOME"))}
+          cents={total("INCOME")}
           valueClassName="text-success"
         />
       </div>

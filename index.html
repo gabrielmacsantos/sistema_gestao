@@ -109,6 +109,14 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .bell-badge.t-badge { animation: t-badge-in var(--badge-dur) var(--badge-ease) both; }
 @keyframes t-badge-in { 0% { opacity: 0; transform: scale(var(--badge-scale-from)); filter: blur(var(--badge-blur)); } 60% { opacity: 1; transform: scale(var(--badge-scale-peak)); filter: blur(0); } 100% { opacity: 1; transform: scale(1); filter: blur(0); } }
 @media (prefers-reduced-motion: reduce) { .bell-badge.t-badge { animation: none !important; } }
+/* Spinning counter (transitions.dev): each digit is a clipped reel of 0-9 that spins up and lands. */
+:root { --reel-dur: 1400ms; --reel-spin-blur: 3px; --reel-stagger: 90ms; --reel-ease: cubic-bezier(.16,1,.3,1); }
+.t-reel { --reel-cell: 1.3em; display: inline-flex; align-items: center; vertical-align: middle; height: var(--reel-cell); font-variant-numeric: tabular-nums; }
+.t-reel-char { white-space: pre; }
+.t-reel-col { position: relative; height: var(--reel-cell); overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%); }
+.t-reel-strip { display: flex; flex-direction: column; will-change: transform, filter; }
+.t-reel-digit { height: var(--reel-cell); display: flex; align-items: center; justify-content: center; }
+@media (prefers-reduced-motion: reduce) { .t-reel-strip { transition: none !important; filter: none !important; } }
 .notice-list { list-style: none; margin: 0; padding: 0; }
 .notice-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--c-low); }
 .notice-item:last-child { border-bottom: 0; }
@@ -589,6 +597,14 @@ const HIDDEN_AMOUNT = "R$ •••••";
 const fmt = (cents) => (hideValues ? HIDDEN_AMOUNT : brl.format(cents / 100));
 const fmtCompact = (cents) => (hideValues ? "R$ •••" : brlCompact.format(cents / 100));
 const fmtPct = (r) => pct.format(r);
+// <reel> Self-contained, same as src/lib/reel.ts: tests/reel.test.ts loads this block from the file.
+const REEL_SPINS = 2;
+function reelChars(text) {
+  const chars = Array.from(text);
+  return chars.map((char, i) => ({ key: chars.length - 1 - i, char, digit: /^[0-9]$/.test(char) ? Number(char) : null }));
+}
+const reelCell = (digit, spins = REEL_SPINS) => spins * 10 + digit;
+// </reel>
 const ratio = (a, b) => (b > 0 ? a / b : 0);
 const clamp01 = (r) => Math.max(0, Math.min(1, r));
 const sum = (list, fn = (x) => x.amountCents) => list.reduce((s, x) => s + fn(x), 0);
@@ -1728,10 +1744,70 @@ function monthSheet() {
   sel.scrollIntoView({ block: "center" }); sel.focus({ preventScroll: true });
 }
 const pageHead = (title, desc, actions = "") => `<div class="page-head"><div><h1 class="h-page">${title}</h1>${desc ? `<p class="desc">${desc}</p>` : ""}</div>${actions ? `<div class="actions">${actions}</div>` : ""}</div>`;
-const metric = ({ label, ic, chip, value, valueCls = "", pill = "", meter = null, cls = "" }) => `
+// Spinning counter (transitions.dev): amountHtml marks an amount, paintReels turns it into digit reels
+// after each render. reelMemory keeps the last digit of each reel, so only digits that changed spin
+// again, and everything spins from 0 the first time it is shown.
+const reelMemory = new Map();
+const reelCells = Array.from({ length: (REEL_SPINS + 1) * 10 }, (_, i) => `<span class="t-reel-digit">${i % 10}</span>`).join("");
+const reelAt = (cell) => `translateY(calc(var(--reel-cell) * -${cell}))`;
+let reelSeq = 0;
+function amountHtml(cents, key, prefix = "") {
+  if (hideValues || !Number.isSafeInteger(cents)) return esc(prefix) + fmt(cents);
+  return `<span class="t-reelnum" data-reel="${esc(key)}">${esc(prefix + brl.format(cents / 100))}</span>`;
+}
+function paintReels() {
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const jobs = [];
+  document.querySelectorAll("[data-reel]").forEach((el) => {
+    const key = el.dataset.reel, text = el.textContent;
+    let order = 0, html = "";
+    const spins = [];
+    for (const c of reelChars(text)) {
+      if (c.digit === null) { html += `<span class="t-reel-char">${esc(c.char)}</span>`; continue; }
+      const mem = `${key}|${c.key}`, from = reelMemory.get(mem);
+      reelMemory.set(mem, c.digit);
+      if (from !== c.digit) spins.push({ index: order, from: from ?? 0, digit: c.digit });
+      html += `<span class="t-reel-col"><span class="t-reel-strip" style="transform:${reelAt(reelCell(c.digit))}">${reelCells}</span></span>`;
+      order++;
+    }
+    el.removeAttribute("data-reel");
+    el.innerHTML = `<span class="sr-only">${esc(text)}</span><span class="t-reel" aria-hidden="true">${html}</span>`;
+    if (!reduced) jobs.push({ strips: el.querySelectorAll(".t-reel-strip"), spins });
+  });
+  if (!jobs.length) return;
+  let fx = document.getElementById("reel-fx");
+  if (!fx) { document.body.insertAdjacentHTML("beforeend", `<svg id="reel-fx" aria-hidden="true" width="0" height="0" style="position:absolute"></svg>`); fx = document.getElementById("reel-fx"); }
+  const cssMs = (s, name) => parseFloat(s.getPropertyValue(name)) || 0;
+  for (const { strips, spins } of jobs) for (const sp of spins) {
+    const strip = strips[sp.index];
+    strip.style.transition = "none";
+    strip.style.transform = reelAt(sp.from);
+    void strip.offsetHeight;
+    const css = getComputedStyle(strip), dur = cssMs(css, "--reel-dur"), delay = sp.index * cssMs(css, "--reel-stagger"), spinBlur = cssMs(css, "--reel-spin-blur");
+    strip.style.transition = `transform var(--reel-dur) var(--reel-ease) ${delay}ms`;
+    strip.style.transform = reelAt(reelCell(sp.digit));
+    // Vertical-only blur (CSS blur() would smear sideways), decaying as this reel settles.
+    const id = `reel-f${++reelSeq}`;
+    fx.insertAdjacentHTML("beforeend", `<filter id="${id}" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="0 0"/></filter>`);
+    const blur = fx.querySelector(`#${id} feGaussianBlur`), start = performance.now();
+    strip.style.filter = `url(#${id})`;
+    const tick = (now) => {
+      const t = Math.min(Math.max((now - start - delay) / dur, 0), 1);
+      blur.setAttribute("stdDeviation", `0 ${(spinBlur * (1 - t) ** 2).toFixed(2)}`);
+      if (t < 1 && strip.isConnected) requestAnimationFrame(tick);
+      else { strip.style.filter = ""; document.getElementById(id)?.remove(); }
+    };
+    requestAnimationFrame(tick);
+  }
+}
+const metric = ({ label, ic, chip, value, cents, prefix = "", valueCls = "", pill = "", meter = null, cls = "" }) => {
+  const shown = cents !== undefined ? amountHtml(cents, label, prefix) : value;
+  const chars = cents !== undefined ? (prefix + fmt(cents)).length : String(value).length;
+  return `
   <div class="card metric ${cls}"><div class="metric-top"><span class="metric-label">${label}</span><span class="chip" style="${chip}">${icon(ic)}</span></div>
-  <div><p class="metric-value ${valueCls}" style="--chars:${String(value).length}">${value}</p>${pill}</div>
+  <div><p class="metric-value ${valueCls}" style="--chars:${chars}">${shown}</p>${pill}</div>
   ${meter ? `<div class="meter"><div style="width:${clamp01(meter.r) * 100}%;background:${meter.color}"></div></div>` : ""}</div>`;
+};
 const pill = (style, ic, text) => `<span class="pill" style="${style}">${ic ? icon(ic) : ""}${text}</span>`;
 const statusBadge = (t) => t.status === "PENDING" ? `<span class="badge b-warning">Pendente</span>` : `<span class="badge b-success">${t.type === "INCOME" ? "Recebido" : "Pago"}</span>`;
 const catChip = (c) => c ? `<span class="cat"><span class="dot" style="background:${esc(c.color)};width:6px;height:6px"></span><span class="truncate">${esc(c.name)}</span></span>` : `<span class="muted">—</span>`;
@@ -1851,9 +1927,9 @@ function ledgerList(r) {
 }
 function ledgerMetrics(list) {
   const inc = sum(list.filter((t) => t.type === "INCOME")), exp = sum(list.filter((t) => t.type === "EXPENSE")), pen = sum(list.filter((t) => t.status === "PENDING"));
-  return `${metric({ label: "Entradas", ic: "down", chip: "background:var(--success-c);color:var(--success)", value: fmt(inc), valueCls: "t-income" })}
-    ${metric({ label: "Saídas", ic: "up", chip: "background:var(--c-high);color:var(--primary)", value: fmt(exp) })}
-    ${metric({ label: "Pendente", ic: "clock", chip: "background:var(--warning-c);color:var(--warning)", value: fmt(pen), valueCls: pen ? "t-warning" : "", cls: "span2" })}`;
+  return `${metric({ label: "Entradas", ic: "down", chip: "background:var(--success-c);color:var(--success)", cents: inc, valueCls: "t-income" })}
+    ${metric({ label: "Saídas", ic: "up", chip: "background:var(--c-high);color:var(--primary)", cents: exp })}
+    ${metric({ label: "Pendente", ic: "clock", chip: "background:var(--warning-c);color:var(--warning)", cents: pen, valueCls: pen ? "t-warning" : "", cls: "span2" })}`;
 }
 function ledgerTipoTabs(m, f) {
   return `<nav class="seg" aria-label="Tipo">${[["", "Todos"], ["receitas", "Entradas"], ["despesas", "Saídas"]].map(([v, l]) => `<a href="${href("lancamentos", { ...ledgerLinkParams(f), mes: m, tipo: v })}" class="${f.tipo === v ? "on" : ""}" ${f.tipo === v ? 'aria-current="true"' : ""}>${l}</a>`).join("")}</nav>`;
@@ -1937,19 +2013,19 @@ function viewPainel(r) {
     ${welcome}
     ${inboxNotice()}
     <section class="grid-kpi" aria-label="Resumo do mês">
-      ${metric({ label: "Entradas no mês", ic: "down", chip: "background:var(--success-c);color:var(--success)", value: fmt(s.income), valueCls: "t-income",
-        pill: delta !== null ? pill("background:var(--success-c);color:var(--success)", delta >= 0 ? "trendUp" : "trendDown", `${delta >= 0 ? "+" : ""}${fmtPct(delta)} vs. anterior`) : s.incomePending ? pill("background:var(--c);color:var(--secondary)", "", `${fmt(s.incomePending)} a receber`) : "",
+      ${metric({ label: "Entradas no mês", ic: "down", chip: "background:var(--success-c);color:var(--success)", cents: s.income, valueCls: "t-income",
+        pill: delta !== null ? pill("background:var(--success-c);color:var(--success)", delta >= 0 ? "trendUp" : "trendDown", `${delta >= 0 ? "+" : ""}${fmtPct(delta)} vs. anterior`) : s.incomePending ? pill("background:var(--c);color:var(--secondary)", "", `${amountHtml(s.incomePending, "a receber")} a receber`) : "",
         meter: { r: s.income > 0 ? 1 : 0, color: "var(--success)" } })}
-      ${metric({ label: "Total gasto no mês", ic: "banknote", chip: "background:var(--c-high);color:var(--primary)", value: fmt(s.expense),
-        pill: s.income > 0 ? pill("background:var(--danger-c);color:var(--danger)", "trendUp", `${fmtPct(ratio(s.expense, s.income))} da receita`) : s.expensePending ? pill("background:var(--warning-c);color:var(--warning)", "", `${fmt(s.expensePending)} a pagar`) : "",
+      ${metric({ label: "Total gasto no mês", ic: "banknote", chip: "background:var(--c-high);color:var(--primary)", cents: s.expense,
+        pill: s.income > 0 ? pill("background:var(--danger-c);color:var(--danger)", "trendUp", `${fmtPct(ratio(s.expense, s.income))} da receita`) : s.expensePending ? pill("background:var(--warning-c);color:var(--warning)", "", `${amountHtml(s.expensePending, "a pagar")} a pagar`) : "",
         meter: { r: ratio(s.expense, s.income), color: "var(--primary)" } })}
-      ${metric({ label: "Fixos comprometidos", ic: "lock", chip: "background:var(--secondary-c);color:var(--on-secondary-c)", value: fmt(split.fixedCents),
+      ${metric({ label: "Fixos comprometidos", ic: "lock", chip: "background:var(--secondary-c);color:var(--on-secondary-c)", cents: split.fixedCents,
         pill: split.fixedCount ? pill("background:var(--c-high);color:var(--primary)", "checkCircle", `${split.fixedPaid} de ${split.fixedCount} pagos`) : "",
         meter: { r: ratio(split.fixedPaid, split.fixedCount), color: "var(--on-secondary-c)" } })}
-      ${metric({ label: "Gastos variáveis", ic: "bag", chip: "background:var(--c-low);color:var(--tertiary)", value: fmt(split.variableCents),
+      ${metric({ label: "Gastos variáveis", ic: "bag", chip: "background:var(--c-low);color:var(--tertiary)", cents: split.variableCents,
         pill: pill("background:var(--c);color:var(--secondary)", "swap", `${split.variableCount} ${split.variableCount === 1 ? "lançamento" : "lançamentos"}`),
         meter: { r: ratio(split.variableCents, s.expense), color: "var(--tertiary)" } })}
-      ${metric({ label: "Saldo livre previsto", ic: "piggy", chip: "background:var(--tertiary-fixed);color:var(--on-tertiary-fixed)", value: fmt(s.forecast), valueCls: s.forecast < 0 ? "t-danger" : "t-tertiary", cls: "span2",
+      ${metric({ label: "Saldo livre previsto", ic: "piggy", chip: "background:var(--tertiary-fixed);color:var(--on-tertiary-fixed)", cents: s.forecast, valueCls: s.forecast < 0 ? "t-danger" : "t-tertiary", cls: "span2",
         pill: s.income > 0 ? pill(s.forecast < 0 ? "background:var(--danger-c);color:var(--danger)" : "background:var(--c-low);color:var(--tertiary)", "bank", `${fmtPct(ratio(s.forecast, s.income))} livre`) : "",
         meter: { r: ratio(s.forecast, s.income), color: "var(--tertiary-c)" } })}
     </section>
@@ -1963,9 +2039,9 @@ function viewPainel(r) {
             <div class="seg" role="group" aria-label="Período do gráfico">${[["month", "Mensal"], ["week", "Semanal"]].map(([v, t]) => `<button type="button" data-act="flow-view" data-view="${v}" class="${flowView === v ? "on" : ""}" aria-pressed="${flowView === v}">${t}</button>`).join("")}</div></div>
         </div>
         <div class="flow">
-          <div><span class="chip" style="background:var(--card);color:var(--primary)">${icon("down")}</span><span style="min-width:0"><span class="metric-label">Total entradas</span><b class="t-income">+ ${fmt(s.income)}</b></span></div>
-          <div><span class="chip" style="background:var(--card);color:var(--primary)">${icon("up")}</span><span style="min-width:0"><span class="metric-label">Total saídas</span><b>${fmt(s.expense)}</b></span></div>
-          <div class="hl"><span class="chip" style="background:var(--tertiary-fixed);color:var(--on-tertiary-fixed)">${icon("piggy")}</span><span style="min-width:0"><span class="metric-label">Saldo líquido</span><b class="${net >= 0 ? "t-income" : "t-danger"}">${net >= 0 ? "+ " : "− "}${fmt(Math.abs(net))}</b></span></div>
+          <div><span class="chip" style="background:var(--card);color:var(--primary)">${icon("down")}</span><span style="min-width:0"><span class="metric-label">Total entradas</span><b class="t-income">${amountHtml(s.income, "flow-in", "+ ")}</b></span></div>
+          <div><span class="chip" style="background:var(--card);color:var(--primary)">${icon("up")}</span><span style="min-width:0"><span class="metric-label">Total saídas</span><b>${amountHtml(s.expense, "flow-out")}</b></span></div>
+          <div class="hl"><span class="chip" style="background:var(--tertiary-fixed);color:var(--on-tertiary-fixed)">${icon("piggy")}</span><span style="min-width:0"><span class="metric-label">Saldo líquido</span><b class="${net >= 0 ? "t-income" : "t-danger"}">${amountHtml(Math.abs(net), "flow-net", net >= 0 ? "+ " : "− ")}</b></span></div>
         </div>
         <div id="flow-chart">${flowChart(m)}</div>
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--hairline);color:var(--secondary)">
@@ -2021,8 +2097,8 @@ function viewFixos() {
     <span class="row-amount ${x.type === "INCOME" ? "t-income" : ""}">${x.type === "INCOME" ? "+ " : ""}${fmt(x.amountCents)}</span></button></li>`; };
   return `${pageHead("Gastos e receitas fixos", "Cada item gera automaticamente um lançamento pendente por mês, a partir do mês em que foi cadastrado.", `<button class="btn btn-primary btn-sm" data-act="new-rec">${icon("plus")} Novo fixo</button>`)}
   <div class="grid-3" style="margin-bottom:16px">
-    ${metric({ label: "Despesas fixas/mês", ic: "lock", chip: "background:var(--secondary-c);color:var(--on-secondary-c)", value: fmt(total("EXPENSE")) })}
-    ${metric({ label: "Receitas fixas/mês", ic: "down", chip: "background:var(--success-c);color:var(--success)", value: fmt(total("INCOME")), valueCls: "t-income" })}
+    ${metric({ label: "Despesas fixas/mês", ic: "lock", chip: "background:var(--secondary-c);color:var(--on-secondary-c)", cents: total("EXPENSE") })}
+    ${metric({ label: "Receitas fixas/mês", ic: "down", chip: "background:var(--success-c);color:var(--success)", cents: total("INCOME"), valueCls: "t-income" })}
   </div>
   ${state.recurrings.length ? `<section class="card card-flush"><ul class="ledger">${active.map(row).join("") || `<li><span class="muted">Nenhum fixo ativo.</span></li>`}</ul></section>
   ${ended.length ? `<section class="card card-flush" style="margin-top:16px"><div class="section-head"><h2 class="h-card">Encerrados</h2></div><ul class="ledger">${ended.map(row).join("")}</ul></section>` : ""}`
@@ -2039,7 +2115,7 @@ function viewOrcamentos(r) {
         <div class="dist-row" style="align-items:center"><span style="display:flex;align-items:center;gap:8px;font-weight:600;min-width:0"><span class="dot" style="background:${esc(b.color)}"></span><span class="truncate">${esc(b.name)}</span></span>
         <span class="actions"><button class="btn btn-ghost btn-sm" data-act="edit-budget" data-id="${b.id}" aria-label="Editar">${icon("edit")}</button><button class="btn btn-ghost btn-sm" data-act="del-budget" data-id="${b.id}" aria-label="Remover">${icon("trash")}</button></span></div>
         <div class="bar" role="meter" aria-valuenow="${Math.round(clamp01(b.ratio) * 100)}" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(b.name)}"><div style="width:${clamp01(b.ratio) * 100}%;background:${tone}"></div></div>
-        <p class="hint" style="margin-top:6px">${fmt(b.spent)} de ${fmt(b.amountCents)}${b.ratio >= 0.8 ? ` · <b style="color:${tone}">${b.ratio > 1 ? "estourado" : Math.round(b.ratio * 100) + "% usado"}</b>` : ""}</p></li>`; }).join("")}</ul>` : `<p class="empty">Nenhum limite definido.</p>`}
+        <p class="hint" style="margin-top:6px">${amountHtml(b.spent, "bud-s" + b.id)} de ${amountHtml(b.amountCents, "bud-l" + b.id)}${b.ratio >= 0.8 ? ` · <b style="color:${tone}">${b.ratio > 1 ? "estourado" : Math.round(b.ratio * 100) + "% usado"}</b>` : ""}</p></li>`; }).join("")}</ul>` : `<p class="empty">Nenhum limite definido.</p>`}
       <button class="btn btn-primary btn-sm" style="margin-top:16px" data-act="new-budget">${icon("plus")} Definir limite</button>
     </section>
     <section class="card">
@@ -2047,7 +2123,7 @@ function viewOrcamentos(r) {
       ${state.goals.length ? `<ul class="dist">${state.goals.map((g) => { const rr = ratio(g.savedCents, g.targetCents); return `<li>
         <div class="dist-row" style="align-items:center"><span style="font-weight:600;min-width:0" class="truncate">${esc(g.name)}</span><span class="actions"><button class="btn btn-secondary btn-sm" data-act="deposit-goal" data-id="${g.id}">${icon("plus")} Guardar</button><button class="btn btn-ghost btn-sm" data-act="edit-goal" data-id="${g.id}" aria-label="Editar">${icon("edit")}</button></span></div>
         <div class="bar"><div style="width:${clamp01(rr) * 100}%;background:var(--tertiary)"></div></div>
-        <p class="hint" style="margin-top:6px">${fmt(g.savedCents)} de ${fmt(g.targetCents)} · ${fmtPct(clamp01(rr))}${g.deadline ? ` · até ${formatDate(g.deadline)}` : ""}${rr >= 1 ? ' · <b class="t-income">meta atingida 🎉</b>' : ""}</p></li>`; }).join("")}</ul>` : `<p class="empty">Nenhuma meta ainda. Que tal uma reserva de emergência?</p>`}
+        <p class="hint" style="margin-top:6px">${amountHtml(g.savedCents, "goal-s" + g.id)} de ${amountHtml(g.targetCents, "goal-t" + g.id)} · ${fmtPct(clamp01(rr))}${g.deadline ? ` · até ${formatDate(g.deadline)}` : ""}${rr >= 1 ? ' · <b class="t-income">meta atingida 🎉</b>' : ""}</p></li>`; }).join("")}</ul>` : `<p class="empty">Nenhuma meta ainda. Que tal uma reserva de emergência?</p>`}
     </section>
   </div>`;
 }
@@ -2222,7 +2298,7 @@ function viewViagens(r) {
       <div class="metric-top"><span class="chip" style="background:var(--c-high);color:var(--primary)">${icon("plane")}</span><span class="badge ${cls}">${label}</span></div>
       <h2 class="h-card truncate" style="margin-top:12px">${esc(t.name)}</h2>
       <p class="sub">${t.destination ? esc(t.destination) + " · " : ""}${tripDates(t)}</p>
-      <p class="metric-value" style="margin-top:12px">${fmt(tot.net)}</p>
+      <p class="metric-value" style="margin-top:12px">${amountHtml(tot.net, "trip-" + t.id)}</p>
       ${t.budgetCents ? `<div class="meter"><div style="width:${clamp01(r0) * 100}%;background:${r0 > 1 ? "var(--danger)" : r0 >= 0.8 ? "var(--warning)" : "var(--primary)"}"></div></div><p class="hint" style="margin-top:6px">${fmtPct(r0)} do orçamento de ${fmt(t.budgetCents)}</p>` : `<p class="hint" style="margin-top:6px">${tot.list.length} ${tot.list.length === 1 ? "lançamento" : "lançamentos"}</p>`}
       <p style="margin-top:12px"><span class="badge ${t.includeInMain ? "b-success" : "b-neutral"}">${t.includeInMain ? "Somada à gestão do mês" : "Separada da gestão"}</span></p>
     </a>`;
@@ -2244,11 +2320,11 @@ function viewTrip(trip) {
     <span class="switch"><input type="checkbox" data-trip-include="${trip.id}" ${trip.includeInMain ? "checked" : ""} aria-label="Somar os gastos desta viagem à gestão do mês"><span></span></span>
   </label>
   <div class="grid-3" style="margin:16px 0">
-    ${metric({ label: "Total da viagem", ic: "plane", chip: "background:var(--c-high);color:var(--primary)", value: fmt(tot.net), pill: tot.refunds ? pill("background:var(--success-c);color:var(--success)", "down", `${fmt(tot.refunds)} de reembolsos`) : "" })}
+    ${metric({ label: "Total da viagem", ic: "plane", chip: "background:var(--c-high);color:var(--primary)", cents: tot.net, pill: tot.refunds ? pill("background:var(--success-c);color:var(--success)", "down", `${amountHtml(tot.refunds, "reembolsos")} de reembolsos`) : "" })}
     ${trip.budgetCents
-      ? metric({ label: left >= 0 ? "Ainda pode gastar" : "Acima do orçamento", ic: "piggy", chip: "background:var(--tertiary-fixed);color:var(--on-tertiary-fixed)", value: fmt(Math.abs(left)), valueCls: left >= 0 ? "t-tertiary" : "t-danger", pill: pill("background:var(--c);color:var(--secondary)", "", `${fmtPct(r0)} de ${fmt(trip.budgetCents)}`), meter: { r: r0, color: r0 > 1 ? "var(--danger)" : r0 >= 0.8 ? "var(--warning)" : "var(--tertiary)" } })
+      ? metric({ label: left >= 0 ? "Ainda pode gastar" : "Acima do orçamento", ic: "piggy", chip: "background:var(--tertiary-fixed);color:var(--on-tertiary-fixed)", cents: Math.abs(left), valueCls: left >= 0 ? "t-tertiary" : "t-danger", pill: pill("background:var(--c);color:var(--secondary)", "", `${fmtPct(r0)} de ${fmt(trip.budgetCents)}`), meter: { r: r0, color: r0 > 1 ? "var(--danger)" : r0 >= 0.8 ? "var(--warning)" : "var(--tertiary)" } })
       : metric({ label: "Orçamento", ic: "piggy", chip: "background:var(--c);color:var(--secondary)", value: "Sem limite", pill: `<button class="pill" style="border:0;background:var(--c-high);color:var(--primary);cursor:pointer" data-act="edit-trip" data-id="${trip.id}">Definir orçamento</button>` })}
-    ${metric({ label: "Média por dia", ic: "calendar", chip: "background:var(--secondary-c);color:var(--on-secondary-c)", value: fmt(tot.perDay), cls: "span2" })}
+    ${metric({ label: "Média por dia", ic: "calendar", chip: "background:var(--secondary-c);color:var(--on-secondary-c)", cents: tot.perDay, cls: "span2" })}
   </div>
   <div class="grid-main">
     <section class="card card-flush">
@@ -2340,6 +2416,7 @@ function renderPage() {
     return;
   }
   document.getElementById("app").innerHTML = shell(r, VIEWS[r.path](r));
+  paintReels();
   if (hasIncoming()) flushIncoming();
   document.title = `${ROUTES.find((x) => x.path === r.path).label} · Minhas Finanças`;
 }
