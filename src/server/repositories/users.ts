@@ -14,6 +14,12 @@ export function createUser(data: {
   email: string;
   passwordHash: string | null;
   googleSub?: string;
+  emailVerifiedAt?: Date;
 }) {
   return prisma.user.create({ data, select: { id: true } });
+}
+
+/** Only ever touches a still-unconfirmed account (the `emailVerifiedAt: null` guard). */
+export function resetUnverifiedUser(id: string, data: { name: string; passwordHash: string }) {
+  return prisma.user.updateMany({ where: { id, emailVerifiedAt: null, googleSub: null }, data });
 }

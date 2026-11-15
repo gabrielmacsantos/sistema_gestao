@@ -62,3 +62,36 @@ export async function takeOAuthState(): Promise<OAuthState | null> {
     return null;
   }
 }
+
+// Between sign-up (or a sign-in with an unconfirmed e-mail) and typing the code there is no session
+// yet. This short sealed cookie says whose code is being entered; it grants nothing else.
+const VERIFY_COOKIE = "fin_verify";
+const VERIFY_TTL = 60 * 30;
+const VERIFY_PATH = "/verificar";
+
+export async function savePendingVerification(userId: string) {
+  const sealed = await sealData({ userId }, { password: sessionPassword(), ttl: VERIFY_TTL });
+  (await cookies()).set(VERIFY_COOKIE, sealed, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.COOKIE_SECURE === "true",
+    path: VERIFY_PATH,
+    maxAge: VERIFY_TTL,
+  });
+}
+
+/** The user whose code is pending, or null when the cookie is missing, tampered with or expired. */
+export async function getPendingVerification(): Promise<string | null> {
+  const sealed = (await cookies()).get(VERIFY_COOKIE)?.value;
+  if (!sealed) return null;
+  try {
+    const data = await unsealData<{ userId?: string }>(sealed, { password: sessionPassword(), ttl: VERIFY_TTL });
+    return data.userId ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearPendingVerification() {
+  (await cookies()).delete({ name: VERIFY_COOKIE, path: VERIFY_PATH });
+}

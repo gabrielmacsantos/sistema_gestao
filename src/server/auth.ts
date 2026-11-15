@@ -16,11 +16,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, emailVerifiedAt: true },
   });
-  if (!user) redirect("/login");
+  // Sessions are only opened after the e-mail is confirmed; this is a second lock.
+  if (!user?.emailVerifiedAt) redirect("/login");
 
-  return user;
+  return { id: user.id, name: user.name, email: user.email };
 });
 
 export async function requireUserId(): Promise<string> {

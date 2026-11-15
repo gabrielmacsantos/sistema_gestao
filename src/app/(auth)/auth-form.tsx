@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FormMessage, Input } from "@/components/ui/form";
+import { useErrorShake } from "@/components/ui/use-error-shake";
 import type { ActionState } from "@/lib/validation";
 import { loginAction, signupAction } from "./actions";
 
@@ -13,17 +14,41 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     {},
   );
   const errors = state.fieldErrors ?? {};
+  const formRef = useRef<HTMLFormElement>(null);
+  useErrorShake(formRef, state);
+  // A refusal of the whole form (wrong password) marks the credentials fields, not just a message.
+  const refused = state.ok === false && !state.fieldErrors;
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form ref={formRef} action={action} className="flex flex-col gap-4">
       <FormMessage ok={state.ok} message={state.fieldErrors ? undefined : state.message} />
       {mode === "signup" && (
         <Field label="Nome" htmlFor="name" error={errors.name}>
-          <Input id="name" name="name" autoComplete="name" required />
+          <Input
+            id="name"
+            name="name"
+            className="t-input"
+            placeholder="Seu nome"
+            autoComplete="name"
+            defaultValue={state.values?.name}
+            aria-invalid={!!errors.name}
+            required
+          />
         </Field>
       )}
       <Field label="E-mail" htmlFor="email" error={errors.email}>
-        <Input id="email" name="email" type="email" autoComplete="email" inputMode="email" required />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          className="t-input"
+          placeholder="voce@exemplo.com"
+          autoComplete="email"
+          inputMode="email"
+          defaultValue={state.values?.email}
+          aria-invalid={!!errors.email || refused}
+          required
+        />
       </Field>
       <Field
         label="Senha"
@@ -35,6 +60,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           id="password"
           name="password"
           type="password"
+          className="t-input"
+          placeholder={mode === "login" ? "Sua senha" : "Crie uma senha"}
+          aria-invalid={!!errors.password || refused}
           autoComplete={mode === "login" ? "current-password" : "new-password"}
           required
         />

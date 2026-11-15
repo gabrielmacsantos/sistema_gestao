@@ -37,7 +37,9 @@ describe("auth", () => {
   it("creates default categories and rejects duplicate e-mails and wrong passwords", async () => {
     expect((await listCategories(alice)).length).toBeGreaterThan(5);
     const email = `dup-${Date.now()}@test.dev`;
-    await signUp({ name: "A", email, password: "senha-segura" });
+    const created = await signUp({ name: "A", email, password: "senha-segura" });
+    // An unconfirmed address can be claimed again, so confirm it first (see tests/verification.test.ts).
+    await prisma.user.update({ where: { id: created.id }, data: { emailVerifiedAt: new Date() } });
     await expect(signUp({ name: "B", email, password: "outra-senha" })).rejects.toThrow(DomainError);
     await expect(verifyCredentials(email, "errada")).rejects.toThrow(DomainError);
     await expect(verifyCredentials(email, "senha-segura")).resolves.toHaveProperty("id");

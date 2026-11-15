@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import type { CategoryInput } from "@/lib/validation";
 import { createCategories } from "../repositories/categories";
 import type { GoogleProfile } from "../integrations/google-oauth";
-import { createUser, findUserByEmail, findUserByGoogleSub } from "../repositories/users";
+import { createUser, findUserByEmail, findUserByGoogleSub, resetUnverifiedUser } from "../repositories/users";
 import { DomainError, isUniqueViolation } from "../errors";
 
 const DEFAULT_CATEGORIES: CategoryInput[] = [
@@ -26,10 +26,16 @@ const DEFAULT_CATEGORIES: CategoryInput[] = [
 
 export async function signUp(input: { name: string; email: string; password: string }) {
   const passwordHash = await bcrypt.hash(input.password, 12);
+  // An address nobody confirmed holds no data and cannot sign in, so its real owner may claim it.
+  const pending = await findUserByEmail(input.email);
+  if (pending && !pending.emailVerifiedAt && !pending.googleSub) {
+    await resetUnverifiedUser(pending.id, { name: input.name, passwordHash });
+    return { id: pending.id, email: pending.email };
+  }
   try {
     const user = await createUser({ name: input.name, email: input.email, passwordHash });
     await createCategories(user.id, DEFAULT_CATEGORIES);
-    return user;
+    return { id: user.id, email: input.email };
   } catch (error) {
     if (isUniqueViolation(error)) throw new DomainError("Já existe uma conta com esse e-mail.");
     throw error;
@@ -66,6 +72,7 @@ export async function signInWithGoogle(profile: GoogleProfile): Promise<{ id: st
       email: profile.email,
       passwordHash: null,
       googleSub: profile.sub,
+      emailVerifiedAt: new Date(),
     });
     await createCategories(user.id, DEFAULT_CATEGORIES);
     return user;
@@ -89,5 +96,5 @@ export async function verifyCredentials(email: string, password: string) {
   const hash = user?.passwordHash ?? (await dummyHash);
   const valid = await bcrypt.compare(password, hash);
   if (!user || !valid) throw new DomainError("E-mail ou senha incorretos.");
-  return { id: user.id };
+  return { id: user.id, email: user.email, emailVerifiedAt: user.emailVerifiedAt };
 }
