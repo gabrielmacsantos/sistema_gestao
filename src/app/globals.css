@@ -348,6 +348,88 @@
   .t-badge { animation: none !important; }
 }
 
+/* Icon swap (transitions.dev): two icons stacked in one slot; data-state "a" or "b" picks the visible one
+   (the other fades out with blur and scale). Used by the phone menu button: hamburger <-> close. */
+:root {
+  --icon-swap-dur: 250ms;
+  --icon-swap-blur: 2px;
+  --icon-swap-start-scale: 0.25;
+  --icon-swap-ease: ease-in-out;
+}
+.t-icon-swap {
+  position: relative;
+  display: inline-grid;
+}
+.t-icon-swap .t-icon {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  transition:
+    opacity   var(--icon-swap-dur) var(--icon-swap-ease),
+    filter    var(--icon-swap-dur) var(--icon-swap-ease),
+    transform var(--icon-swap-dur) var(--icon-swap-ease);
+  will-change: opacity, filter, transform;
+}
+.t-icon-swap[data-state="a"] .t-icon[data-icon="a"],
+.t-icon-swap[data-state="b"] .t-icon[data-icon="b"] {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+.t-icon-swap[data-state="a"] .t-icon[data-icon="b"],
+.t-icon-swap[data-state="b"] .t-icon[data-icon="a"] {
+  opacity: 0;
+  filter: blur(var(--icon-swap-blur));
+  transform: scale(var(--icon-swap-start-scale));
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-icon-swap .t-icon { transition: none !important; }
+}
+
+/* Collapsible left rail (lg and up; below that it is already a fixed 80px icon dock). <html data-rail="collapsed">
+   comes from the root layout script (saved choice, applied before paint) or from RailToggle. The width is the
+   --rail-w variable, shared by the rail, the page padding and the toggle, so the three move together. Labels
+   fade first and only then drop to zero width, so no text wraps or truncates while the rail narrows. */
+:root {
+  --rail-w: var(--spacing-rail);
+  --rail-dur: 300ms;
+  --rail-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+:root[data-rail="collapsed"] {
+  --rail-w: 5rem;
+}
+.rail-aside { transition: width var(--rail-dur) var(--rail-ease); }
+.rail-shell { transition: padding-left var(--rail-dur) var(--rail-ease); }
+.rail-toggle {
+  left: calc(var(--rail-w) - 1.375rem); /* the 44px target is centered on the rail's right border */
+  transition: left var(--rail-dur) var(--rail-ease);
+}
+.rail-chevron { transition: transform var(--rail-dur) var(--rail-ease); }
+:root[data-rail="collapsed"] .rail-chevron { transform: rotate(180deg); }
+@media (min-width: 1024px) {
+  .rail-row {
+    transition:
+      gap var(--rail-dur) var(--rail-ease),
+      padding var(--rail-dur) var(--rail-ease),
+      color 150ms,
+      background-color 150ms;
+  }
+  .rail-label { opacity: 1; transition: opacity 180ms ease 120ms; }
+  :root[data-rail="collapsed"] .rail-row { gap: 0; }
+  :root[data-rail="collapsed"] .rail-link { padding-inline: 14px; } /* 20px icon centered in the 48px content */
+  :root[data-rail="collapsed"] .rail-btn { padding-inline: 0; }
+  :root[data-rail="collapsed"] .rail-card { padding: 5px; }
+  :root[data-rail="collapsed"] .rail-label {
+    opacity: 0;
+    max-width: 0;
+    overflow: hidden;
+    transition: opacity 120ms ease, max-width 0s linear var(--rail-dur);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail-aside, .rail-shell, .rail-toggle, .rail-chevron, .rail-row, .rail-label { transition: none !important; }
+}
+
 /* Spinning counter (transitions.dev): each digit is a clipped reel of 0-9 that spins up and lands.
    AnimatedCurrency sets --reel-cell to 1.3em so the reels follow the font size of each figure. */
 :root {

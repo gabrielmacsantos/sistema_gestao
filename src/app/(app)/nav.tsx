@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   ChevronRight,
   LayoutDashboard,
@@ -44,7 +44,7 @@ function useIsActive() {
   return (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Left command rail links. Icon-only between md and lg (tablet dock), labelled from lg. */
+/** Left command rail links. Icon-only between md and lg (tablet dock), labelled from lg unless collapsed. */
 export function SideNav() {
   const isActive = useIsActive();
   const navHref = useNavHref();
@@ -59,14 +59,14 @@ export function SideNav() {
             title={label}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center justify-center gap-3 rounded-lg py-2.5 text-label-lg transition-colors lg:justify-start lg:px-3",
+              "rail-row rail-link flex items-center justify-center gap-3 rounded-lg py-2.5 text-label-lg transition-colors lg:justify-start lg:px-3",
               active
                 ? "bg-surface-container-high text-primary"
                 : "text-secondary hover:bg-surface-container-low hover:text-on-surface",
             )}
           >
             <Icon className="size-5 shrink-0" strokeWidth={active ? 2.25 : 1.75} aria-hidden />
-            <span className="hidden truncate lg:inline">{label}</span>
+            <span className="rail-label hidden truncate lg:inline">{label}</span>
           </Link>
         );
       })}
@@ -139,6 +139,7 @@ export const iconButton =
 /** "Mais opções" on phones: a sheet with every page and Sair, as the menu sheet in index.html. */
 export function MenuSheet({ account }: { account: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const [open, setOpen] = useState(false);
   const isActive = useIsActive();
   const navHref = useNavHref();
   const close = () => dialog.current?.close();
@@ -150,13 +151,27 @@ export function MenuSheet({ account }: { account: string }) {
         className={iconButton}
         aria-label="Mais opções"
         aria-haspopup="dialog"
-        onClick={() => dialog.current?.showModal()}
+        aria-expanded={open}
+        onClick={() => {
+          setOpen(true);
+          dialog.current?.showModal();
+        }}
       >
-        <Menu className="size-[18px]" aria-hidden />
+        {/* Icon swap: hamburger while closed, X while the sheet is open. */}
+        <span className="t-icon-swap" data-state={open ? "b" : "a"} aria-hidden>
+          <span className="t-icon" data-icon="a">
+            <Menu className="block size-[18px]" />
+          </span>
+          <span className="t-icon" data-icon="b">
+            <X className="block size-[18px]" />
+          </span>
+        </span>
       </button>
       <dialog
         ref={dialog}
         aria-labelledby="menu-title"
+        // Fires for close(), Esc and a link tap alike, so the icon always swaps back.
+        onClose={() => setOpen(false)}
         // A tap on the dimmed area (the dialog element itself) closes it; Esc closes it natively.
         onClick={(e) => e.target === e.currentTarget && close()}
         className="fixed inset-x-0 top-auto bottom-0 m-0 max-h-[92dvh] w-full max-w-full rounded-t-[20px] border border-hairline bg-surface-container-lowest p-0 text-on-surface shadow-xl backdrop:bg-scrim backdrop:backdrop-blur-[2px] motion-safe:open:animate-[sheet-up_.2s] sm:inset-0 sm:m-auto sm:h-fit sm:max-w-[520px] sm:rounded-[20px]"
