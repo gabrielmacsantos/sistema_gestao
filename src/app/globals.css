@@ -243,3 +243,68 @@
     opacity: 0;
   }
 }
+
+/* Voice card of the transaction form: same motion as the one in index.html. */
+:root {
+  --stream-fade: 350ms;
+  --stream-blur: 1px;
+  --stream-ease: cubic-bezier(.22,1,.36,1);
+  --text-swap-dur: 150ms;
+  --text-swap-translate-y: 4px;
+  --text-swap-blur: 2px;
+  --wave-dur: 900ms;
+  --wave-min: .35;
+  --float-dur: 4000ms;
+  --float-distance: 3px;
+  --press-dur: 150ms;
+  --ease-smooth-out: cubic-bezier(.22,1,.36,1);
+}
+.va-card { --bubble: color-mix(in srgb, var(--color-on-surface) 6%, var(--color-surface-container-lowest)); position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 268px; border-radius: 24px; background: var(--color-surface-container-lowest); color: var(--color-on-surface); border: 1px solid var(--color-hairline); box-shadow: 0 8px 32px -4px rgb(0 0 0 / .06); }
+:root[data-theme="dark"] .va-card { --bubble: color-mix(in srgb, var(--color-on-surface) 9%, var(--color-surface-container-lowest)); }
+.va-glow { position: absolute; inset: auto 0 0 0; height: 70%; z-index: 0; pointer-events: none; opacity: 0; transform: translateY(30%); transition: opacity 500ms var(--ease-smooth-out), transform 500ms var(--ease-smooth-out);
+  background: radial-gradient(120% 90% at 50% 110%, color-mix(in srgb, var(--color-primary) 55%, transparent), color-mix(in srgb, var(--color-primary) 18%, transparent) 45%, transparent 70%); }
+.va-card.is-live .va-glow { opacity: 1; transform: none; animation: va-glow 1.6s ease-in-out infinite; }
+@keyframes va-glow { 50% { opacity: .65; } }
+.va-content { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
+.va-top { display: flex; align-items: center; gap: 12px; padding: 16px; }
+.va-av { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--color-primary) 16%, var(--color-surface-container-lowest)); color: var(--color-primary); }
+.va-av svg.i { width: 18px; height: 18px; }
+.va-top-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.va-name { font-size: 16px; line-height: 22px; font-weight: 500; }
+.va-meta { font-size: 12px; line-height: 16px; color: var(--color-on-surface-variant); overflow-wrap: anywhere; }
+.va-divider { height: 1px; flex: none; background: linear-gradient(90deg, transparent, var(--color-hairline) 20%, var(--color-hairline) 80%, transparent); }
+.va-body { padding: 20px 24px 0; display: flex; flex-direction: column; gap: 14px; }
+.va-bubble-row { padding-left: 8px; animation: va-float var(--float-dur) ease-in-out infinite; }
+@keyframes va-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(var(--float-distance) * -1)); } }
+.va-bubble { position: relative; display: inline-block; max-width: 260px; margin: 0; padding: 8px 12px; border-radius: 18px; background: var(--bubble); font-size: 14px; line-height: 20px; }
+.va-bubble span { position: relative; z-index: 1; }
+.va-bubble::before { content: ""; position: absolute; bottom: 0; left: -7px; width: 20px; height: 20px; background: var(--bubble); border-bottom-right-radius: 16px 14px; }
+.va-bubble::after { content: ""; position: absolute; bottom: 0; left: -26px; width: 26px; height: 20px; background: var(--color-surface-container-lowest); border-bottom-right-radius: 10px; }
+.va-transcript { margin: 0; min-height: 20px; padding-left: 32px; font-size: 14px; line-height: 20px; text-align: right; text-wrap: pretty; overflow-wrap: anywhere; }
+.va-w { opacity: 0; filter: blur(var(--stream-blur)); transition: opacity var(--stream-fade) var(--stream-ease), filter var(--stream-fade) var(--stream-ease); }
+.va-w.is-in { opacity: 1; filter: blur(0); }
+.va-bottom { margin-top: auto; padding: 12px 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.va-caption { font-size: 12px; line-height: 16px; color: var(--color-on-surface-variant); }
+.va-swap { display: inline-block; transition: transform var(--text-swap-dur) ease-in-out, filter var(--text-swap-dur) ease-in-out, opacity var(--text-swap-dur) ease-in-out; }
+.va-swap.is-exit { transform: translateY(calc(var(--text-swap-translate-y) * -1)); filter: blur(var(--text-swap-blur)); opacity: 0; }
+.va-swap.is-enter { transform: translateY(var(--text-swap-translate-y)); filter: blur(var(--text-swap-blur)); opacity: 0; transition: none; }
+.va-mic { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; border: 0; padding: 0; background: color-mix(in srgb, var(--color-surface-container-lowest) 60%, var(--color-surface-container-high)); box-shadow: 0 1px 3px rgb(0 0 0 / .04), inset 0 0 0 1px color-mix(in srgb, var(--color-on-surface) 10%, transparent); color: var(--color-on-surface); transition: transform var(--press-dur) var(--ease-smooth-out); }
+.va-mic:active { transform: scale(.95); }
+.va-mic:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.va-wave { display: flex; align-items: center; gap: 2px; height: 20px; }
+.va-wave i { display: block; width: 2px; border-radius: 1px; background: currentColor; transform-origin: center; }
+.va-wave i:nth-child(1), .va-wave i:nth-child(5) { height: 6px; }
+.va-wave i:nth-child(2), .va-wave i:nth-child(4) { height: 12px; }
+.va-wave i:nth-child(3) { height: 18px; }
+.va-mic.is-live .va-wave i { animation: va-wave var(--wave-dur) ease-in-out infinite; }
+.va-mic.is-live .va-wave i:nth-child(2) { animation-delay: calc(var(--wave-dur) * -.3); }
+.va-mic.is-live .va-wave i:nth-child(3) { animation-delay: calc(var(--wave-dur) * -.6); }
+.va-mic.is-live .va-wave i:nth-child(4) { animation-delay: calc(var(--wave-dur) * -.15); }
+.va-mic.is-live .va-wave i:nth-child(5) { animation-delay: calc(var(--wave-dur) * -.45); }
+@keyframes va-wave { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(var(--wave-min)); } }
+@media (prefers-reduced-motion: reduce) {
+  .va-bubble-row, .va-mic.is-live .va-wave i, .va-card.is-live .va-glow { animation: none !important; }
+  .va-swap, .va-glow, .va-mic { transition: none !important; }
+  .va-w { transition: none !important; filter: none !important; }
+  .va-mic:active { transform: none; }
+}

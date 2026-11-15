@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
+import type { SpokenTransaction } from "@/lib/voice-parser";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Field, FormMessage, Input, Select, Textarea } from "@/components/ui/form";
 import { MoneyInput } from "@/components/ui/money-input";
 import { PAYMENT_METHODS, type CategoryOption } from "@/lib/constants";
+import { formatCentsInput } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { ActionState } from "@/lib/validation";
 import { saveTransactionAction } from "./actions";
+import { VoiceCard } from "./voice-card";
 
 export type TransactionFormValues = {
   type: "EXPENSE" | "INCOME";
@@ -38,12 +41,36 @@ export function TransactionForm({
   );
   const [type, setType] = useState(initial.type);
   const errors = state.fieldErrors ?? {};
-  const values: TransactionFormValues = { ...initial, ...state.values };
+  // Spoken values fill only the fields the sentence mentioned; the key remounts just those inputs.
+  const [spoken, setSpoken] = useState<{ values: Partial<TransactionFormValues>; rev: Record<string, number> }>({
+    values: {},
+    rev: {},
+  });
+  const values: TransactionFormValues = { ...initial, ...state.values, ...spoken.values };
+  const fillFromVoice = (p: SpokenTransaction) => {
+    const next: Partial<TransactionFormValues> = {};
+    if (p.description) next.description = p.description;
+    if (p.amountCents) next.amountCents = formatCentsInput(Math.min(p.amountCents, 99_999_999_999));
+    if (p.date) next.date = p.date;
+    if (p.categoryId) next.categoryId = p.categoryId;
+    if (p.status) next.status = p.status;
+    setType(p.type);
+    setSpoken((prev) => ({
+      values: { ...prev.values, ...next },
+      rev: Object.fromEntries(
+        Object.keys(next)
+          .map((k) => [k, (prev.rev[k] ?? 0) + 1] as const)
+          .concat(Object.entries(prev.rev).filter(([k]) => !(k in next))),
+      ),
+    }));
+  };
   const options = categories.filter((c) => c.type === type);
 
   return (
     <form action={action} className="flex flex-col gap-4">
       <FormMessage ok={state.ok} message={state.message} />
+
+      {!id && <VoiceCard type={type} categories={categories} onParsed={fillFromVoice} />}
 
       <fieldset>
         <legend className="sr-only">Tipo</legend>
@@ -76,6 +103,7 @@ export function TransactionForm({
 
       <Field label="Descrição" htmlFor="description" error={errors.description}>
         <Input
+          key={spoken.rev.description ?? 0}
           id="description"
           name="description"
           defaultValue={values.description}
@@ -86,10 +114,10 @@ export function TransactionForm({
 
       <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
         <Field label="Valor (R$)" htmlFor="amountCents" error={errors.amountCents}>
-          <MoneyInput id="amountCents" name="amountCents" placeholder="0,00" defaultValue={values.amountCents} />
+          <MoneyInput key={spoken.rev.amountCents ?? 0} id="amountCents" name="amountCents" placeholder="0,00" defaultValue={values.amountCents} />
         </Field>
         <Field label="Data" htmlFor="date" error={errors.date}>
-          <Input id="date" name="date" type="date" defaultValue={values.date} required />
+          <Input key={spoken.rev.date ?? 0} id="date" name="date" type="date" defaultValue={values.date} required />
         </Field>
       </div>
 
@@ -98,7 +126,7 @@ export function TransactionForm({
           <Select
             id="categoryId"
             name="categoryId"
-            key={type}
+            key={`${type}-${spoken.rev.categoryId ?? 0}`}
             defaultValue={options.some((c) => c.id === values.categoryId) ? values.categoryId : ""}
           >
             <option value="">Sem categoria</option>
@@ -110,7 +138,7 @@ export function TransactionForm({
           </Select>
         </Field>
         <Field label="Situação" htmlFor="status" error={errors.status}>
-          <Select id="status" name="status" defaultValue={values.status}>
+          <Select key={spoken.rev.status ?? 0} id="status" name="status" defaultValue={values.status}>
             <option value="PAID">{type === "EXPENSE" ? "Pago" : "Recebido"}</option>
             <option value="PENDING">Pendente</option>
           </Select>

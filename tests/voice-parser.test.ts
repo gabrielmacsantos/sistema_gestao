@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { parseSpokenTransaction } from "@/lib/voice-parser";
 
-// The parser lives inside the static index.html; load its marked block and evaluate it.
+// The parser lives inside the static index.html (loaded from its marked block) and, ported, in src/lib/voice-parser.ts; both run the same cases.
 type Category = { id: string; type: "EXPENSE" | "INCOME"; name: string };
 type Parsed = {
   type: "EXPENSE" | "INCOME";
@@ -16,7 +17,7 @@ type Parse = (text: string, categories: Category[], today: string) => Parsed;
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const block = /\/\/ <voice-parser>.*\r?\n([\s\S]*?)\/\/ <\/voice-parser>/.exec(html)?.[1];
 if (!block) throw new Error("voice-parser block not found in index.html");
-const parse = new Function(`${block}\nreturn parseSpokenTransaction;`)() as Parse;
+const parseHtml = new Function(`${block}\nreturn parseSpokenTransaction;`)() as Parse;
 
 const categories: Category[] = [
   { id: "food", type: "EXPENSE", name: "Alimentação" },
@@ -28,9 +29,13 @@ const categories: Category[] = [
   { id: "extra", type: "INCOME", name: "Renda extra" },
 ];
 const today = "2026-11-09";
-const run = (text: string) => parse(text, categories, today);
 
-describe("parseSpokenTransaction", () => {
+describe.each([
+  ["index.html", parseHtml],
+  ["src/lib/voice-parser.ts", parseSpokenTransaction as Parse],
+])("parseSpokenTransaction (%s)", (_name, parse) => {
+  const run = (text: string) => parse(text, categories, today);
+
   it("reads a typical expense sentence", () => {
     expect(run("gastei 52,30 no mercado ontem")).toEqual({
       type: "EXPENSE",
