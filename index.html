@@ -622,11 +622,12 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .asst-chip.muted { background: var(--c-low); color: var(--on-var); font-weight: 500; }
 .asst-chip.muted:hover { background: var(--c-high); }
 .asst-card { align-self: stretch; display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 20px; border: 1px solid var(--stage-border); background: var(--card); box-shadow: 0 6px 18px -8px rgb(15 23 42 / .18); }
-.asst-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.asst-fields { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.asst-fields > div { display: grid; grid-template-columns: 84px 1fr; align-items: baseline; gap: 8px; }
+.asst-fields dt { font-size: 12px; font-weight: 600; color: var(--on-var); }
+.asst-fields dd { margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 .asst-tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; } .asst-tag.exp { color: var(--danger); } .asst-tag.inc { color: var(--success); }
-.asst-amt { font: 700 17px/1.2 var(--display); font-variant-numeric: tabular-nums; }
-.asst-card-desc { margin: 0; font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
-.asst-card-meta { margin: 0; font-size: 12px; color: var(--on-var); }
+.asst-fields dd.asst-amt { font: 700 16px/1.2 var(--display); font-variant-numeric: tabular-nums; }
 .asst-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .asst-card-actions .btn { height: 44px; }
 .asst-edit { display: flex; flex-direction: column; gap: 8px; }
@@ -637,7 +638,11 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .asst-voice .va-card { min-height: 0; }
 .asst-voice .va-body { padding-top: 12px; }
 .asst-voice .va-bottom { padding-bottom: 14px; }
-.asst-layer[data-voice="on"] .asst-composer { display: none; }
+/* While the voice card is open it is the only thing in the panel: no second chat behind it. */
+.asst-layer[data-voice="on"] .asst-log, .asst-layer[data-voice="on"] .asst-composer { display: none; }
+.asst-layer[data-voice="on"] .asst-voice { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.asst-layer[data-voice="on"] .asst-voice .va-card { flex: 1; }
+.asst-layer[data-voice="on"] .asst-voice .voice-note { margin: auto 0; }
 .asst-composer { display: flex; align-items: center; gap: 4px; flex: none; margin: 0 10px 10px; padding: 4px; border-radius: 28px; background: var(--c-low); }
 .asst-composer .input { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border: 0; border-radius: 22px; background: transparent; box-shadow: none; }
 .asst-composer .input:focus { outline: none; }
@@ -3228,7 +3233,7 @@ function asstSet(view, { focus = true } = {}) {
   trigger.setAttribute("aria-expanded", String(view !== "closed"));
   trigger.inert = view !== "closed";
   if (view === "chat") {
-    if (!asst.greeted) { asst.greeted = true; asst.msgs.push(asstBot("Oi! Diga ou escreva o lançamento, como “Gastei 45,90 no almoço hoje”. Se faltar algo, eu pergunto.")); }
+    if (!asst.greeted) { asst.greeted = true; asst.msgs.push(asstBot("Oi! Diga ou escreva o lançamento, como “Gastei 45,90 no almoço hoje”. Eu preencho Descrição, Valor, Categoria, Data e Situação. Se faltar algo, eu pergunto.")); }
     paintChat();
   }
   if (view === "calc") paintCalc();
@@ -3274,9 +3279,14 @@ function asstCardHtml(m, i) {
     ? `<button type="button" class="btn btn-danger btn-sm" data-asst="del-yes" data-m="${i}">${icon("trash")} Confirmar exclusão</button><button type="button" class="btn btn-secondary btn-sm" data-asst="del-no" data-m="${i}">Manter</button>`
     : `<button type="button" class="btn btn-secondary btn-sm" data-asst="edit" data-m="${i}">Editar</button><button type="button" class="btn btn-secondary btn-sm" data-asst="del" data-m="${i}">Excluir</button>`;
   return `<div class="asst-card">
-    <div class="asst-card-top"><span class="asst-tag ${income ? "inc" : "exp"}">${income ? "Receita" : "Despesa"}</span><b class="asst-amt">${income ? "+" : "−"}${fmt(tx.amountCents)}</b></div>
-    <p class="asst-card-desc">${esc(tx.description)}</p>
-    <p class="asst-card-meta">${esc(cat?.name || "Sem categoria")} · ${formatDate(tx.date)} · ${tx.status === "PENDING" ? "Pendente" : income ? "Recebido" : "Pago"}</p>
+    <dl class="asst-fields">
+      <div><dt>Tipo</dt><dd><span class="asst-tag ${income ? "inc" : "exp"}">${income ? "Receita" : "Despesa"}</span></dd></div>
+      <div><dt>Descrição</dt><dd>${esc(tx.description)}</dd></div>
+      <div><dt>Valor</dt><dd class="asst-amt">${income ? "+" : "−"}${fmt(tx.amountCents)}</dd></div>
+      <div><dt>Categoria</dt><dd>${esc(cat?.name || "Sem categoria")}</dd></div>
+      <div><dt>Data</dt><dd>${formatDate(tx.date)}</dd></div>
+      <div><dt>Situação</dt><dd>${tx.status === "PENDING" ? "Pendente" : income ? "Recebido" : "Pago"}</dd></div>
+    </dl>
     <div class="asst-card-actions">${actions}</div></div>`;
 }
 
@@ -3300,8 +3310,8 @@ function asstSubmit(raw) {
     const fresh = assistantDraft(parseSpokenTransaction(text, state.categories, ctx.today));
     if (understood) asst.draft = next;
     else if (asst.awaiting === "category" && fresh.amountCents) asst.draft = fresh; // a whole new sentence instead of a category
-    else if (asst.awaiting === "amount") { asst.msgs.push(asstBot("Não entendi o valor. Diga ou escreva, por exemplo, 45,90.", [{ label: "Cancelar", kind: "cancel", muted: true }])); return paintChat(); }
-    else { asst.msgs.push(asstBot("Não achei essa categoria. Escolha uma das opções:")); return asstAsk(); }
+    else if (asst.awaiting === "amount") { asst.msgs.push(asstBot("Não entendi o Valor. Diga ou escreva, por exemplo, 45,90.", [{ label: "Cancelar", kind: "cancel", muted: true }])); return paintChat(); }
+    else { asst.msgs.push(asstBot("Não achei essa Categoria. Escolha uma das opções:")); return asstAsk(); }
   } else {
     asst.draft = assistantDraft(parseSpokenTransaction(text, state.categories, ctx.today));
   }
@@ -3324,12 +3334,14 @@ function asstAsk() {
   const d = asst.draft, cancel = { label: "Cancelar", kind: "cancel", muted: true };
   if (assistantMissing(d) === "amount") {
     asst.awaiting = "amount";
-    asst.msgs.push(asstBot(`Qual foi o valor${d.description ? ` de “${d.description}”` : ""}?`, [cancel]));
+    asst.msgs.push(asstBot(`Valor: qual foi o valor${d.description ? ` de “${d.description}”` : ""}? Escreva ou diga, por exemplo, 45,90.`, [cancel]));
   } else {
     asst.awaiting = "category";
     const cats = state.categories.filter((c) => c.type === d.type).sort((a, b) => a.name.localeCompare(b.name));
     const income = d.type === "INCOME";
-    asst.msgs.push(asstBot(`Qual a categoria ${income ? "desta receita" : "deste gasto"}${d.description ? ` (${d.description} · ${fmt(d.amountCents)})` : ""}?`, [
+    asst.msgs.push(asstBot(`Categoria: em qual categoria entra ${income ? "esta receita" : "este gasto"}?${d.description ? `
+Descrição: ${d.description}` : ""}
+Valor: ${fmt(d.amountCents)}`, [
       ...cats.map((c) => ({ label: c.name, kind: "cat", value: c.id })),
       { label: income ? "É uma despesa" : "É uma receita", kind: "type", muted: true },
       { label: "Sem categoria", kind: "cat", value: "", muted: true }, cancel,
@@ -3359,12 +3371,12 @@ function asstSaveEdit(form) {
 }
 
 // ----- Voice: the same "Assistente de voz" card, service and notice as the transaction form -----
-const asstPrompt = () => (asst.awaiting === "amount" ? "Qual foi o valor?" : asst.awaiting === "category" ? "Qual a categoria?" : "O que você quer lançar?");
+const asstPrompt = () => (asst.awaiting === "amount" ? "Qual foi o valor?" : asst.awaiting === "category" ? "Em qual categoria entra?" : "O que você quer lançar?");
 function paintAsstVoice() {
   const layer = asstEl()?.querySelector('[data-layer="chat"]'); if (!layer) return;
   const slot = layer.querySelector(".asst-voice"), mode = asst.voiceMode;
   layer.dataset.voice = mode === "idle" ? "off" : "on";
-  if (mode === "idle") { slot.innerHTML = ""; return; }
+  if (mode === "idle") { slot.innerHTML = ""; const log = layer.querySelector(".asst-log"); log.scrollTop = log.scrollHeight; return; }
   if (mode === "consent") {
     slot.innerHTML = `<div class="voice-note"><p><b>Antes de falar:</b> quem transforma sua fala em texto é o serviço de voz do navegador (Google no Chrome e no Android, Apple no Safari), que recebe o áudio. Depois, o lançamento é salvo na hora e você pode editar ou excluir no cartão.</p>
       <div class="actions"><button type="button" class="btn btn-secondary btn-sm" data-asst="voice-no">Agora não</button><button type="button" class="btn btn-primary btn-sm" data-asst="voice-ok">${icon("mic")} Entendi, falar</button></div></div>`;
@@ -3374,7 +3386,6 @@ function paintAsstVoice() {
     listening: true, text: asst.voice?.text || "", micAttr: 'data-asst="mic"',
     bubble: asstPrompt(), meta: asst.awaiting ? "Fale a resposta." : VOICE_EXAMPLE.EXPENSE, caption: "Ouvindo… toque para parar",
   });
-  const log = layer.querySelector(".asst-log"); log.scrollTop = log.scrollHeight;
 }
 function asstVoiceButton() {
   if (asst.voice) { try { asst.voice.rec.stop(); } catch {} return; }
