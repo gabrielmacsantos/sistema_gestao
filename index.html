@@ -637,7 +637,11 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .asst-voice .va-card { min-height: 0; }
 .asst-voice .va-body { padding-top: 12px; }
 .asst-voice .va-bottom { padding-bottom: 14px; }
-.asst-layer[data-voice="on"] .asst-composer { display: none; }
+/* While the voice card is open it is the only thing in the panel: no second chat behind it. */
+.asst-layer[data-voice="on"] .asst-log, .asst-layer[data-voice="on"] .asst-composer { display: none; }
+.asst-layer[data-voice="on"] .asst-voice { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.asst-layer[data-voice="on"] .asst-voice .va-card { flex: 1; }
+.asst-layer[data-voice="on"] .asst-voice .voice-note { margin: auto 0; }
 .asst-composer { display: flex; align-items: center; gap: 4px; flex: none; margin: 0 10px 10px; padding: 4px; border-radius: 28px; background: var(--c-low); }
 .asst-composer .input { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border: 0; border-radius: 22px; background: transparent; box-shadow: none; }
 .asst-composer .input:focus { outline: none; }
@@ -3364,7 +3368,7 @@ function paintAsstVoice() {
   const layer = asstEl()?.querySelector('[data-layer="chat"]'); if (!layer) return;
   const slot = layer.querySelector(".asst-voice"), mode = asst.voiceMode;
   layer.dataset.voice = mode === "idle" ? "off" : "on";
-  if (mode === "idle") { slot.innerHTML = ""; return; }
+  if (mode === "idle") { slot.innerHTML = ""; const log = layer.querySelector(".asst-log"); log.scrollTop = log.scrollHeight; return; }
   if (mode === "consent") {
     slot.innerHTML = `<div class="voice-note"><p><b>Antes de falar:</b> quem transforma sua fala em texto é o serviço de voz do navegador (Google no Chrome e no Android, Apple no Safari), que recebe o áudio. Depois, o lançamento é salvo na hora e você pode editar ou excluir no cartão.</p>
       <div class="actions"><button type="button" class="btn btn-secondary btn-sm" data-asst="voice-no">Agora não</button><button type="button" class="btn btn-primary btn-sm" data-asst="voice-ok">${icon("mic")} Entendi, falar</button></div></div>`;
@@ -3374,7 +3378,6 @@ function paintAsstVoice() {
     listening: true, text: asst.voice?.text || "", micAttr: 'data-asst="mic"',
     bubble: asstPrompt(), meta: asst.awaiting ? "Fale a resposta." : VOICE_EXAMPLE.EXPENSE, caption: "Ouvindo… toque para parar",
   });
-  const log = layer.querySelector(".asst-log"); log.scrollTop = log.scrollHeight;
 }
 function asstVoiceButton() {
   if (asst.voice) { try { asst.voice.rec.stop(); } catch {} return; }
