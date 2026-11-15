@@ -318,6 +318,18 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: vertical; }
 .input:focus { outline: 2px solid var(--primary); outline-offset: 0; border-color: var(--primary); }
 .input[aria-invalid="true"] { border-color: var(--danger); }
+/* Error state shake (transitions.dev): a field that fails shakes left and right. */
+:root { --shake-distance: 6px; --shake-overshoot: 4px; --shake-dur-a: 80ms; --shake-dur-b: 60ms; --shake-ease: cubic-bezier(0.22, 1, 0.36, 1); }
+.input { transition: border-color 150ms ease-out; }
+.input.is-shaking { animation: t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear; }
+@keyframes t-input-shake {
+  0%     { transform: translateX(0);                                 animation-timing-function: var(--shake-ease); }
+  28.57% { transform: translateX(var(--shake-distance));             animation-timing-function: var(--shake-ease); }
+  57.14% { transform: translateX(calc(var(--shake-distance) * -1)); animation-timing-function: var(--shake-ease); }
+  78.57% { transform: translateX(var(--shake-overshoot));            animation-timing-function: var(--shake-ease); }
+  100%   { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) { .input.is-shaking { animation: none !important; transform: none !important; } }
 .input-sm { height: 36px; font-size: 14px; }
 .money { position: relative; }
 .money span { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-weight: 600; pointer-events: none; }
@@ -2371,12 +2383,18 @@ function toast(msg) {
   el.innerHTML = `<span style="color:#89f5e7;display:flex">${icon("checkCircle")}</span>${esc(msg)}`;
   document.body.appendChild(el); toastTimer = setTimeout(() => el.remove(), 2800);
 }
+/** Replays the shake from a clean baseline; a newer shake is not cut short by an older timer. */
+function shakeInput(input) {
+  input.classList.remove("is-shaking"); void input.offsetWidth; input.classList.add("is-shaking");
+  clearTimeout(input._shakeTimer); input._shakeTimer = setTimeout(() => input.classList.remove("is-shaking"), 80 * 2 + 60 * 2 + 20);
+}
 function showErrors(errors, root = document.getElementById("modal")) {
   root.querySelectorAll(".err").forEach((e) => e.remove());
   root.querySelectorAll("[aria-invalid]").forEach((e) => e.removeAttribute("aria-invalid"));
   for (const [name, msg] of Object.entries(errors)) {
     const input = root.querySelector(`[name="${name}"]`); if (!input) continue;
     input.setAttribute("aria-invalid", "true");
+    shakeInput(input);
     const p = document.createElement("p"); p.className = "err"; p.textContent = msg;
     input.closest(".field").appendChild(p);
   }
@@ -2882,7 +2900,7 @@ function viewAuth(page) {
   const form = login
     ? `<form class="auth-form" id="auth-form" data-page="entrar" novalidate>
         ${field("Usuário do GitHub", "username", input("username", "", `autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="seu-usuario"${googleReady() ? "" : " autofocus"}`))}
-        ${field("Senha", "password", input("password", "", 'type="password" autocomplete="current-password"'))}
+        ${field("Senha", "password", input("password", "", 'type="password" autocomplete="current-password" placeholder="Sua senha"'))}
         <button type="submit" class="btn btn-primary" style="width:100%">Entrar</button>
       </form>
       <p class="auth-switch">Não tem conta? <a href="${href("cadastro")}">Criar conta</a></p>`
@@ -2893,8 +2911,8 @@ function viewAuth(page) {
       </ol>
       <form class="auth-form" id="auth-form" data-page="cadastro" novalidate style="margin-top:20px">
         ${field("Código de acesso do GitHub", "token", input("token", "", 'type="password" autocomplete="off" spellcheck="false" placeholder="ghp_..."'), "", "Usado só uma vez. Fica guardado criptografado na sua conta.")}
-        ${field("Crie uma senha", "password", input("password", "", 'type="password" autocomplete="new-password"'), "", `Mínimo de ${MIN_PASSWORD} caracteres. Sem ela ninguém abre seus dados, nem o GitHub. Por isso, não a perca.`)}
-        ${field("Repita a senha", "password2", input("password2", "", 'type="password" autocomplete="new-password"'))}
+        ${field("Crie uma senha", "password", input("password", "", 'type="password" autocomplete="new-password" placeholder="Crie uma senha"'), "", `Mínimo de ${MIN_PASSWORD} caracteres. Sem ela ninguém abre seus dados, nem o GitHub. Por isso, não a perca.`)}
+        ${field("Repita a senha", "password2", input("password2", "", 'type="password" autocomplete="new-password" placeholder="Repita a senha"'))}
         <button type="submit" class="btn btn-primary" style="width:100%">Criar conta</button>
       </form>
       ${hasLocal ? `<p class="hint" style="margin-top:12px">Os dados que você já lançou neste navegador vão para a nova conta.</p>` : ""}
