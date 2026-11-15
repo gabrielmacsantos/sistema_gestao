@@ -103,6 +103,23 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .icon-btn:hover { background: var(--c-low); color: var(--on); }
 /* Small header controls keep their look but get a 44px touch area (Apple HIG / Material); inset counts from inside the border. */
 .icon-btn, .sync, .month a, .month button { position: relative; }
+/* Notification badge (transitions.dev): pops in with a small overshoot and unblurs. */
+:root { --badge-dur: 300ms; --badge-scale-from: .4; --badge-scale-peak: 1.15; --badge-blur: 2px; --badge-ease: cubic-bezier(.22,1,.36,1); }
+.bell-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center; border-radius: 9px; background: var(--danger); color: #fff; font-size: 11px; line-height: 1; font-weight: 700; box-shadow: 0 0 0 2px var(--card); pointer-events: none; }
+.bell-badge.t-badge { animation: t-badge-in var(--badge-dur) var(--badge-ease) both; }
+@keyframes t-badge-in { 0% { opacity: 0; transform: scale(var(--badge-scale-from)); filter: blur(var(--badge-blur)); } 60% { opacity: 1; transform: scale(var(--badge-scale-peak)); filter: blur(0); } 100% { opacity: 1; transform: scale(1); filter: blur(0); } }
+@media (prefers-reduced-motion: reduce) { .bell-badge.t-badge { animation: none !important; } }
+.notice-list { list-style: none; margin: 0; padding: 0; }
+.notice-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--c-low); }
+.notice-item:last-child { border-bottom: 0; }
+.notice-dot { flex: none; width: 8px; height: 8px; margin-top: 8px; border-radius: 50%; background: transparent; }
+.notice-item.unread .notice-dot { background: var(--danger); }
+.notice-item.unread h4 { font-weight: 700; }
+.notice-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.notice-top h4 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; }
+.notice-top time { flex: none; font-size: 12px; color: var(--secondary); }
+.notice-item p { margin: 2px 0 0; font-size: 13px; line-height: 18px; color: var(--secondary); }
+.notice-item .link-btn { margin-top: 4px; min-height: 36px; padding: 0; border: 0; background: none; color: var(--primary); font: inherit; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .icon-btn::after, .sync::after, .month a::after, .month button::after { content: ""; position: absolute; inset: -5px; place-self: stretch; }
 .month a::after, .month button::after { inset: -2px; }
 main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16px 112px; }
@@ -1679,6 +1696,7 @@ function shell(r, content) {
       <div class="trail"><span>Visão geral</span>${icon("right", 'style="width:14px;height:14px;color:var(--outline-var)"')}<b>${current.label}</b></div>
       <div class="top-actions">
         ${syncBadge()}
+        ${bellButton()}
         <button class="icon-btn" data-act="toggle-values" aria-label="Ocultar valores" aria-pressed="${hideValues}" title="${hideValues ? "Mostrar valores" : "Ocultar valores"}">${icon(hideValues ? "eyeOff" : "eye")}</button>
         <button class="icon-btn" data-act="theme" aria-label="Tema escuro" aria-pressed="${dark}" title="Alternar tema">${icon(dark ? "sun" : "moon")}</button>
         <button class="icon-btn mob-only" data-act="menu" aria-label="Mais opções" aria-haspopup="dialog">${icon("menu")}</button>
@@ -2854,6 +2872,53 @@ function menuSheet() {
   openModal({ title: "Menu", body: `<nav class="sheet-nav">${ROUTES.map((x) => `<a href="${navHref(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}${account}</nav>` });
 }
 
+// ---------- Update notices (bell) ----------
+// Same catalog as src/lib/notices-data.ts. `actionUrl` is reserved for the store links at launch and is
+// not rendered while the app is in testing. The read state is per account and stays on this device.
+const NOTICES = [
+  { id: "2026-11-15-google-login", title: "Entrar com o Google", body: "Agora você entra com a sua conta Google, sem criar token nem senha extra.", date: "2026-11-15" },
+  { id: "2026-11-14-voice-assistant", title: "Assistente de voz", body: "Fale o lançamento no formulário e o app preenche valor, categoria e data para você revisar.", date: "2026-11-14" },
+  { id: "2026-11-10-hide-values", title: "Ocultar valores", body: "Toque no olho do cabeçalho para esconder os valores da tela quando houver alguém por perto.", date: "2026-11-10" },
+];
+const sortedNotices = () => NOTICES.map((n, i) => ({ n, i })).sort((a, b) => b.n.date.localeCompare(a.n.date) || a.i - b.i).map((x) => x.n);
+const noticesKey = () => `notices-read:${isGoogle() ? sync.sub : sync.login}`;
+const noticesMemory = {};
+function readNoticeIds() {
+  let raw = null;
+  try { raw = localStorage.getItem(noticesKey()); } catch {}
+  raw = raw ?? noticesMemory[noticesKey()] ?? null;
+  try { const v = JSON.parse(raw); return Array.isArray(v) ? v.filter((x) => typeof x === "string") : []; } catch { return []; }
+}
+function writeNoticeIds(ids) {
+  const raw = JSON.stringify([...new Set(ids)]);
+  noticesMemory[noticesKey()] = raw;
+  try { localStorage.setItem(noticesKey(), raw); } catch {}
+}
+const unreadNotices = () => { const read = new Set(readNoticeIds()); return sortedNotices().filter((n) => !read.has(n.id)); };
+const noticeDate = (d) => new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Sao_Paulo" }).format(new Date(`${d}T12:00:00-03:00`));
+let lastBellCount = null;
+/** Only for signed-in accounts. The badge animates only when the number changes, not on every redraw. */
+function bellButton() {
+  if (!sync) return "";
+  const n = unreadNotices().length, pop = n !== lastBellCount;
+  lastBellCount = n;
+  return `<button class="icon-btn" data-act="notices" aria-label="${n ? `Notificações, ${n} ${n === 1 ? "não lida" : "não lidas"}` : "Notificações"}" aria-haspopup="dialog">${icon("bell")}${n ? `<span class="bell-badge ${pop ? "t-badge" : ""}" aria-hidden="true">${n > 9 ? "9+" : n}</span>` : ""}</button>`;
+}
+function noticesBody() {
+  const unread = new Set(unreadNotices().map((n) => n.id));
+  const list = sortedNotices().map((n) => `<li class="notice-item ${unread.has(n.id) ? "unread" : ""}"><span class="notice-dot" aria-hidden="true"></span><div style="min-width:0;flex:1">
+    <div class="notice-top"><h4>${esc(n.title)}${unread.has(n.id) ? '<span class="sr-only"> (não lida)</span>' : ""}</h4><time datetime="${n.date}">${noticeDate(n.date)}</time></div>
+    <p>${esc(n.body)}</p>${unread.has(n.id) ? `<button type="button" class="link-btn" data-act="notice-read" data-id="${n.id}">${icon("check")} Marcar como lida</button>` : ""}</div></li>`).join("");
+  return `${unread.size ? `<button type="button" class="btn btn-secondary btn-sm" data-act="notices-read-all" style="margin-bottom:8px">${icon("check")} Marcar todas como lidas</button>` : ""}${list ? `<ul class="notice-list">${list}</ul>` : '<p class="hint">Nenhum aviso por enquanto.</p>'}`;
+}
+function noticesSheet() { openModal({ title: "Novidades", body: noticesBody() }); }
+/** Redraws the badge behind the sheet and the list inside it, without reopening the sheet. */
+function refreshNotices() {
+  render();
+  const body = document.querySelector("#modal .modal-body");
+  if (body) { body.innerHTML = noticesBody(); (body.querySelector("button") || document.querySelector("#modal [data-act='close']"))?.focus({ preventScroll: true }); }
+}
+
 // ---------- Login page ----------
 // Google is the only way to have an account (e-mail + password would need a server to send the
 // confirmation code, which this static site does not have). "entrar" and "cadastro" show the same screen.
@@ -3268,7 +3333,9 @@ document.addEventListener("click", (e) => {
   if (act === "close-nav") { closeModal(); return; }
   const actions = {
     "theme": () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem("mf-theme", t); } catch {} render(); },
-    "menu": menuSheet, "close": closeModal, "pick-month": monthSheet, "reload": () => location.reload(),
+    "menu": menuSheet, "close": closeModal, "notices": noticesSheet,
+    "notice-read": () => { writeNoticeIds([...readNoticeIds(), id]); refreshNotices(); },
+    "notices-read-all": () => { writeNoticeIds([...readNoticeIds(), ...NOTICES.map((n) => n.id)]); refreshNotices(); }, "pick-month": monthSheet, "reload": () => location.reload(),
     "flow-view": () => setFlowView(el.dataset.view), "flow-col": () => selectFlowColumn(el),
     "toggle-values": () => {
       hideValues = !hideValues;

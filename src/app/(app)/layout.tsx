@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LogOut, Plus, Wallet } from "lucide-react";
 import { buttonClass } from "@/components/ui/button";
+import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ValuesToggle } from "@/components/values-toggle";
 import { getCurrentUser } from "@/server/auth";
@@ -87,6 +88,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <PageTrail />
 
             <div className="flex shrink-0 items-center gap-2">
+              <NotificationBell userId={user.id} />
               <ValuesToggle />
               <ThemeToggle />
               <span className="md:hidden">

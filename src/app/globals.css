@@ -329,3 +329,21 @@
 @media (prefers-reduced-motion: reduce) {
   .t-input { animation: none !important; transform: none !important; }
 }
+
+/* Notification badge (transitions.dev): pops in with a small overshoot and unblurs. */
+:root {
+  --badge-dur: 300ms;
+  --badge-scale-from: 0.4;
+  --badge-scale-peak: 1.15;
+  --badge-blur: 2px;
+  --badge-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.t-badge { animation: t-badge-in var(--badge-dur) var(--badge-ease) both; }
+@keyframes t-badge-in {
+  0%   { opacity: 0; transform: scale(var(--badge-scale-from)); filter: blur(var(--badge-blur)); }
+  60%  { opacity: 1; transform: scale(var(--badge-scale-peak)); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-badge { animation: none !important; }
+}
