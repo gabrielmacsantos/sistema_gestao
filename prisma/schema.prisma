@@ -31,14 +31,18 @@ enum TransactionSource {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
   /// Null for accounts that only sign in with Google.
-  passwordHash String?
+  passwordHash    String?
   /// Google's stable account id (the ID token's "sub"); the session still holds User.id.
-  googleSub    String?  @unique
-  createdAt    DateTime @default(now())
+  googleSub       String?   @unique
+  /// Set once the e-mail is confirmed (OTP code or Google); null means "not confirmed yet".
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+
+  emailOtps EmailOtp[]
 
   categories   Category[]
   transactions Transaction[]
@@ -46,6 +50,27 @@ model User {
   budgets      Budget[]
   goals        SavingsGoal[]
   uploads      Upload[]
+}
+
+// One-time 6-digit code that confirms an e-mail. Only an HMAC of the code is stored.
+model EmailOtp {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Fixed-window counter for sign-in, sign-up and code e-mails. `key` looks like "login:ip:1.2.3.4".
+model RateLimit {
+  key         String   @id
+  count       Int
+  windowStart DateTime
 }
 
 // Receipt photos, kept in the database (older ones may still live in storage/).
@@ -113,10 +138,10 @@ model Transaction {
 }
 
 model TransactionItem {
-  id             String @id @default(cuid())
+  id             String  @id @default(cuid())
   transactionId  String
   description    String
-  quantity       Float  @default(1)
+  quantity       Float   @default(1)
   unit           String?
   unitPriceCents Int?
   totalCents     Int

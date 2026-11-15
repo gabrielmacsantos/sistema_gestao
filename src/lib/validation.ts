@@ -73,6 +73,8 @@ export const signupSchema = z.object({
   password: z.string().min(8, "A senha precisa ter pelo menos 8 caracteres").max(128),
 });
 
+export const otpSchema = z.string().trim().regex(/^\d{6}$/);
+
 export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Informe a senha"),

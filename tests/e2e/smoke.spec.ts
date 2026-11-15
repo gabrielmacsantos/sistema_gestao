@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { signUpAndConfirm } from "./support/auth";
 
 test("sign up, add an expense, a fixed expense and see them on the dashboard", async ({ page }, testInfo) => {
   const email = `e2e-${testInfo.project.name}-${Date.now()}@test.dev`;
@@ -6,12 +7,8 @@ test("sign up, add an expense, a fixed expense and see them on the dashboard", a
   await page.goto("/");
   await expect(page).toHaveURL(/\/login$/);
 
-  await page.getByRole("link", { name: "Cadastre-se" }).click();
-  await page.getByLabel("Nome").fill("Teste E2E");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill("senha-segura-123");
-  await page.getByRole("button", { name: "Criar conta" }).click();
-  await expect(page.getByRole("heading", { name: "Gestão financeira e despesas" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Cadastre-se" })).toBeVisible();
+  await signUpAndConfirm(page, email);
 
   await page.goto("/lancamentos/novo");
   await page.getByLabel("Descrição").fill("Padaria");
@@ -72,12 +69,7 @@ test("sign up, add an expense, a fixed expense and see them on the dashboard", a
 });
 
 test("amount mask and switching between expense and income", async ({ page }, testInfo) => {
-  await page.goto("/cadastro");
-  await page.getByLabel("Nome").fill("Teste");
-  await page.getByLabel("E-mail").fill(`e2e-mask-${testInfo.project.name}-${Date.now()}@test.dev`);
-  await page.getByLabel("Senha").fill("senha-segura-123");
-  await page.getByRole("button", { name: "Criar conta" }).click();
-  await expect(page.getByRole("heading", { name: "Gestão financeira e despesas" })).toBeVisible();
+  await signUpAndConfirm(page, `e2e-mask-${testInfo.project.name}-${Date.now()}@test.dev`);
 
   await page.goto("/lancamentos/novo");
   const description = page.getByLabel("Descrição");
@@ -125,12 +117,7 @@ test("amount mask and switching between expense and income", async ({ page }, te
 
 test("validation errors keep what the user typed", async ({ page }, testInfo) => {
   const email = `e2e-val-${testInfo.project.name}-${Date.now()}@test.dev`;
-  await page.goto("/cadastro");
-  await page.getByLabel("Nome").fill("Teste");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill("senha-segura-123");
-  await page.getByRole("button", { name: "Criar conta" }).click();
-  await expect(page.getByRole("heading", { name: "Gestão financeira e despesas" })).toBeVisible();
+  await signUpAndConfirm(page, email);
 
   await page.goto("/lancamentos/novo");
   await page.getByLabel("Descrição").fill("Sem valor");

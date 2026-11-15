@@ -17,6 +17,8 @@ export default defineConfig({
     command: `npx prisma migrate deploy && npx next dev --port ${PORT}`,
     // A made-up Google client: enough to show "Continuar com o Google" and test everything up to Google.
     env: {
+      // The mailer appends each message here instead of the console, so tests can read the code.
+      MAIL_OUTBOX: "prisma/e2e-mail.jsonl",
       DATABASE_URL: "file:./prisma/e2e.db",
       GOOGLE_CLIENT_ID: "e2e-client.apps.googleusercontent.com",
       GOOGLE_CLIENT_SECRET: "e2e-secret",
