@@ -1495,7 +1495,7 @@ const DEFAULT_CATEGORIES = [
   ["INCOME", "Salário", "#22c55e"], ["INCOME", "Renda extra", "#10b981"], ["INCOME", "Investimentos", "#0d9488"], ["INCOME", "Outros", "#64748b"],
 ].map(([type, name, color]) => ({ id: uid(), type, name, color }));
 
-const emptyState = () => ({ version: 1, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c, id: uid() })), transactions: [], recurrings: [], budgets: [], goals: [], trips: [], inbox: [] });
+const emptyState = () => ({ version: 1, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c, id: uid() })), transactions: [], recurrings: [], budgets: [], goals: [], trips: [], inbox: [], demo: false, demoDismissed: false });
 let state = load();
 let storageOk = true;
 let needsOccurrences = true;
@@ -1610,6 +1610,27 @@ async function encryptState(key, salt, token) {
   const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify({ state, token })));
   return JSON.stringify({ app: "minhas-financas", format: 2, kdf: "PBKDF2-SHA256", iterations: PBKDF2_ITERATIONS, salt: toB64(salt), iv: toB64(iv), savedAt: state.savedAt || 0, data: toB64(data) });
 }
+// <demo-gate> Self-contained: tests/demo-gate.test.ts loads this block from the file.
+/** The sample data is offered only to an account that has never used it and holds nothing of its own. */
+function canOfferDemo(s) {
+  return !s.demo && !s.demoDismissed && ["transactions", "recurrings", "budgets", "goals", "trips"].every((k) => !(s[k] || []).length);
+}
+/** The same data without the sample records (and what grew out of them, such as fixed occurrences
+ * and trip expenses), marked as done with the sample. Real records are never touched. */
+function withoutDemo(s) {
+  const recs = new Set((s.recurrings || []).filter((x) => x.demo).map((x) => x.id));
+  const trips = new Set((s.trips || []).filter((x) => x.demo).map((x) => x.id));
+  const real = (list) => (list || []).filter((x) => !x.demo);
+  return { ...s, demo: false, demoDismissed: true, recurrings: real(s.recurrings), budgets: real(s.budgets), goals: real(s.goals), trips: real(s.trips),
+    transactions: (s.transactions || []).filter((t) => !t.demo && !recs.has(t.recurringId) && !trips.has(t.tripId)) };
+}
+/** What may go to the account: with the sample active, only the real records, and nothing at all while there are none. */
+function syncableState(s) {
+  if (!s.demo) return s;
+  const clean = withoutDemo(s);
+  return ["transactions", "recurrings", "budgets", "goals", "trips"].some((k) => clean[k].length) ? { ...clean, demoDismissed: s.demoDismissed } : null;
+}
+// </demo-gate>
 // <money-check> Self-contained: tests/money-check.test.ts loads this block from the file.
 /** True when every amount in the data is a non-negative integer of cents. Backups and synced
  * data pass here before replacing anything: a "1000" would be concatenated by the sums. */
@@ -1672,10 +1693,13 @@ async function pushNow() {
   if (!sync) return;
   clearTimeout(pushTimer); pushTimer = null;
   if (pushing) { pushTimer = setTimeout(pushNow, 800); return; }
+  // Sample data never goes to the account; with nothing real to send, the account's copy stays as it is.
+  const outgoing = syncableState(state);
+  if (!outgoing || (!isGoogle() && state.demo)) { setSyncStatus("ok"); return; }
   pushing = true; setSyncStatus("saving");
   try {
     if (isGoogle()) {
-      const fileId = await writeDriveFile(sync.fileId, DRIVE_FILE, driveDataFile(state), "application/json");
+      const fileId = await writeDriveFile(sync.fileId, DRIVE_FILE, driveDataFile(outgoing), "application/json");
       storeSync({ ...sync, fileId, lastPush: Date.now() });
     } else {
       const content = await encryptState(await importKey(sync.key), fromB64(sync.salt), sync.token);
@@ -1909,11 +1933,14 @@ async function startGoogleSignIn(btn) {
   const finish = async (useRemote) => {
     storeSync(settings); setLocalMode(false); syncStatus = "ok";
     if (useRemote) { await clearPhotos(); replaceState(data); persist(); }
-    else { if (!state.savedAt) state.savedAt = Date.now(); persist(); await pushNow(); syncPhotos(); }
+    else {
+      if (state.demo) replaceState(withoutDemo(state)); // the sample is not taken into the account
+      if (!state.savedAt) state.savedAt = Date.now(); persist(); await pushNow(); syncPhotos();
+    }
     location.hash = href("painel"); render();
     toast(useRemote ? `Bem-vindo de volta, ${first}!` : `Conta criada! Bem-vindo, ${first}.`);
   };
-  const hasLocal = state.transactions.length > 0 || state.recurrings.length > 0;
+  const hasLocal = !state.demo && (state.transactions.length > 0 || state.recurrings.length > 0);
   if (data && hasLocal) {
     reset();
     return confirmDialog("Sua conta Google já tem dados", "Os lançamentos que estão só neste aparelho serão substituídos pelos da sua conta. Se quiser guardá-los, cancele e baixe um backup antes.", "Usar os da conta", () => finish(true));
@@ -2507,14 +2534,20 @@ function viewPainel(r) {
           <div class="actions" style="margin-top:16px">
             <button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Lançar salário</button>
             <button class="btn btn-secondary btn-sm" data-act="new-rec">${icon("calendar")} Cadastrar gasto fixo</button>
-            <button class="btn btn-ghost btn-sm" data-act="demo">${icon("sparkles")} Ver com dados de exemplo</button>
+            ${canOfferDemo(state) ? `<button class="btn btn-ghost btn-sm" data-act="demo">${icon("sparkles")} Ver com dados de exemplo</button>` : ""}
             ${sync ? "" : `<a class="btn btn-ghost btn-sm" href="${href("entrar")}">${icon("lock")} Entrar com o Google</a>`}
           </div>
         </div>
       </div>
     </div>` : "";
+  const demoBanner = state.demo ? `
+    <div class="card welcome" role="status" id="demo-banner" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+      <p style="margin:0;flex:1;min-width:200px"><b>Você está visualizando dados de exemplo.</b> <span class="muted">Eles ficam só neste aparelho e não vão para a sua conta.</span></p>
+      <button class="btn btn-primary btn-sm" style="min-height:48px;min-width:48px" data-act="exit-demo">${icon("sparkles")} Sair do exemplo e começar minha gestão</button>
+    </div>` : "";
 
   return `<div class="stack">
+    ${demoBanner}
     ${pageHead("Gestão financeira e despesas", "Acompanhe seu fluxo de caixa, compromissos fixos e gastos do mês.",
       `${monthPicker("painel", m)}<span class="actions desk-only"><button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Nova entrada</button><button class="btn btn-secondary btn-sm" data-act="new-rec"><span class="t-primary" style="display:flex">${icon("calendar")}</span> Cadastrar fixo</button><button class="btn btn-primary btn-sm" data-act="new-tx">${icon("plusCircle")} Novo gasto</button></span>`)}
     ${welcome}
@@ -2764,7 +2797,7 @@ function viewBackup() {
     ${github}
     <section class="card"><h2 class="h-card">Exportar</h2><p class="muted" style="margin:6px 0 16px">Baixa um arquivo .json (sem as fotos de comprovante) com ${n} lançamentos, ${state.recurrings.length} fixos, ${state.categories.length} categorias, orçamentos e metas.</p><button class="btn btn-primary" data-act="export">${icon("save")} Baixar backup</button></section>
     <section class="card"><h2 class="h-card">Restaurar</h2><p class="muted" style="margin:6px 0 16px">Carrega um backup exportado antes. <b>Substitui</b> os dados atuais deste navegador.</p><label class="btn btn-secondary" for="restore">${icon("upload")} Escolher arquivo</label><input type="file" id="restore" accept=".json,application/json" hidden></section>
-    <section class="card"><h2 class="h-card">Dados de exemplo</h2><p class="muted" style="margin:6px 0 16px">Preenche 6 meses de lançamentos fictícios para você explorar o sistema.</p><button class="btn btn-secondary" data-act="demo">${icon("sparkles")} Carregar exemplo</button></section>
+    ${canOfferDemo(state) ? `<section class="card"><h2 class="h-card">Dados de exemplo</h2><p class="muted" style="margin:6px 0 16px">Preenche 6 meses de lançamentos fictícios para você explorar o sistema.</p><button class="btn btn-secondary" data-act="demo">${icon("sparkles")} Carregar exemplo</button></section>` : ""}
     <section class="card"><h2 class="h-card">Apagar tudo</h2><p class="muted" style="margin:6px 0 16px">Remove todos os dados deste navegador e recomeça do zero.</p><button class="btn btn-danger" data-act="wipe">${icon("trash")} Apagar dados</button></section>
   </div>
   ${storageOk ? "" : `<p class="alert" style="margin-top:16px">O navegador não está permitindo salvar (modo privado?). Exporte um backup antes de fechar.</p>`}`;
@@ -4302,7 +4335,20 @@ function loadDemo() {
   state.trips = [{ id: tripId, name: "Férias em Florianópolis", destination: "Florianópolis, SC", startDate: `${tm}-10`, endDate: `${tm}-15`, budgetCents: 300000, includeInMain: false, createdAt: Date.now() }];
   [["Passagens aéreas", 98000, "Transporte", 10], ["Hotel (5 noites)", 125000, "Moradia", 10], ["Restaurante na praia", 18900, "Alimentação", 12], ["Passeio de barco", 22000, "Lazer", 13], ["Uber", 6400, "Transporte", 14]]
     .forEach(([d, a, c, day]) => state.transactions.push({ id: uid(), type: "EXPENSE", description: d, amountCents: a, date: `${tm}-${pad(day)}`, status: "PAID", categoryId: cat(c), source: "MANUAL", recurringId: null, period: null, notes: "", tripId, createdAt: Date.now() }));
+  // Everything in the state at this point is sample data: mark it so leaving removes only these.
+  state.demo = true;
+  for (const k of ["transactions", "recurrings", "budgets", "goals", "trips"]) state[k].forEach((x) => { x.demo = true; });
   save(); location.hash = href("painel"); render(); toast("Dados de exemplo carregados.");
+}
+/** Leaves the sample: removes only the records marked as sample, for good, and never offers it again. */
+function exitDemo() {
+  replaceState(withoutDemo(state)); save(); location.hash = href("painel"); render();
+  toast("Exemplo removido. Sua gestão começa do zero.");
+}
+/** Real data must not mix with the sample: ask to leave it first, then continue. */
+function leaveDemoThen(proceed) {
+  if (!state.demo) return proceed();
+  confirmDialog("Sair do exemplo?", "Você está vendo dados de exemplo. Para lançar dados reais, saia do exemplo primeiro: os dados fictícios serão removidos.", "Sair do exemplo e continuar", () => { exitDemo(); proceed(); });
 }
 
 // ---------- Events ----------
@@ -4340,7 +4386,8 @@ document.addEventListener("click", (e) => {
       try { await reconnectGoogle(); setSyncStatus("saving"); await syncPhotos(); await pullIfNewer(); }
       catch (e) { setSyncStatus("reauth"); toast(e.message); }
     },
-    "new-tx": () => txForm(null, el.dataset.type),
+    "new-tx": () => leaveDemoThen(() => txForm(null, el.dataset.type)),
+    "exit-demo": exitDemo,
     "edit-tx": () => txForm(state.transactions.find((t) => t.id === id)),
     "tx-type": () => { stopVoice(); txForm.setType(el.dataset.type); },
     "voice": voiceButton,
@@ -4352,7 +4399,7 @@ document.addEventListener("click", (e) => {
       if (t.attachmentId) { deletePhoto(t.attachmentId); t.attachmentId = null; }
       if (t.recurringId) t.status = "SKIPPED"; else state.transactions = state.transactions.filter((x) => x.id !== id);
       save(); toast("Lançamento excluído."); }); },
-    "new-rec": () => recForm(null),
+    "new-rec": () => leaveDemoThen(() => recForm(null)),
     "edit-rec": () => recForm(state.recurrings.find((x) => x.id === id)),
     "rec-type": () => recForm.setType(el.dataset.type),
     "del-rec": () => confirmDialog("Excluir gasto fixo?", "Os lançamentos já gerados continuam no histórico; os pendentes deste modelo serão removidos.", "Excluir", () => {
@@ -4367,14 +4414,14 @@ document.addEventListener("click", (e) => {
       for (const r of state.recurrings) if (r.categoryId === id) r.categoryId = null;
       state.budgets = state.budgets.filter((b) => b.categoryId !== id);
       save(); toast("Categoria excluída."); }),
-    "new-budget": () => budgetForm(null),
+    "new-budget": () => leaveDemoThen(() => budgetForm(null)),
     "edit-budget": () => budgetForm(state.budgets.find((b) => b.id === id)),
     "del-budget": () => { state.budgets = state.budgets.filter((b) => b.id !== id); save(); render(); toast("Limite removido."); },
-    "new-trip": () => tripForm(null),
+    "new-trip": () => leaveDemoThen(() => tripForm(null)),
     "edit-trip": () => tripForm(tripById(id)),
     "del-trip": () => deleteTripDialog(tripById(id)),
     "new-trip-tx": () => txForm(null, "EXPENSE", id),
-    "new-goal": () => goalForm(null),
+    "new-goal": () => leaveDemoThen(() => goalForm(null)),
     "edit-goal": () => goalForm(state.goals.find((g) => g.id === id)),
     "deposit-goal": () => depositForm(state.goals.find((g) => g.id === id)),
     "del-goal": () => confirmDialog("Excluir meta?", "A meta será removida.", "Excluir", () => { state.goals = state.goals.filter((g) => g.id !== id); writeCelebrated(readCelebrated().filter((x) => x !== id)); save(); toast("Meta excluída."); }),
@@ -4400,16 +4447,18 @@ document.addEventListener("click", (e) => {
     "notif-off": async () => { await BankNotif().setWatching({ on: false }); await refreshNotifStatus(); render(); toast("Leitura de notificações desligada."); },
     "update-later": () => { writeUpdateState({ ...readUpdateState(), dismissed: appUpdate?.build }); appUpdate = null; render(); },
     "export": () => {
+      if (state.demo) return toast("Saia do exemplo antes de baixar um backup: os dados fictícios não entram nele.");
       if (NATIVE) return shareFile(`minhas-financas-backup-${todayISO()}.json`, JSON.stringify(state, null, 2)).catch(() => toast("Não foi possível salvar o backup."));
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `minhas-financas-backup-${todayISO()}.json`; a.click(); URL.revokeObjectURL(a.href);
       toast("Backup baixado.");
     },
-    "demo": () => { if (state.transactions.length || state.recurrings.length) confirmDialog("Carregar dados de exemplo?", "Isso <b>substitui</b> os dados atuais deste navegador. Exporte um backup antes se quiser guardá-los.", "Substituir", loadDemo); else loadDemo(); },
+    // Only for a first-time, empty account (canOfferDemo): it never replaces real data.
+    "demo": () => { if (canOfferDemo(state)) loadDemo(); },
     "wipe": () => confirmDialog("Apagar todos os dados?", `Todos os lançamentos, fixos, orçamentos e metas serão removidos.${sync ? ` Os dados salvos na sua conta do ${providerName()} também serão apagados.` : ""} Essa ação não pode ser desfeita.`, "Apagar tudo", () => {
       if (isGoogle()) findDriveFiles("name contains 'photo-'").then((files) => Promise.all(files.map((f) => drive(`/files/${f.id}`, { method: "DELETE" })))).catch(() => {});
       else if (sync && state.photosGistId) gh(`/gists/${state.photosGistId}`, sync.token, { method: "DELETE" }).catch(() => {});
-      clearPhotos(); replaceState(emptyState()); save(); location.hash = href("painel"); toast("Dados apagados."); }),
+      clearPhotos(); replaceState({ ...emptyState(), demoDismissed: true }); save(); location.hash = href("painel"); toast("Dados apagados."); }),
   };
   if (actions[act]) { e.preventDefault(); actions[act](); }
 });
@@ -4437,7 +4486,7 @@ document.addEventListener("change", (e) => {
     file.text().then((text) => {
       const data = JSON.parse(text);
       if (!data || data.version !== 1 || !Array.isArray(data.transactions) || !Array.isArray(data.categories) || !hasValidMoney(data)) throw new Error();
-      confirmDialog("Restaurar backup?", `O arquivo tem ${data.transactions.length} lançamentos. Os dados atuais deste navegador serão substituídos.`, "Restaurar", () => { replaceState(data); save(); toast("Backup restaurado."); });
+      confirmDialog("Restaurar backup?", `O arquivo tem ${data.transactions.length} lançamentos. Os dados atuais deste navegador serão substituídos.`, "Restaurar", () => { replaceState({ ...data, demo: false, demoDismissed: true }); save(); toast("Backup restaurado."); });
     }).catch(() => toast("Arquivo de backup inválido."));
   } else if (t.dataset.draft !== undefined) {
     const d = importDrafts[Number(t.dataset.draft)], k = t.dataset.k;
