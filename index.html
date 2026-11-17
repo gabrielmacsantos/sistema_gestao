@@ -2747,6 +2747,7 @@ function viewConfiguracoes() {
     <section class="card">
       <h2 class="h-card">Privacidade</h2>
       <p class="muted" style="margin-top:8px">Seus dados ficam neste aparelho e na sua própria conta. Sem anúncios, sem rastreamento e sem servidor nosso.</p>
+      <p class="muted" style="margin-top:8px">Gratuito apenas nesta fase de testes: depois da publicação oficial, o download na Google Play e na App Store será pago.</p>
       <div class="actions" style="margin-top:12px"><a class="btn btn-secondary btn-sm" href="${PRIVACY_URL}" target="_blank" rel="noopener">Ler a política de privacidade</a></div>
     </section>
     ${NATIVE ? `<section class="card"><h2 class="h-card">Sobre o app</h2><p class="muted" style="margin-top:8px">Versão ${esc(appVersion || "—")}. O app avisa sozinho quando sai uma versão nova.</p></section>` : ""}
@@ -3954,6 +3955,7 @@ function viewAuth() {
         <button class="icon-btn" data-act="theme" aria-label="Alternar tema claro/escuro">${icon(document.documentElement.dataset.theme === "dark" ? "sun" : "moon")}</button>
       </div>
       <p class="auth-note">${icon("lock", 'style="width:14px;height:14px"')} Seus dados ficam na sua própria conta: na pasta do app no seu Google Drive. <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Política de privacidade</a></p>
+      <p class="auth-note">Gratuito apenas nesta fase de testes; nas lojas oficiais (Google Play e App Store), o download será pago.</p>
     </div>
   </main>`;
 }

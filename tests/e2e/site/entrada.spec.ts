@@ -8,6 +8,7 @@ test("the first screen offers Google and 'sem conta', and fits the screen", asyn
   await expect(page.getByRole("heading", { name: "Entre para guardar seus dados" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Usar sem conta/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "Política de privacidade" })).toHaveAttribute("href", /privacidade/);
+  await expect(page.getByText(/Gratuito apenas nesta fase de testes/)).toBeVisible();
   expect(await fitsWidth(page)).toBe(true);
 });
 
@@ -41,4 +42,8 @@ test("'Usar sem conta' opens the Painel with the welcome card, and a reload stay
 test("the privacy policy page opens", async ({ page }) => {
   await page.goto("/privacidade.html");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/privacidade/i);
+  await expect(page.getByRole("heading", { name: "Licenciamento e gratuidade na fase de testes" })).toBeVisible();
+  await expect(page.getByRole("note")).toContainText(/Google Play/);
+  await expect(page.getByRole("note")).toContainText(/App Store/);
+  await expect(page.getByRole("note")).toContainText(/valor único/);
 });

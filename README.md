@@ -48,7 +48,7 @@ Todo mundo usa **o mesmo link**. Cada pessoa tem **login e cadastro próprios**,
 - 🗄️ **Onde ficam os dados:** num arquivo na conta do GitHub de cada pessoa, e não neste repositório nem num servidor.
 - 🔒 **Privacidade:** tudo é **criptografado no próprio aparelho** (AES-256) antes de ir para o GitHub. Sem a senha da pessoa, ninguém lê, nem você, nem o GitHub.
 - 📱 **Qualquer aparelho:** é só entrar com usuário e senha no celular ou no computador.
-- 🆓 **Grátis:** só precisa de uma conta gratuita do GitHub.
+- 🆓 **Grátis na fase de testes:** só precisa de uma conta gratuita do GitHub. Depois da publicação oficial, o download na Google Play e na App Store será pago (veja a [política de privacidade](privacidade.html)).
 
 Para convidar alguém, **basta mandar o link**. A pessoa não precisa de acesso a este repositório.
 
