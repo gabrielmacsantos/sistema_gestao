@@ -70,4 +70,20 @@ test("phone: the bottom bar navigates and the menu button swaps hamburger and cl
   await sheet.getByRole("link", { name: "Viagens" }).click();
   await expect(page).toHaveTitle(/Viagens/);
   await expect(menu).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // The drawer holds the theme switch, locks the page scroll and closes with Esc.
+  await menu.click();
+  const drawer = page.getByRole("dialog", { name: "Menu" });
+  await expect(drawer.getByRole("button", { name: /Tema (claro|escuro)/ })).toBeVisible();
+  await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
+  await expect(menu).toBeFocused();
+
+  // The header keeps at most three actions and the full brand name.
+  const brand = page.locator(".mob-brand .brand-name");
+  expect(await brand.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await expect(page.locator(".top-actions > [data-act='theme']")).toBeHidden();
 });
