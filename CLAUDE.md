@@ -83,6 +83,7 @@ npm test                    # Vitest (unidade + integração)
 npx vitest run src/lib/money.test.ts     # um único arquivo
 npx vitest run -t "parses"               # testes pelo nome
 npm run test:e2e            # Playwright (precisa de: npx playwright install chromium)
+npm run test:evidence       # Vitest + Playwright e guarda as evidências em test-evidence/<data_hora>/ (fora do git, últimas 10): RESUMO.md, unit/ e e2e/ com passed/ e failed/ (print, trace, vídeo e error.txt)
 npm run db:migrate -- --name <descricao> # cria e aplica uma migration
 npm run db:generate         # regenera o Prisma Client (o migrate dev do Prisma 7 não faz isso sozinho)
 npm run db:studio           # inspeciona o banco

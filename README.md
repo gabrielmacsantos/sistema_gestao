@@ -370,6 +370,7 @@ npm run lint                      # ESLint
 npm test                          # unidade + integração (usa prisma/test.db)
 npx playwright install chromium   # uma vez
 npm run test:e2e                  # E2E desktop e mobile (usa prisma/e2e.db)
+npm run test:evidence             # roda tudo e guarda as evidências em test-evidence/ (só no seu computador)
 ```
 
 Os testes cobrem os parsers de NFC-e, OFX, CSV e da resposta da IA, os cálculos de dinheiro, datas, recorrência e fluxo de caixa, e o isolamento entre usuários. Os bancos de teste são separados do seu banco real.

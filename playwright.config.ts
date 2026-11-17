@@ -1,13 +1,27 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 3100;
+// Set by scripts/test-evidence.mjs to collect the reports and attachments of one run.
+const EVIDENCE_DIR = process.env.EVIDENCE_DIR;
 
 export default defineConfig({
   testDir: "tests/e2e",
   timeout: 120_000,
   // The dev server compiles each route on first visit.
   expect: { timeout: 30_000 },
-  use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure" },
+  ...(EVIDENCE_DIR && {
+    outputDir: `${EVIDENCE_DIR}/artifacts`,
+    reporter: [
+      ["list"],
+      ["json", { outputFile: `${EVIDENCE_DIR}/results.json` }],
+      ["html", { outputFolder: `${EVIDENCE_DIR}/report`, open: "never" }],
+    ],
+  }),
+  use: {
+    baseURL: `http://localhost:${PORT}`,
+    trace: "retain-on-failure",
+    ...(EVIDENCE_DIR && { screenshot: "on", video: "retain-on-failure" }),
+  },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"] } },
