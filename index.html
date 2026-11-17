@@ -435,6 +435,7 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .drawer-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 8px 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
 .drawer-row.ok { color: var(--success); } .drawer-row.err { color: var(--danger); }
 .drawer-foot { flex: none; padding: 4px 20px 12px; border-top: 1px solid var(--hairline); }
+.recovery-key { margin: 12px 0; padding: 14px; border: 1px dashed var(--hairline); border-radius: 12px; background: var(--card); font: 600 1.05rem/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em; word-break: break-word; user-select: all; }
 .conflict-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
 .conflict-list li { padding: 12px 14px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--card); }
 .drawer-account { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px 0 4px; }
@@ -1822,12 +1823,19 @@ async function pushNow() {
   pushing = true; setSyncStatus("saving");
   try {
     if (isGoogle()) {
-      const key = await importDriveKey(sync.dkey);
-      const text = await sealDriveState(outgoing, key, sync.dsalt, sync.sub, sync.diter);
-      await openDriveState(text, key, sync.sub); // never upload what this device could not open again
+      // A session from before the recovery key holds the password-derived key: it becomes the password wrap of a new
+      // random data key. The change is kept only once the upload worked.
+      const upgrade = sync.dfmt === 3 ? null : await buildV3Upgrade();
+      const cur = upgrade ? { ...sync, ...upgrade } : sync;
+      const key = await importDriveKey(cur.dkey);
+      const text = await sealDriveState3(outgoing, key, cur.sub, { salt: cur.dwrap.salt, iter: cur.dwrap.iter, wrapPass: cur.dwrap.wrapPass, wrapRec: cur.drec || null });
+      await openDriveState3(text, key, cur.sub); // never upload what this device could not open again
       const fileId = await writeDriveFile(sync.fileId, DRIVE_FILE, text, "application/json");
       const now = Date.now();
-      if (scope === activeScope()) storeSync({ ...sync, fileId, lastPush: now, lastSync: now, base: outgoing.savedAt || 0 });
+      if (scope === activeScope()) {
+        storeSync({ ...sync, ...(upgrade || {}), fileId, lastPush: now, lastSync: now, base: outgoing.savedAt || 0 });
+        if (upgrade) setTimeout(() => { migratePhotos(); offerRecoveryKey(); }, 400);
+      }
     } else {
       const content = await encryptState(await importKey(sync.key), fromB64(sync.salt), sync.token);
       await gh(`/gists/${sync.gistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files: { [GIST_FILE]: { content } } }) });
@@ -1865,14 +1873,73 @@ async function pullIfNewer() {
 async function fetchDriveCopy() {
   if (!sync.fileId) return null;
   const text = await drive(`/files/${sync.fileId}?alt=media`, { as: "text" });
-  if (driveFileFormat(text) === "drive-1") return { ...readDriveDataFile(text), format: "drive-1" };
+  const format = driveFileFormat(text);
+  if (format === "drive-1") return { ...readDriveDataFile(text), format };
   if (!sync.dkey) { const e = new Error("Falta a senha de criptografia."); e.needsKey = true; throw e; }
-  return { ...(await openDriveState(text, await importDriveKey(sync.dkey), sync.sub)), format: "drive-2" };
+  if (format === "drive-2") {
+    // Written before the recovery key existed (or by a device not updated yet): opens with the password-derived key.
+    const old = sync.dfmt === 3 ? sync.dold : sync.dkey;
+    if (!old) { const e = new Error("Os dados da nuvem estão num formato anterior."); e.badKey = true; throw e; }
+    return { ...(await openDriveState(text, await importDriveKey(old), sync.sub)), format };
+  }
+  const wraps = driveWraps(text);
+  let dk;
+  if (sync.dfmt === 3) dk = await importDriveKey(sync.dkey);
+  else {
+    // Upgraded on another device: the key this session holds opens the password wrap, unless the password was changed there.
+    dk = await unwrapDataKey(wraps.wrapPass, await importDriveKey(sync.dkey), sync.sub, "pass");
+    storeSync({ ...sync, dold: sync.dkey, dkey: await exportDriveKey(dk), dfmt: 3, dwrap: { salt: wraps.salt, iter: wraps.iter, wrapPass: wraps.wrapPass }, drec: wraps.wrapRec, dsalt: undefined, diter: undefined });
+  }
+  const opened = await openDriveState3(text, dk, sync.sub);
+  // Another device may have changed the password or the recovery key: keep this device's copy of the wraps current.
+  const mine = JSON.stringify([sync.dwrap, sync.drec || null]);
+  const theirs = JSON.stringify([{ salt: wraps.salt, iter: wraps.iter, wrapPass: wraps.wrapPass }, wraps.wrapRec]);
+  if (mine !== theirs) storeSync({ ...sync, dwrap: { salt: wraps.salt, iter: wraps.iter, wrapPass: wraps.wrapPass }, drec: wraps.wrapRec });
+  return { ...opened, format };
 }
 /** Marks this device and the cloud as agreeing on `base`. */
 function markSynced(base) {
   storeSync({ ...sync, base, lastSync: Date.now() });
   setSyncStatus("ok");
+  if (isGoogle() && sync.dold) migratePhotos();
+}
+/** Sessions from before the recovery key: a new random data key whose password wrap is opened by the key they already hold. */
+async function buildV3Upgrade() {
+  const dk = await newDataKey();
+  const wrapPass = await wrapDataKey(dk, await importDriveKey(sync.dkey), sync.sub, "pass");
+  return { dold: sync.dkey, dkey: await exportDriveKey(dk), dfmt: 3, dwrap: { salt: sync.dsalt, iter: sync.diter, wrapPass }, drec: null, dsalt: undefined, diter: undefined };
+}
+let photosMigrating = false;
+/** Photos encrypted with the password-derived key are re-encrypted with the data key; the old key is dropped when none is left. Resumes on the next sync if it stops. */
+async function migratePhotos() {
+  if (photosMigrating || !sync || !sync.dold || sync.dfmt !== 3 || !navigator.onLine) return;
+  photosMigrating = true;
+  const scope = activeScope();
+  try {
+    const dk = await importDriveKey(sync.dkey), old = await importDriveKey(sync.dold);
+    const files = (await findDriveFiles("name contains 'photo-'")).filter((f) => /^photo-.+\.bin$/.test(f.name));
+    let failed = false;
+    for (const f of files) {
+      if (scope !== activeScope()) return;
+      const id = f.name.slice(6, -4), aad = photoAad(sync.sub, id);
+      try {
+        const sealed = await (await drive(`/files/${f.id}?alt=media`, { as: "blob" })).arrayBuffer();
+        let migrated = false;
+        try { await openBytes(sealed, dk, aad); migrated = true; } catch { /* still under the old key */ }
+        if (migrated) continue;
+        const next = await sealBytes(await openBytes(sealed, old, aad), dk, aad);
+        await writeDriveFile(f.id, f.name, new Blob([next]), "application/octet-stream");
+      } catch { failed = true; }
+    }
+    if (!failed && scope === activeScope()) storeSync({ ...sync, dold: undefined });
+  } catch { /* tries again on the next sync */ }
+  finally { photosMigrating = false; }
+}
+/** A photo's bytes: under the data key, or still under the old one while the migration runs. */
+async function openPhotoBytes(buffer, id) {
+  const aad = photoAad(sync.sub, id);
+  try { return await openBytes(buffer, await importDriveKey(sync.dkey), aad); }
+  catch (e) { if (!sync.dold) throw e; return openBytes(buffer, await importDriveKey(sync.dold), aad); }
 }
 /** Replaces the device's data with the cloud copy. A copy still in the older plain format is rewritten encrypted right after. */
 function applyRemote(remote) {
@@ -1960,54 +2027,202 @@ function createPassphraseDialog() {
         btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = "Protegendo…";
         try {
           const scope = activeScope();
-          const salt = newDriveSalt(), key = await deriveDriveKey(p1, salt);
-          const dkey = await exportDriveKey(key);
+          const dk = await newDataKey(), wrap = await makePasswordWrap(dk, p1, sync.sub);
+          const dkey = await exportDriveKey(dk);
           if (scope !== activeScope()) return;
-          storeSync({ ...sync, dkey, dsalt: salt, diter: DRIVE_KDF_ITERATIONS });
+          storeSync({ ...sync, dkey, dfmt: 3, dwrap: wrap, drec: null, dold: undefined, dsalt: undefined, diter: undefined });
           end(true); closeModal(); setSyncStatus("saving");
           await pushNow(); syncPhotos();
           toast("Pronto. Seus dados agora são criptografados antes de sair do aparelho.");
+          setTimeout(offerRecoveryKey, 400);
         } catch (e) { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = "Proteger e salvar"; toast("Não foi possível criar a senha neste navegador."); }
       },
     });
     onModalGone(() => end(false));
   });
 }
-/** Sign-in on a device that does not have the key: asks the password of an existing encrypted account.
- * Resolves { result, dkey, dsalt, diter }, { reset: true } (forgot it: start the account over) or null (cancelled). */
+/** Sign-in on a device that does not have the key: asks the password of an existing encrypted account, or its recovery key.
+ * Resolves { result, fields, repack } (what to keep in `sync`; `repack`: a new password was set and must reach the cloud),
+ * { reset: true } (start the account over) or null (cancelled). */
 function unlockDialog(text, settings) {
   return new Promise((resolve) => {
-    let done = false, switching = false;
+    let done = false;
     const end = (v) => { if (!done) { done = true; resolve(v); } };
-    const params = driveKeyParams(text);
-    openModal({
-      title: "Digite sua senha de criptografia",
-      sub: esc(settings.email),
-      body: `<p class="muted">Seus dados no Google Drive estão criptografados. Digite a senha que você criou para restaurá-los neste aparelho.</p>
-        ${field("Senha de criptografia", "ku", input("ku", "", `type="password" autocomplete="current-password" autofocus`))}
-        <p class="hint"><a href="javascript:void 0" id="forgot-pass">Esqueci a senha</a></p>`,
-      foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="ku-btn">Restaurar</button>`,
-      onSubmit: async () => {
-        const modal = document.getElementById("modal"), btn = document.getElementById("ku-btn");
-        const pass = modal.querySelector('[name="ku"]').value;
-        if (!pass) return showErrors({ ku: "Digite a senha." });
-        btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = "Restaurando…";
-        try {
-          const key = await deriveDriveKey(pass, params.salt, params.iter);
-          const result = await openDriveState(text, key, settings.sub);
-          end({ result, dkey: await exportDriveKey(key), dsalt: params.salt, diter: params.iter }); closeModal();
-        } catch (e) {
-          btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = "Restaurar";
-          showErrors({ ku: e.badKey ? "Senha incorreta." : "Não foi possível abrir os dados." });
-        }
-      },
-    });
-    document.getElementById("forgot-pass").addEventListener("click", () => {
-      switching = true; closeModal();
-      confirmDialog("Começar esta conta do zero?", "Sem a senha, os dados salvos na nuvem não podem ser abertos por ninguém. Você pode criar uma senha nova e recomeçar: os dados antigos da nuvem serão substituídos. Os lançamentos que estiverem só neste aparelho serão mantidos.", "Recomeçar", () => end({ reset: true }));
-      onModalGone(() => end(null));
-    });
-    onModalGone(() => { if (!switching) end(null); });
+    const v3 = driveFileFormat(text) === "drive-3";
+    const wraps = v3 ? driveWraps(text) : null;
+    const busy = (btn, label) => { btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = label; };
+    const idle = (btn, label) => { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = label; };
+    const fieldsOf = async (u, wrap, keepRec) => ({ dkey: await exportDriveKey(u.dk), dfmt: 3, dwrap: wrap || { salt: u.wraps.salt, iter: u.wraps.iter, wrapPass: u.wraps.wrapPass }, drec: keepRec });
+
+    const passwordView = () => {
+      openModal({
+        title: "Digite sua senha de criptografia",
+        sub: esc(settings.email),
+        body: `<p class="muted">Seus dados no Google Drive estão criptografados. Digite a senha que você criou para restaurá-los neste aparelho.</p>
+          ${field("Senha de criptografia", "ku", input("ku", "", `type="password" autocomplete="current-password" autofocus`))}
+          <p class="hint"><a href="javascript:void 0" id="forgot-pass">Esqueci a senha</a></p>`,
+        foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="ku-btn">Restaurar</button>`,
+        onSubmit: async () => {
+          const btn = document.getElementById("ku-btn"), pass = document.querySelector('#modal [name="ku"]').value;
+          if (!pass) return showErrors({ ku: "Digite a senha." });
+          busy(btn, "Restaurando…");
+          try {
+            if (v3) {
+              const u = await unlockDrive3(text, { passphrase: pass }, settings.sub);
+              end({ result: u.result, fields: await fieldsOf(u, null, u.wraps.wrapRec), repack: false });
+            } else {
+              const params = driveKeyParams(text), key = await deriveDriveKey(pass, params.salt, params.iter);
+              const result = await openDriveState(text, key, settings.sub);
+              end({ result, fields: { dkey: await exportDriveKey(key), dsalt: params.salt, diter: params.iter }, repack: false });
+            }
+            closeModal();
+          } catch (e) { idle(btn, "Restaurar"); showErrors({ ku: e.badKey ? "Senha incorreta." : "Não foi possível abrir os dados." }); }
+        },
+      });
+      document.getElementById("forgot-pass").addEventListener("click", recoveryView);
+    };
+
+    const recoveryView = () => {
+      if (!wraps || !wraps.wrapRec) return noRecoveryView();
+      openModal({
+        title: "Usar a chave de recuperação",
+        sub: esc(settings.email),
+        body: `<p class="muted">Digite (ou cole) a chave de recuperação que você guardou. Depois você cria uma senha nova. Seus dados continuam os mesmos.</p>
+          ${field("Chave de recuperação", "kr", input("kr", "", `autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" autofocus`), "", "54 letras e números, em grupos de 6. Maiúsculas e hífens não importam.")}
+          <p class="hint"><a href="javascript:void 0" id="rk-back">Voltar para a senha</a> · <a href="javascript:void 0" id="rk-none">Não tenho a chave</a></p>`,
+        foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="kr-btn">Continuar</button>`,
+        onSubmit: async () => {
+          const btn = document.getElementById("kr-btn"), value = document.querySelector('#modal [name="kr"]').value;
+          if (!value.trim()) return showErrors({ kr: "Digite a chave de recuperação." });
+          busy(btn, "Conferindo…");
+          try {
+            const u = await unlockDrive3(text, { recoveryBytes: parseRecoveryKey(value) }, settings.sub);
+            newPasswordView(u);
+          } catch (e) { idle(btn, "Continuar"); showErrors({ kr: e.badKey || e.badFormat ? e.message : "Não foi possível abrir os dados." }); }
+        },
+      });
+      document.getElementById("rk-back").addEventListener("click", passwordView);
+      document.getElementById("rk-none").addEventListener("click", resetView);
+    };
+
+    const noRecoveryView = () => {
+      openModal({
+        title: "Sem chave de recuperação",
+        sub: esc(settings.email),
+        body: `<p class="muted">Esta conta não tem chave de recuperação. Sem a senha, os dados salvos na nuvem não podem ser abertos por ninguém. Você ainda pode tentar lembrar a senha ou recomeçar a conta do zero.</p>`,
+        foot: `<button type="button" class="btn btn-secondary btn-sm" id="nr-back">Tentar a senha</button><button type="button" class="btn btn-danger btn-sm" id="nr-reset">Recomeçar do zero</button>`,
+      });
+      document.getElementById("nr-back").addEventListener("click", passwordView);
+      document.getElementById("nr-reset").addEventListener("click", resetView);
+    };
+
+    const newPasswordView = (u) => {
+      openModal({
+        title: "Crie uma senha nova",
+        sub: esc(settings.email),
+        body: `<p class="muted">Chave aceita. Agora escolha uma senha nova para entrar neste e em outros aparelhos. Sua chave de recuperação continua valendo.</p>
+          ${field("Nova senha", "kn1", input("kn1", "", `type="password" autocomplete="new-password" autofocus`), "", `Mínimo de ${DRIVE_MIN_PASSPHRASE} caracteres.`)}
+          ${field("Repita a nova senha", "kn2", input("kn2", "", `type="password" autocomplete="new-password"`))}`,
+        foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="kn-btn">Salvar e restaurar</button>`,
+        onSubmit: async () => {
+          const modal = document.getElementById("modal"), btn = document.getElementById("kn-btn");
+          const p1 = modal.querySelector('[name="kn1"]').value, p2 = modal.querySelector('[name="kn2"]').value;
+          const problem = passphraseProblem(p1);
+          if (problem) return showErrors({ kn1: problem });
+          if (p1 !== p2) return showErrors({ kn2: "As senhas não são iguais." });
+          busy(btn, "Salvando…");
+          try {
+            const wrap = await makePasswordWrap(u.dk, p1, settings.sub);
+            end({ result: u.result, fields: await fieldsOf(u, wrap, u.wraps.wrapRec), repack: true });
+            closeModal();
+          } catch { idle(btn, "Salvar e restaurar"); toast("Não foi possível criar a senha neste navegador."); }
+        },
+      });
+    };
+
+    const resetView = () => {
+      openModal({
+        title: "Começar esta conta do zero?",
+        body: `<p class="muted">Sem a senha nem a chave de recuperação, os dados salvos na nuvem não podem ser abertos por ninguém. Você pode criar uma senha nova e recomeçar: os dados antigos da nuvem serão substituídos. Os lançamentos que estiverem só neste aparelho serão mantidos.</p>`,
+        foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-danger btn-sm">Recomeçar</button>`,
+        onSubmit: () => { end({ reset: true }); closeModal(); },
+      });
+    };
+
+    passwordView();
+    onModalGone(() => end(null));
+  });
+}
+
+/** Shows a new recovery key once. It only takes effect, and only then replaces the previous one, when the person confirms having kept it. */
+function offerRecoveryKey() {
+  if (!sync || !isGoogle() || sync.dfmt !== 3 || document.getElementById("modal")) return;
+  const replacing = !!sync.drec;
+  const { bytes, text } = newRecoveryKey();
+  let committed = false;
+  openModal({
+    title: replacing ? "Nova chave de recuperação" : "Sua chave de recuperação",
+    sub: esc(sync.email),
+    body: `<p class="muted">Se você esquecer a senha, esta chave restaura seus dados. Ela aparece <b>só agora</b>.${replacing ? " A chave anterior deixa de funcionar quando você concluir." : ""}</p>
+      <p class="recovery-key" id="rk-text" aria-label="Chave de recuperação">${esc(text)}</p>
+      <div class="actions"><button type="button" class="btn btn-secondary btn-sm" id="rk-copy">Copiar</button><button type="button" class="btn btn-secondary btn-sm" id="rk-save">${icon("save")} Baixar arquivo</button></div>
+      <p class="hint" style="margin-top:12px">Guarde fora deste aparelho (papel ou gerenciador de senhas). <b>Não</b> guarde em print nem em nota que sincroniza com a nuvem. Quem tiver a chave abre seus dados.</p>
+      <label class="check full" style="margin-top:12px"><input type="checkbox" id="rk-ok"> <span><b>Guardei a chave num lugar seguro</b></span></label>`,
+    foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Agora não</button><button type="submit" class="btn btn-primary btn-sm" id="rk-done">Concluir</button>`,
+    onSubmit: async () => {
+      if (!document.getElementById("rk-ok").checked) return toast("Marque que guardou a chave para concluir.");
+      const btn = document.getElementById("rk-done"); btn.disabled = true;
+      try {
+        const wrapRec = await makeRecoveryWrap(await importDriveKey(sync.dkey, true), bytes, sync.sub);
+        storeSync({ ...sync, drec: wrapRec });
+        committed = true; closeModal(); render();
+        await pushNow();
+        toast("Chave de recuperação criada.");
+      } catch { btn.disabled = false; toast("Não foi possível criar a chave neste navegador."); }
+    },
+  });
+  document.getElementById("rk-copy").addEventListener("click", () => navigator.clipboard?.writeText(text).then(() => toast("Chave copiada."), () => toast("Não foi possível copiar. Selecione e copie o texto.")));
+  document.getElementById("rk-save").addEventListener("click", () => {
+    const name = "minhas-financas-chave-de-recuperacao.txt";
+    const content = `Minhas Finanças - chave de recuperação\nConta: ${sync.email}\n\n${text}\n\nGuarde este arquivo fora do aparelho (papel ou gerenciador de senhas). Quem tiver esta chave abre seus dados.\n`;
+    if (NATIVE) return shareFile(name, content).catch(() => toast("Não foi possível salvar o arquivo."));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([content], { type: "text/plain" })); a.download = name; a.click(); URL.revokeObjectURL(a.href);
+  });
+  onModalGone(() => { if (!committed) toast("Você pode criar a chave depois, em Backup e dados."); });
+}
+/** Changes the password: the current one opens the data key, the new one wraps it again. Data, photos and the recovery key stay as they are. */
+async function changePasswordDialog() {
+  if (!sync || !isGoogle() || !sync.dkey) return;
+  if (sync.dfmt !== 3) { await pushNow(); if (sync.dfmt !== 3) return toast("Sincronize antes de trocar a senha."); }
+  if (document.getElementById("modal")) return;
+  openModal({
+    title: "Trocar a senha de criptografia",
+    sub: esc(sync.email),
+    body: `<p class="muted">Seus dados continuam os mesmos e a chave de recuperação continua valendo. Só a senha muda: use a nova ao entrar em outros aparelhos.</p>
+      ${field("Senha atual", "kc", input("kc", "", `type="password" autocomplete="current-password" autofocus`))}
+      ${field("Nova senha", "kn1", input("kn1", "", `type="password" autocomplete="new-password"`), "", `Mínimo de ${DRIVE_MIN_PASSPHRASE} caracteres.`)}
+      ${field("Repita a nova senha", "kn2", input("kn2", "", `type="password" autocomplete="new-password"`))}`,
+    foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="cp-btn">Trocar senha</button>`,
+    onSubmit: async () => {
+      const modal = document.getElementById("modal"), btn = document.getElementById("cp-btn");
+      const cur = modal.querySelector('[name="kc"]').value, n1 = modal.querySelector('[name="kn1"]').value, n2 = modal.querySelector('[name="kn2"]').value;
+      const errors = {};
+      if (!cur) errors.kc = "Digite a senha atual.";
+      const problem = passphraseProblem(n1);
+      if (problem) errors.kn1 = problem; else if (n1 !== n2) errors.kn2 = "As senhas não são iguais.";
+      if (Object.keys(errors).length) return showErrors(errors);
+      btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = "Trocando…";
+      const idle = () => { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = "Trocar senha"; };
+      let dk;
+      try { dk = await unwrapDataKey(sync.dwrap.wrapPass, await deriveDriveKey(cur, sync.dwrap.salt, sync.dwrap.iter), sync.sub, "pass"); }
+      catch { idle(); return showErrors({ kc: "Senha atual incorreta." }); }
+      try {
+        storeSync({ ...sync, dwrap: await makePasswordWrap(dk, n1, sync.sub) });
+        closeModal();
+        await pushNow();
+        toast("Senha trocada. Use a nova senha ao entrar em outros aparelhos.");
+      } catch { idle(); toast("Não foi possível trocar a senha neste navegador."); }
+    },
   });
 }
 
@@ -2070,7 +2285,8 @@ const DRIVE_KDF_ITERATIONS = 310000;
 const DRIVE_MIN_PASSPHRASE = 10;
 const dcEncode = (bytes) => { let s = ""; const a = new Uint8Array(bytes); for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode(...a.subarray(i, i + 0x8000)); return btoa(s); };
 const dcDecode = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-const driveAad = (sub, savedAt) => new TextEncoder().encode(`minhas-financas:drive-2:${sub}:${savedAt}`);
+const driveAad = (sub, savedAt, format = "drive-2") => new TextEncoder().encode(`minhas-financas:${format}:${sub}:${savedAt}`);
+const wrapAad = (sub, kind) => new TextEncoder().encode(`minhas-financas:wrap:${sub}:${kind}`);
 const photoAad = (sub, id) => new TextEncoder().encode(`minhas-financas:photo:${sub}:${id}`);
 const newDriveSalt = () => dcEncode(crypto.getRandomValues(new Uint8Array(16)));
 /** Why a password is not acceptable, or null. */
@@ -2080,13 +2296,13 @@ async function deriveDriveKey(passphrase, saltB64, iterations = DRIVE_KDF_ITERAT
   return crypto.subtle.deriveKey({ name: "PBKDF2", salt: dcDecode(saltB64), iterations, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
 }
 const exportDriveKey = async (key) => dcEncode(await crypto.subtle.exportKey("raw", key));
-const importDriveKey = (b64) => crypto.subtle.importKey("raw", dcDecode(b64), "AES-GCM", false, ["encrypt", "decrypt"]);
+const importDriveKey = (b64, extractable = false) => crypto.subtle.importKey("raw", dcDecode(b64), "AES-GCM", extractable, ["encrypt", "decrypt"]);
 const invalidDriveFile = () => new Error("Arquivo de dados inválido.");
-/** "drive-1" (older plain file) or "drive-2" (encrypted); anything else is refused. */
+/** "drive-1" (older plain file), "drive-2" (encrypted by the password) or "drive-3" (data key wrapped by password and recovery key). */
 function driveFileFormat(text) {
   const f = JSON.parse(text);
   if (!f || f.app !== "minhas-financas") throw invalidDriveFile();
-  return f.format === "drive-2" ? "drive-2" : "drive-1";
+  return f.format === "drive-3" ? "drive-3" : f.format === "drive-2" ? "drive-2" : "drive-1";
 }
 /** Salt and iterations of an encrypted file, to derive the key from the password on a new device. */
 function driveKeyParams(text) {
@@ -2120,6 +2336,99 @@ async function sealBytes(buffer, key, aad) {
 async function openBytes(buffer, key, aad) {
   const bytes = new Uint8Array(buffer);
   return crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes.subarray(0, 12), additionalData: aad }, key, bytes.subarray(12));
+}
+
+// Format drive-3: a random data key (DK) encrypts the state and the photos and never changes. It is stored
+// wrapped twice: by a key from the password and by the recovery key, so changing the password or using the
+// recovery key only re-wraps the DK (nothing is re-encrypted) and either one alone opens the data.
+const RECOVERY_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford base32: no I, L, O, U
+const newDataKey = () => crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+async function wrapDataKey(dk, kek, sub, kind) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const raw = await crypto.subtle.exportKey("raw", dk);
+  const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: wrapAad(sub, kind) }, kek, raw);
+  return { iv: dcEncode(iv), data: dcEncode(data) };
+}
+/** The DK (extractable, to keep on the device) from a wrap; a wrong password or recovery key sets `badKey`. */
+async function unwrapDataKey(wrap, kek, sub, kind) {
+  if (!wrap || typeof wrap.iv !== "string" || typeof wrap.data !== "string") throw invalidDriveFile();
+  try {
+    const raw = await crypto.subtle.decrypt({ name: "AES-GCM", iv: dcDecode(wrap.iv), additionalData: wrapAad(sub, kind) }, kek, dcDecode(wrap.data));
+    return await crypto.subtle.importKey("raw", raw, "AES-GCM", true, ["encrypt", "decrypt"]);
+  } catch { const e = new Error(kind === "rec" ? "Chave de recuperação incorreta." : "Senha incorreta."); e.badKey = true; throw e; }
+}
+/** The password's side of a DK: a fresh salt, the key derived from the password, and the DK wrapped by it. */
+async function makePasswordWrap(dk, passphrase, sub, iter = DRIVE_KDF_ITERATIONS) {
+  const salt = newDriveSalt();
+  return { salt, iter, wrapPass: await wrapDataKey(dk, await deriveDriveKey(passphrase, salt, iter), sub, "pass") };
+}
+const importRecoveryKey = (bytes) => crypto.subtle.importKey("raw", bytes, "AES-GCM", false, ["encrypt", "decrypt"]);
+async function makeRecoveryWrap(dk, recoveryBytes, sub, at = Date.now()) {
+  return { ...(await wrapDataKey(dk, await importRecoveryKey(recoveryBytes), sub, "rec")), at };
+}
+/** 32 random bytes written as 52 base32 characters plus 2 check characters, in 9 groups of 6 ("ABCD12-…"). */
+function recoveryCheck(chars) {
+  let sum = 0;
+  for (let i = 0; i < chars.length; i++) sum += (i + 1) * RECOVERY_ALPHABET.indexOf(chars[i]);
+  sum %= 1024;
+  return RECOVERY_ALPHABET[sum >> 5] + RECOVERY_ALPHABET[sum & 31];
+}
+function formatRecoveryKey(bytes) {
+  let bits = 0, value = 0, out = "";
+  for (const b of bytes) { value = (value << 8) | b; bits += 8; while (bits >= 5) { out += RECOVERY_ALPHABET[(value >> (bits - 5)) & 31]; bits -= 5; } value &= (1 << bits) - 1; }
+  if (bits) out += RECOVERY_ALPHABET[(value << (5 - bits)) & 31];
+  return (out + recoveryCheck(out)).match(/.{1,6}/g).join("-");
+}
+function newRecoveryKey() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return { bytes, text: formatRecoveryKey(bytes) };
+}
+/** Reads what the person typed or pasted (any case, with or without dashes and spaces; O is read as 0, I and L as 1). Sets `badFormat` when it cannot be a key of ours. */
+function parseRecoveryKey(text) {
+  const bad = () => Object.assign(new Error("Chave de recuperação inválida. Confira os caracteres."), { badFormat: true });
+  const chars = String(text).toUpperCase().replace(/[\s-]/g, "").replace(/O/g, "0").replace(/[IL]/g, "1");
+  if (chars.length !== 54 || [...chars].some((c) => !RECOVERY_ALPHABET.includes(c))) throw bad();
+  const body = chars.slice(0, 52);
+  if (recoveryCheck(body) !== chars.slice(52)) throw bad();
+  const bytes = new Uint8Array(32);
+  let bits = 0, value = 0, n = 0;
+  for (const c of body) { value = (value << 5) | RECOVERY_ALPHABET.indexOf(c); bits += 5; if (bits >= 8) { bytes[n++] = (value >> (bits - 8)) & 255; bits -= 8; value &= (1 << bits) - 1; } if (n === 32) break; }
+  return bytes;
+}
+/** header: { salt, iter, wrapPass, wrapRec|null }. The wraps are authenticated with the account, the data with account and timestamp. */
+async function sealDriveState3(state, dk, sub, header) {
+  const savedAt = state.savedAt || 0, iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: driveAad(sub, savedAt, "drive-3") }, dk, new TextEncoder().encode(JSON.stringify(state)));
+  return JSON.stringify({ app: "minhas-financas", format: "drive-3", savedAt, kdf: "PBKDF2-SHA256", iter: header.iter, salt: header.salt, wrapPass: header.wrapPass, wrapRec: header.wrapRec || null, iv: dcEncode(iv), data: dcEncode(data) });
+}
+/** Salt, iterations and wraps of a drive-3 file (shape checked, iterations bounded). */
+function driveWraps(text) {
+  const f = JSON.parse(text);
+  const wrapOk = (w) => w && typeof w.iv === "string" && typeof w.data === "string";
+  if (!f || f.format !== "drive-3" || typeof f.salt !== "string" || !Number.isInteger(f.iter) || f.iter < 1000 || f.iter > 1000000 || !wrapOk(f.wrapPass) || (f.wrapRec != null && !wrapOk(f.wrapRec))) throw invalidDriveFile();
+  return { salt: f.salt, iter: f.iter, wrapPass: f.wrapPass, wrapRec: f.wrapRec || null };
+}
+async function openDriveState3(text, dk, sub) {
+  const f = JSON.parse(text);
+  if (!f || f.app !== "minhas-financas" || f.format !== "drive-3" || typeof f.iv !== "string" || typeof f.data !== "string") throw invalidDriveFile();
+  let plain;
+  try { plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: dcDecode(f.iv), additionalData: driveAad(sub, f.savedAt || 0, "drive-3") }, dk, dcDecode(f.data)); }
+  catch { const e = new Error("A chave não abre os dados desta conta."); e.badKey = true; throw e; }
+  const data = JSON.parse(new TextDecoder().decode(plain));
+  if (!data || data.version !== 1 || !Array.isArray(data.transactions) || !hasValidMoney(data)) throw invalidDriveFile();
+  return { savedAt: f.savedAt || 0, data };
+}
+/** Opens a drive-3 file with the password or with the recovery key bytes: { dk, wraps, result }. */
+async function unlockDrive3(text, { passphrase, recoveryBytes }, sub) {
+  const wraps = driveWraps(text);
+  let dk;
+  if (recoveryBytes) {
+    if (!wraps.wrapRec) { const e = new Error("Esta conta ainda não tem chave de recuperação."); e.noRecovery = true; throw e; }
+    dk = await unwrapDataKey(wraps.wrapRec, await importRecoveryKey(recoveryBytes), sub, "rec");
+  } else {
+    dk = await unwrapDataKey(wraps.wrapPass, await deriveDriveKey(passphrase, wraps.salt, wraps.iter), sub, "pass");
+  }
+  return { dk, wraps, result: await openDriveState3(text, dk, sub) };
 }
 // </drive-crypto>
 
@@ -2286,7 +2595,7 @@ async function startGoogleSignIn(btn) {
   let result;
   try { result = await googleSignIn(); }
   catch (e) { reset(); return toast(e.message); }
-  let { settings } = result, data = null;
+  let { settings } = result, data = null, repack = false;
   // What the account already holds: an older plain file is read as is (and encrypted at the first sync);
   // an encrypted one needs the password, asked here, before anything on this device is touched.
   if (result.remoteText) {
@@ -2300,7 +2609,8 @@ async function startGoogleSignIn(btn) {
         if (!unlocked) return;
         if (!unlocked.reset) {
           data = unlocked.result.data;
-          settings = { ...settings, dkey: unlocked.dkey, dsalt: unlocked.dsalt, diter: unlocked.diter, base: unlocked.result.savedAt, lastSync: Date.now() };
+          settings = { ...settings, ...unlocked.fields, base: unlocked.result.savedAt, lastSync: Date.now() };
+          repack = unlocked.repack; // a new password was set from the recovery key: the cloud's password wrap must change too
         }
       }
     } catch (e) { reset(); return toast(e.message); }
@@ -2310,7 +2620,7 @@ async function startGoogleSignIn(btn) {
     const from = activeScope(); // "local": where the data made without an account lives
     const carried = link ? withoutDemo(state) : null;
     storeSync(settings); setLocalMode(false); syncStatus = "ok";
-    if (useRemote) { await clearPhotos(); replaceState(data); persist(); }
+    if (useRemote) { await clearPhotos(); replaceState(data); persist(); if (repack) await pushNow(); }
     else {
       replaceState(carried || load());
       if (!state.savedAt) state.savedAt = Date.now(); persist();
@@ -2444,7 +2754,7 @@ async function getPhoto(id) {
       if (encryptedId) {
         if (!sync.dkey) return null;
         const sealed = await drive(`/files/${encryptedId}?alt=media`, { as: "blob" });
-        const plain = await openBytes(await sealed.arrayBuffer(), await importDriveKey(sync.dkey), photoAad(sync.sub, id));
+        const plain = await openPhotoBytes(await sealed.arrayBuffer(), id);
         const blob = new Blob([plain], { type: "image/jpeg" });
         photoDb.put({ id, blob, uploaded: true }).catch(() => {});
         return blob;
@@ -3213,6 +3523,16 @@ function viewReview() {
   </tbody></table></div></section>`;
 }
 
+/** Password and recovery key of a Google account (what to do if the password is forgotten). */
+function securityCard() {
+  if (!sync || !isGoogle() || !sync.dkey) return "";
+  const rec = sync.dfmt === 3 && sync.drec;
+  const when = rec && rec.at ? new Date(rec.at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "";
+  return `<section class="card"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("lock")} Senha e chave de recuperação</h2>
+    <p class="muted" style="margin:6px 0 16px">${rec ? `Você tem uma chave de recuperação${when ? ` (criada em ${when})` : ""}. Se esquecer a senha, ela restaura seus dados.` : "<b>Você ainda não criou uma chave de recuperação.</b> Sem ela, se você esquecer a senha, os dados salvos na nuvem não podem ser restaurados."}</p>
+    <div class="actions"><button class="btn ${rec ? "btn-secondary" : "btn-primary"} btn-sm" data-act="recovery-key">${rec ? "Gerar nova chave" : "Criar chave de recuperação"}</button><button class="btn btn-secondary btn-sm" data-act="change-pass">Trocar senha</button></div>
+  </section>`;
+}
 function viewBackup() {
   const n = state.transactions.filter((t) => t.status !== "SKIPPED").length;
   const github = sync
@@ -3230,6 +3550,7 @@ function viewBackup() {
   return `${pageHead("Backup e dados", sync ? `Seus dados são salvos automaticamente na sua conta (${providerName()}).` : "Sem conta, os dados ficam só neste navegador.")}
   <div class="grid-2">
     ${github}
+    ${securityCard()}
     <section class="card"><h2 class="h-card">Exportar</h2><p class="muted" style="margin:6px 0 16px">Baixa um arquivo .json (sem as fotos de comprovante) com ${n} lançamentos, ${state.recurrings.length} fixos, ${state.categories.length} categorias, orçamentos e metas.</p><button class="btn btn-primary" data-act="export">${icon("save")} Baixar backup</button></section>
     <section class="card"><h2 class="h-card">Restaurar</h2><p class="muted" style="margin:6px 0 16px">Carrega um backup exportado antes. <b>Substitui</b> os dados atuais deste navegador.</p><label class="btn btn-secondary" for="restore">${icon("upload")} Escolher arquivo</label><input type="file" id="restore" accept=".json,application/json" hidden></section>
     ${canOfferDemo(state) ? `<section class="card"><h2 class="h-card">Dados de exemplo</h2><p class="muted" style="margin:6px 0 16px">Preenche 6 meses de lançamentos fictícios para você explorar o sistema.</p><button class="btn btn-secondary" data-act="demo">${icon("sparkles")} Carregar exemplo</button></section>` : ""}
@@ -4378,6 +4699,7 @@ document.addEventListener("keydown", (e) => {
 // Same catalog as src/lib/notices-data.ts. `actionUrl` is reserved for the store links at launch and is
 // not rendered while the app is in testing. The read state is per account and stays on this device.
 const NOTICES = [
+  { id: "2026-11-17-recovery-key", title: "Chave de recuperação", body: "Agora você pode criar uma chave de recuperação para o caso de esquecer a senha de criptografia, e trocar a senha em Backup e dados. Guarde a chave fora do aparelho: quem a tiver abre os seus dados.", date: "2026-11-17" },
   { id: "2026-11-17-encrypted-sync", title: "Dados criptografados na nuvem", body: "Ao entrar com o Google, você cria uma senha de criptografia. Seus dados e fotos são embaralhados neste aparelho antes de irem para o Google Drive, e só essa senha abre. Guarde-a: não há como recuperá-la.", date: "2026-11-17" },
   { id: "2026-11-15-google-login", title: "Entrar com o Google", body: "Agora você entra com a sua conta Google, sem criar token nem senha extra.", date: "2026-11-15" },
   { id: "2026-11-15-quick-assistant", title: "Atalhos rápidos", body: "O balão no canto da tela abre o chat de lançamentos (fale ou escreva) e uma calculadora que funciona sem internet.", date: "2026-11-15" },
@@ -4950,6 +5272,11 @@ document.addEventListener("click", (e) => {
     "photo-remove": () => { formPhoto.blob = null; formPhoto.removed = true; formPhoto.shown = null; renderPhotoSlot(); },
     "use-local": () => { setLocalMode(true); location.hash = href("painel"); render(); },
     "sync-now": () => syncNow(el),
+    "recovery-key": async () => {
+      if (sync.dfmt !== 3) { await pushNow(); if (sync.dfmt !== 3) return toast("Sincronize antes de criar a chave."); }
+      offerRecoveryKey();
+    },
+    "change-pass": changePasswordDialog,
     "sync-fix": () => (syncStatus === "key" ? createPassphraseDialog() : pullIfNewer()),
     "logout": logoutForm,
     "cancel-import": () => { importDrafts = null; importInboxIds = null; render(); },

@@ -11,7 +11,9 @@ const block = (name: string) => {
 const api = new Function(
   `${block("money-check")}\n${block("drive-crypto")}\n${block("sync-state")}
    return { deriveDriveKey, newDriveSalt, exportDriveKey, importDriveKey, driveFileFormat, driveKeyParams, sealDriveState, openDriveState,
-            sealBytes, openBytes, photoAad, passphraseProblem, syncDecision, describeLastSync, DRIVE_MIN_PASSPHRASE };`,
+            sealBytes, openBytes, photoAad, passphraseProblem, syncDecision, describeLastSync, DRIVE_MIN_PASSPHRASE,
+            newDataKey, wrapDataKey, unwrapDataKey, makePasswordWrap, makeRecoveryWrap, newRecoveryKey, formatRecoveryKey, parseRecoveryKey,
+            sealDriveState3, openDriveState3, driveWraps, unlockDrive3, importRecoveryKey };`,
 )() as {
   deriveDriveKey: (p: string, salt: string, iter?: number) => Promise<CryptoKey>;
   newDriveSalt: () => string;
@@ -28,6 +30,19 @@ const api = new Function(
   syncDecision: (local: number, remote: number, base?: number | null) => string;
   describeLastSync: (at: number | null, now?: number) => string;
   DRIVE_MIN_PASSPHRASE: number;
+  newDataKey: () => Promise<CryptoKey>;
+  wrapDataKey: (dk: CryptoKey, kek: CryptoKey, sub: string, kind: string) => Promise<{ iv: string; data: string }>;
+  unwrapDataKey: (w: unknown, kek: CryptoKey, sub: string, kind: string) => Promise<CryptoKey>;
+  makePasswordWrap: (dk: CryptoKey, pass: string, sub: string, iter?: number) => Promise<{ salt: string; iter: number; wrapPass: { iv: string; data: string } }>;
+  makeRecoveryWrap: (dk: CryptoKey, bytes: Uint8Array, sub: string, at?: number) => Promise<{ iv: string; data: string; at: number }>;
+  newRecoveryKey: () => { bytes: Uint8Array; text: string };
+  formatRecoveryKey: (bytes: Uint8Array) => string;
+  parseRecoveryKey: (text: string) => Uint8Array;
+  sealDriveState3: (s: object, dk: CryptoKey, sub: string, header: object) => Promise<string>;
+  openDriveState3: (text: string, dk: CryptoKey, sub: string) => Promise<{ savedAt: number; data: any }>;
+  driveWraps: (text: string) => { salt: string; iter: number; wrapPass: object; wrapRec: object | null };
+  unlockDrive3: (text: string, how: { passphrase?: string; recoveryBytes?: Uint8Array }, sub: string) => Promise<{ dk: CryptoKey; wraps: object; result: { savedAt: number; data: any } }>;
+  importRecoveryKey: (b: Uint8Array) => Promise<CryptoKey>;
 };
 
 const ITER = 1000; // tests only: the app uses 310,000
@@ -102,6 +117,7 @@ describe("encrypted Drive file", () => {
   });
 
   it("tells an encrypted file from the older plain one and bounds the key-derivation cost", async () => {
+    expect(api.driveFileFormat(JSON.stringify({ app: "minhas-financas", format: "drive-3" }))).toBe("drive-3");
     const { key, salt } = await keyFor("right password!");
     const text = await api.sealDriveState(state, key, salt, "sub-111", ITER);
     expect(api.driveFileFormat(text)).toBe("drive-2");
@@ -163,5 +179,142 @@ describe("describeLastSync", () => {
   it("uses São Paulo's calendar day, not UTC's", () => {
     // 01:00 UTC on the 18th is still the 17th at 22:00 in São Paulo.
     expect(api.describeLastSync(Date.UTC(2026, 10, 18, 1, 0), Date.UTC(2026, 10, 18, 2, 0))).toBe("Sincronizado hoje às 22:00");
+  });
+});
+
+// ---- drive-3: data key wrapped by the password and by the recovery key ----
+const SUB = "sub-111";
+/** A drive-3 file as the app writes it, with or without a recovery key. */
+async function makeFile3(pass: string, opts: { recovery?: boolean; sub?: string; st?: object } = {}) {
+  const sub = opts.sub ?? SUB, dk = await api.newDataKey();
+  const pw = await api.makePasswordWrap(dk, pass, sub, ITER);
+  const rec = opts.recovery ? api.newRecoveryKey() : null;
+  const wrapRec = rec ? await api.makeRecoveryWrap(dk, rec.bytes, sub) : null;
+  const text = await api.sealDriveState3(opts.st ?? state, dk, sub, { ...pw, wrapRec });
+  return { dk, pw, rec, text };
+}
+
+describe("recovery key text", () => {
+  it("is 54 characters in 9 groups of 6 and round-trips the 32 bytes", () => {
+    const { bytes, text } = api.newRecoveryKey();
+    expect(text).toMatch(/^([0-9A-HJKMNP-TV-Z]{6}-){8}[0-9A-HJKMNP-TV-Z]{6}$/);
+    expect(Array.from(api.parseRecoveryKey(text))).toEqual(Array.from(bytes));
+  });
+  it("is read in any case, with or without dashes and spaces", () => {
+    const { bytes, text } = api.newRecoveryKey();
+    expect(Array.from(api.parseRecoveryKey(text.toLowerCase().replace(/-/g, " ")))).toEqual(Array.from(bytes));
+    expect(Array.from(api.parseRecoveryKey(text.replace(/-/g, "")))).toEqual(Array.from(bytes));
+  });
+  it("catches a mistyped character, a missing one and garbage before trying anything", () => {
+    const { text } = api.newRecoveryKey();
+    const raw = text.replace(/-/g, "");
+    const swap = raw[0] === "A" ? "B" : "A";
+    expect(() => api.parseRecoveryKey(swap + raw.slice(1))).toThrow(expect.objectContaining({ badFormat: true }));
+    expect(() => api.parseRecoveryKey(raw.slice(1))).toThrow(expect.objectContaining({ badFormat: true }));
+    expect(() => api.parseRecoveryKey("")).toThrow(expect.objectContaining({ badFormat: true }));
+    expect(() => api.parseRecoveryKey("U".repeat(54))).toThrow(expect.objectContaining({ badFormat: true }));
+  });
+  it("is different every time", () => {
+    expect(api.newRecoveryKey().text).not.toBe(api.newRecoveryKey().text);
+  });
+});
+
+describe("drive-3 file", () => {
+  it("holds no financial value in clear text and only the expected fields", async () => {
+    const { text } = await makeFile3("right password!", { recovery: true });
+    for (const secret of ["12345678", "Mercado", "2000000", "640000", "amountCents", "transactions", "Café"]) expect(text).not.toContain(secret);
+    expect(Object.keys(JSON.parse(text)).sort()).toEqual(["app", "data", "format", "iter", "iv", "kdf", "salt", "savedAt", "wrapPass", "wrapRec"]);
+  });
+
+  it("opens with the password, restoring everything in integer cents", async () => {
+    const { text } = await makeFile3("right password!");
+    const opened = await api.unlockDrive3(text, { passphrase: "right password!" }, SUB);
+    expect(opened.result.data).toEqual(state);
+    expect(opened.result.data.transactions.every((t: { amountCents: number }) => Number.isInteger(t.amountCents))).toBe(true);
+  });
+
+  it("opens with the recovery key when the password is forgotten", async () => {
+    const { text, rec } = await makeFile3("right password!", { recovery: true });
+    const opened = await api.unlockDrive3(text, { recoveryBytes: api.parseRecoveryKey(rec!.text) }, SUB);
+    expect(opened.result.data).toEqual(state);
+  });
+
+  it("refuses a wrong password, a wrong recovery key and an account without a recovery key", async () => {
+    const { text } = await makeFile3("right password!", { recovery: true });
+    await expect(api.unlockDrive3(text, { passphrase: "wrong password!" }, SUB)).rejects.toMatchObject({ badKey: true });
+    await expect(api.unlockDrive3(text, { recoveryBytes: api.newRecoveryKey().bytes }, SUB)).rejects.toMatchObject({ badKey: true });
+    const plain = await makeFile3("right password!");
+    await expect(api.unlockDrive3(plain.text, { recoveryBytes: api.newRecoveryKey().bytes }, SUB)).rejects.toMatchObject({ noRecovery: true });
+  });
+
+  it("is tied to the account, for the password and the recovery key", async () => {
+    const { text, rec } = await makeFile3("right password!", { recovery: true });
+    await expect(api.unlockDrive3(text, { passphrase: "right password!" }, "sub-222")).rejects.toMatchObject({ badKey: true });
+    await expect(api.unlockDrive3(text, { recoveryBytes: rec!.bytes }, "sub-222")).rejects.toMatchObject({ badKey: true });
+  });
+
+  it("does not let a wrap of one kind stand in for the other", async () => {
+    const { text } = await makeFile3("right password!", { recovery: true });
+    const f = JSON.parse(text);
+    const swapped = JSON.stringify({ ...f, wrapPass: { iv: f.wrapRec.iv, data: f.wrapRec.data } });
+    await expect(api.unlockDrive3(swapped, { passphrase: "right password!" }, SUB)).rejects.toMatchObject({ badKey: true });
+  });
+
+  it("detects tampering with the data and with the timestamp", async () => {
+    const { text, dk } = await makeFile3("right password!");
+    const f = JSON.parse(text);
+    await expect(api.openDriveState3(JSON.stringify({ ...f, savedAt: f.savedAt + 1 }), dk, SUB)).rejects.toMatchObject({ badKey: true });
+    const flipped = { ...f, data: (f.data[0] === "A" ? "B" : "A") + f.data.slice(1) };
+    await expect(api.openDriveState3(JSON.stringify(flipped), dk, SUB)).rejects.toThrow();
+  });
+
+  it("changing the password only re-wraps the data key: the same data and photos still open", async () => {
+    const { dk, text } = await makeFile3("old password!!");
+    const photo = await api.sealBytes(new Uint8Array([9, 8, 7]), dk, api.photoAad(SUB, "p1"));
+    // The person proves the old password and picks a new one: only wrapPass changes.
+    const opened = await api.unlockDrive3(text, { passphrase: "old password!!" }, SUB);
+    const next = await api.makePasswordWrap(opened.dk, "new password!!", SUB, ITER);
+    const text2 = await api.sealDriveState3(state, opened.dk, SUB, { ...next, wrapRec: null });
+    await expect(api.unlockDrive3(text2, { passphrase: "old password!!" }, SUB)).rejects.toMatchObject({ badKey: true });
+    const again = await api.unlockDrive3(text2, { passphrase: "new password!!" }, SUB);
+    expect(again.result.data).toEqual(state);
+    expect(Array.from(new Uint8Array(await api.openBytes(photo, again.dk, api.photoAad(SUB, "p1"))))).toEqual([9, 8, 7]);
+  });
+
+  it("recovering without the old password lets the person set a new one, keeping the data and the recovery key", async () => {
+    const { text, rec } = await makeFile3("forgotten pass", { recovery: true });
+    const opened = await api.unlockDrive3(text, { recoveryBytes: rec!.bytes }, SUB);
+    const next = await api.makePasswordWrap(opened.dk, "brand new pass", SUB, ITER);
+    const text2 = await api.sealDriveState3(opened.result.data, opened.dk, SUB, { ...next, wrapRec: (opened.wraps as { wrapRec: object }).wrapRec });
+    expect((await api.unlockDrive3(text2, { passphrase: "brand new pass" }, SUB)).result.data).toEqual(state);
+    expect((await api.unlockDrive3(text2, { recoveryBytes: rec!.bytes }, SUB)).result.data).toEqual(state);
+    await expect(api.unlockDrive3(text2, { passphrase: "forgotten pass" }, SUB)).rejects.toMatchObject({ badKey: true });
+  });
+
+  it("a new recovery key replaces the old one", async () => {
+    const first = await makeFile3("right password!", { recovery: true });
+    const second = api.newRecoveryKey();
+    const f = JSON.parse(first.text);
+    const text2 = await api.sealDriveState3(state, first.dk, SUB, { salt: f.salt, iter: f.iter, wrapPass: f.wrapPass, wrapRec: await api.makeRecoveryWrap(first.dk, second.bytes, SUB) });
+    await expect(api.unlockDrive3(text2, { recoveryBytes: first.rec!.bytes }, SUB)).rejects.toMatchObject({ badKey: true });
+    expect((await api.unlockDrive3(text2, { recoveryBytes: second.bytes }, SUB)).result.data).toEqual(state);
+  });
+
+  it("migrating from drive-2 keeps the password: the old derived key is the key of the password wrap", async () => {
+    const salt = "AAAAAAAAAAAAAAAAAAAAAA==";
+    const oldKey = await api.deriveDriveKey("same password!", salt, ITER); // what a drive-2 session holds
+    const dk = await api.newDataKey();
+    const wrapPass = await api.wrapDataKey(dk, oldKey, SUB, "pass");
+    const text = await api.sealDriveState3(state, dk, SUB, { salt, iter: ITER, wrapPass, wrapRec: null });
+    expect((await api.unlockDrive3(text, { passphrase: "same password!" }, SUB)).result.data).toEqual(state);
+    const viaOldKey = await api.unwrapDataKey(api.driveWraps(text).wrapPass, oldKey, SUB, "pass");
+    expect((await api.openDriveState3(text, viaOldKey, SUB)).data).toEqual(state);
+  });
+
+  it("bounds the key-derivation cost and checks the wraps' shape", async () => {
+    const { text } = await makeFile3("right password!");
+    for (const patch of [{ iter: 5 }, { iter: 50_000_000 }, { wrapPass: null }, { wrapPass: { iv: 1, data: 2 } }, { salt: 7 }]) {
+      expect(() => api.driveWraps(JSON.stringify({ ...JSON.parse(text), ...patch }))).toThrow("Arquivo de dados inválido.");
+    }
   });
 });

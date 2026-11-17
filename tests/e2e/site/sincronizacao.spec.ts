@@ -60,8 +60,37 @@ test("without a password nothing is uploaded, and creating one uploads only ciph
 
   await expect.poll(() => uploads.length).toBeGreaterThan(0);
   const body = uploads.join("\n");
-  expect(body).toContain('"format":"drive-2"');
+  expect(body).toContain('"format":"drive-3"');
+  expect(body).toContain('"wrapRec":null');
   for (const secret of ["Mercado da Ana", "12345678", "amountCents"]) expect(body).not.toContain(secret);
+
+  // The recovery key is offered right after; it only counts once the person confirms having kept it.
+  const rk = page.getByRole("dialog", { name: "Sua chave de recuperação" });
+  await expect(rk).toBeVisible();
+  const key = (await rk.locator("#rk-text").textContent())!;
+  expect(key).toMatch(/^([0-9A-HJKMNP-TV-Z]{6}-){8}[0-9A-HJKMNP-TV-Z]{6}$/);
+  await rk.getByLabel("Guardei a chave num lugar seguro").check();
+  await rk.getByRole("button", { name: "Concluir" }).click();
+  await expect(rk).toBeHidden();
+  await expect.poll(() => uploads.at(-1)).toContain('"wrapRec":{');
+  expect(uploads.at(-1)).not.toContain(key.replace(/-/g, ""));
+});
+
+test("skipping the recovery key keeps the account working and the Backup page offers it", async ({ page }) => {
+  const state = stateWith("Mercado da Ana", 4590);
+  await fakeDrive(page, state);
+  await openSignedIn(page, state);
+  await page.goto("/#/backup");
+  await page.reload();
+  const dialog = page.getByRole("dialog", { name: "Proteger seus dados com uma senha" });
+  await dialog.getByLabel("Senha de criptografia").fill("uma frase bem longa");
+  await dialog.getByLabel("Repita a senha").fill("uma frase bem longa");
+  await dialog.getByRole("button", { name: "Proteger e salvar" }).click();
+  const rk = page.getByRole("dialog", { name: "Sua chave de recuperação" });
+  await rk.getByRole("button", { name: "Agora não" }).click();
+  await expect(rk).toBeHidden();
+  await expect(page.getByText("Você ainda não criou uma chave de recuperação.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Trocar senha" })).toBeVisible();
 });
 
 test("'Sincronizar agora' shows its progress and result, and the last sync reads as today", async ({ page }) => {
