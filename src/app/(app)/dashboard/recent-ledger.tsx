@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { ArrowDown, ArrowUp, CirclePlus } from "lucide-react";
 import { useState, type ComponentProps } from "react";
+import { SlidingTabs } from "@/components/sliding-tabs";
 import { TransactionList } from "@/components/transaction-list";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 type Rows = ComponentProps<typeof TransactionList>["rows"];
 export type RecentFilter = "todas" | "receitas" | "despesas" | "pendentes";
@@ -66,30 +66,26 @@ export function RecentLedger({ views, month, monthName }: { views: RecentViews; 
           <p className="mt-0.5 text-body-sm text-secondary">Extrato recente de {monthName}.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div
-            role="group"
-            aria-label="Filtrar extrato"
-            className="grid w-full grid-cols-2 rounded-lg border border-hairline bg-surface p-1 text-label-md min-[400px]:flex min-[400px]:w-auto"
-          >
+          <SlidingTabs aria-label="Filtrar extrato">
             {FILTERS.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 type="button"
-                aria-pressed={filter === key}
+                role="tab"
+                id={`recent-tab-${key}`}
+                aria-selected={filter === key}
+                aria-controls="recent-ledger-panel"
+                tabIndex={filter === key ? 0 : -1}
+                data-active={filter === key}
                 onClick={() => setFilter(key)}
-                className={cn(
-                  "relative flex items-center justify-center gap-1 rounded-md px-2.5 py-1.5 whitespace-nowrap after:absolute after:-inset-1",
-                  filter === key
-                    ? "bg-surface-container-lowest font-semibold text-primary shadow-xs"
-                    : "text-secondary hover:text-on-surface",
-                )}
+                className="t-tab"
               >
                 {Icon && <Icon className="size-3.5" aria-hidden />}
                 {label}
                 {key === "pendentes" && views.pendentes.count > 0 && ` (${views.pendentes.count})`}
               </button>
             ))}
-          </div>
+          </SlidingTabs>
           <span className="hidden sm:block">
             <Link href="/lancamentos/novo" className={buttonClass("primary", "sm")}>
               <CirclePlus className="size-4" aria-hidden /> Lançar gasto
@@ -98,13 +94,15 @@ export function RecentLedger({ views, month, monthName }: { views: RecentViews; 
         </div>
       </div>
 
-      {rows.length === 0 ? (
-        <div className="p-5">
-          <EmptyState>{views.todas.count === 0 ? FILTERS[0].empty : current.empty}</EmptyState>
-        </div>
-      ) : (
-        <TransactionList rows={rows} />
-      )}
+      <div role="tabpanel" id="recent-ledger-panel" aria-labelledby={`recent-tab-${filter}`}>
+        {rows.length === 0 ? (
+          <div className="p-5">
+            <EmptyState>{views.todas.count === 0 ? FILTERS[0].empty : current.empty}</EmptyState>
+          </div>
+        ) : (
+          <TransactionList rows={rows} />
+        )}
+      </div>
 
       <div className="flex flex-col items-center justify-between gap-3 border-t border-hairline p-4 text-body-sm text-secondary sm:flex-row">
         <span aria-live="polite">{summary}</span>

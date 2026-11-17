@@ -386,6 +386,126 @@
   .t-icon-swap .t-icon { transition: none !important; }
 }
 
+/* Tabs sliding (transitions.dev): the one segmented control of the app. Children are the options (.t-tab, with
+   data-active); <SlidingTabs> places the indicator under the active one and it glides there. The same look and tokens
+   as index.html. Options are 44px tall on touch, because an invisible ::after target would be clipped by the
+   horizontal scroll. Reduced motion makes the indicator jump. */
+:root {
+  --tabs-dur: 250ms;
+  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tabs-bar-bg: var(--color-surface);
+  --tabs-bar-border: var(--color-hairline);
+  --tabs-pill-bg: var(--color-surface-container-lowest);
+  --tabs-text-muted: var(--color-secondary);
+  --tabs-text-active: var(--color-primary);
+  --tabs-pad: 3px;
+  --tabs-radius: 8px;
+  --tabs-h: 36px;
+}
+/* In the dark theme the lowest container and the surface are nearly the same: a lighter tone keeps it readable. */
+:root[data-theme="dark"] {
+  --tabs-pill-bg: var(--color-surface-container);
+}
+@media (pointer: coarse), (max-width: 767px) {
+  :root {
+    --tabs-h: 44px;
+  }
+}
+.t-tabs {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--tabs-pad);
+  border: 1px solid var(--tabs-bar-border);
+  border-radius: var(--tabs-radius);
+  background: var(--tabs-bar-bg);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  font-weight: 500;
+}
+.t-tabs::-webkit-scrollbar {
+  display: none;
+}
+.t-tabs--fill {
+  display: flex;
+  width: 100%;
+}
+.t-tabs--fill .t-tab {
+  flex: 1 1 0;
+}
+.t-tab {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 44px;
+  height: var(--tabs-h);
+  padding: 0 12px;
+  border: 0;
+  border-radius: calc(var(--tabs-radius) - 2px);
+  background: transparent;
+  color: var(--tabs-text-muted);
+  font: inherit;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--tabs-dur) var(--tabs-ease);
+}
+.t-tab:not([data-active="true"]):hover {
+  color: var(--color-on-surface);
+}
+.t-tab[data-active="true"] {
+  color: var(--tabs-text-active);
+  font-weight: 600;
+}
+.t-tab[data-tone="exp"][data-active="true"] {
+  color: var(--color-danger);
+}
+.t-tab:focus-visible,
+.t-tab:has(:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+.t-tabs-pill {
+  position: absolute;
+  top: var(--tabs-pad);
+  bottom: var(--tabs-pad);
+  left: 0;
+  z-index: 0;
+  width: 0;
+  border-radius: calc(var(--tabs-radius) - 2px);
+  background: var(--tabs-pill-bg);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+  opacity: 0;
+  transform: translateX(0);
+  transition:
+    transform var(--tabs-dur) var(--tabs-ease),
+    width var(--tabs-dur) var(--tabs-ease);
+  will-change: transform, width;
+  pointer-events: none;
+}
+.t-tabs[data-ready] .t-tabs-pill {
+  opacity: 1;
+}
+/* Before the first measurement (server render, no JavaScript) the chosen option shows its own background. */
+.t-tabs:not([data-ready]) .t-tab[data-active="true"] {
+  background: var(--tabs-pill-bg);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-tabs-pill,
+  .t-tab {
+    transition: none !important;
+  }
+}
+
 /* Collapsible left rail (lg and up; below that it is already a fixed 80px icon dock). <html data-rail="collapsed">
    comes from the root layout script (saved choice, applied before paint) or from RailToggle. The width is the
    --rail-w variable, shared by the rail, the page padding and the toggle, so the three move together. Labels

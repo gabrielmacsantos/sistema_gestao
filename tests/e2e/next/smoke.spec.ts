@@ -35,8 +35,8 @@ test("sign up, add an expense, a fixed expense and see them on the dashboard", a
 
   // Cash flow: the weekly tab splits the chosen month into calendar weeks, and the choice sticks.
   await expect(page.getByRole("table", { name: "Entradas e saídas por mês" })).toBeAttached();
-  await page.getByRole("button", { name: "Semanal" }).click();
-  await expect(page.getByRole("button", { name: "Semanal" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("tab", { name: "Semanal" }).click();
+  await expect(page.getByRole("tab", { name: "Semanal" })).toHaveAttribute("aria-selected", "true");
   const weeks = page.getByRole("table", { name: /^Entradas e saídas por semana de / });
   await expect(weeks).toBeAttached();
   expect(await weeks.getByRole("row").count()).toBeGreaterThanOrEqual(5); // header + 4 to 6 weeks
@@ -44,16 +44,16 @@ test("sign up, add an expense, a fixed expense and see them on the dashboard", a
   await expect(weeks).toContainText(/R\$\s(12,50|112,40)/);
   await expect(page.getByRole("button", { name: /^\d+( a \d+)? de .+: entradas/ }).first()).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("button", { name: "Semanal" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Mensal" }).click();
+  await expect(page.getByRole("tab", { name: "Semanal" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Mensal" }).click();
   await expect(page.getByRole("table", { name: "Entradas e saídas por mês" })).toBeAttached();
 
   // Recent ledger: the chip filters the list in place and updates the count.
-  const expenses = page.getByRole("button", { name: "Saídas", exact: true });
+  const expenses = page.getByRole("tab", { name: "Saídas", exact: true });
   await expenses.click();
-  await expect(expenses).toHaveAttribute("aria-pressed", "true");
+  await expect(expenses).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText(/^Mostrando 2 de 2 saídas$/)).toBeVisible();
-  await page.getByRole("button", { name: "Entradas", exact: true }).click();
+  await page.getByRole("tab", { name: "Entradas", exact: true }).click();
   await expect(page.getByText("Nenhuma entrada neste mês.")).toBeVisible();
 
   // Search on Lançamentos: ignores accents, keeps the term in the URL, and can be cleared.

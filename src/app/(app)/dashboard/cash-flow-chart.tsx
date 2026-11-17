@@ -2,6 +2,7 @@
 
 import { ArrowLeftRight } from "lucide-react";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { SlidingTabs } from "@/components/sliding-tabs";
 import { Badge } from "@/components/ui/card";
 import { formatBRL, formatBRLCompact } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -85,35 +86,39 @@ export function CashFlowPanel({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <ChartLegend />
-          <div role="group" aria-label="Período do gráfico" className="flex rounded-lg border border-hairline bg-surface p-1">
+          <SlidingTabs aria-label="Período do gráfico">
             {(["month", "week"] as const).map((v) => (
               <button
                 key={v}
                 type="button"
-                aria-pressed={view === v}
+                role="tab"
+                id={`flow-view-tab-${v}`}
+                aria-selected={view === v}
+                aria-controls="flow-chart-panel"
+                tabIndex={view === v ? 0 : -1}
+                data-active={view === v}
                 onClick={() => writeView(v)}
-                className={cn(
-                  "relative min-h-9 rounded-md px-3 text-label-md after:absolute after:-inset-1",
-                  view === v ? "bg-surface-container-lowest font-semibold text-primary shadow-sm" : "text-secondary hover:text-on-surface",
-                )}
+                className="t-tab"
               >
                 {v === "month" ? "Mensal" : "Semanal"}
               </button>
             ))}
-          </div>
+          </SlidingTabs>
         </div>
       </div>
 
       {children}
 
       {/* Keyed by view: each tab starts with its own current column selected. */}
-      <CashFlowChart
-        key={view}
-        data={weekView ? weekly : monthly}
-        current={weekView ? currentWeek : monthly.length - 1}
-        caption={weekView ? `Entradas e saídas por semana de ${monthName}` : "Entradas e saídas por mês"}
-        periodName={weekView ? "Semana" : "Mês"}
-      />
+      <div role="tabpanel" id="flow-chart-panel" aria-labelledby={`flow-view-tab-${view}`}>
+        <CashFlowChart
+          key={view}
+          data={weekView ? weekly : monthly}
+          current={weekView ? currentWeek : monthly.length - 1}
+          caption={weekView ? `Entradas e saídas por semana de ${monthName}` : "Entradas e saídas por mês"}
+          periodName={weekView ? "Semana" : "Mês"}
+        />
+      </div>
     </>
   );
 }
