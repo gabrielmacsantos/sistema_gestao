@@ -1,14 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 3100;
+// E2E of the online site and the app: the static index.html, the same file GitHub Pages serves and the
+// Android app bundles. The Next.js version has its own config (playwright.next.config.ts).
+const PORT = 3200;
 // Set by scripts/test-evidence.mjs to collect the reports and attachments of one run.
 const EVIDENCE_DIR = process.env.EVIDENCE_DIR;
 
 export default defineConfig({
-  testDir: "tests/e2e",
-  timeout: 120_000,
-  // The dev server compiles each route on first visit.
-  expect: { timeout: 30_000 },
+  testDir: "tests/e2e/site",
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   ...(EVIDENCE_DIR && {
     outputDir: `${EVIDENCE_DIR}/artifacts`,
     reporter: [
@@ -23,23 +24,13 @@ export default defineConfig({
     ...(EVIDENCE_DIR && { screenshot: "on", video: "retain-on-failure" }),
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    { name: "site-desktop", use: { ...devices["Desktop Chrome"] } },
+    { name: "site-mobile", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    // Separate database so E2E users never land in the real one.
-    command: `npx prisma migrate deploy && npx next dev --port ${PORT}`,
-    // A made-up Google client: enough to show "Continuar com o Google" and test everything up to Google.
-    env: {
-      // The mailer appends each message here instead of the console, so tests can read the code.
-      MAIL_OUTBOX: "prisma/e2e-mail.jsonl",
-      DATABASE_URL: "file:./prisma/e2e.db",
-      GOOGLE_CLIENT_ID: "e2e-client.apps.googleusercontent.com",
-      GOOGLE_CLIENT_SECRET: "e2e-secret",
-      APP_URL: `http://localhost:${PORT}`,
-    },
-    url: `http://localhost:${PORT}/login`,
+    command: `node scripts/serve-site.mjs ${PORT}`,
+    url: `http://localhost:${PORT}/`,
     reuseExistingServer: false,
-    timeout: 180_000,
+    timeout: 30_000,
   },
 });
