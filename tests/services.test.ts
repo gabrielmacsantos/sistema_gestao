@@ -4,7 +4,7 @@ import { DomainError } from "@/server/errors";
 import { listCategories } from "@/server/repositories/categories";
 import { findTransaction, listTransactions } from "@/server/repositories/transactions";
 import { GoogleSignInError, signInWithGoogle, signUp, verifyCredentials } from "@/server/services/auth";
-import { setBudget } from "@/server/services/budgets";
+import { depositToGoal, removeGoal, saveGoal, setBudget } from "@/server/services/budgets";
 import { confirmDrafts } from "@/server/services/imports";
 import { ensureOccurrences, saveRecurring } from "@/server/services/recurring";
 import { expensesByCategory, forecastByCategory, monthlySeries, monthSummary } from "@/server/services/reports";
@@ -288,5 +288,36 @@ describe("recurring", () => {
     await ensureOccurrences(userId);
     expect(await listTransactions(userId, { start, end })).toHaveLength(0);
     expect(await prisma.transaction.count({ where: { userId, status: "SKIPPED" } })).toBe(1);
+  });
+});
+
+describe("goal completion", () => {
+  const goal = (overrides = {}) => ({ name: "Reserva", targetCents: 100_000, savedCents: 90_000, deadline: null, ...overrides });
+
+  it("reports the moment a deposit takes a goal to its target, in whole cents, and only once", async () => {
+    const created = await saveGoal(alice, goal());
+    expect(created.reached).toBe(false);
+    expect((await depositToGoal(alice, created.goalId, 9_999)).reached).toBe(false); // R$ 999,99
+    expect((await depositToGoal(alice, created.goalId, 1)).reached).toBe(true); // exactly R$ 1.000,00
+    expect((await depositToGoal(alice, created.goalId, 5_000)).reached).toBe(false); // already complete
+    await removeGoal(alice, created.goalId);
+  });
+
+  it("reports a goal that is created, or edited, up to its target", async () => {
+    const done = await saveGoal(alice, goal({ savedCents: 100_000 }));
+    expect(done.reached).toBe(true);
+    const created = await saveGoal(alice, goal({ savedCents: 10_000 }));
+    expect(created.reached).toBe(false);
+    expect((await saveGoal(alice, goal({ savedCents: 100_000 }), created.goalId)).reached).toBe(true);
+    expect((await saveGoal(alice, goal({ savedCents: 100_000 }), created.goalId)).reached).toBe(false); // nothing new
+    await removeGoal(alice, done.goalId);
+    await removeGoal(alice, created.goalId);
+  });
+
+  it("never lets another user touch or learn about the goal", async () => {
+    const created = await saveGoal(alice, goal());
+    await expect(depositToGoal(bob, created.goalId, 10_000)).rejects.toThrow(DomainError);
+    await expect(saveGoal(bob, goal({ savedCents: 100_000 }), created.goalId)).rejects.toThrow(DomainError);
+    await removeGoal(alice, created.goalId);
   });
 });

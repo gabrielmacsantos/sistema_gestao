@@ -34,7 +34,12 @@ export async function createGoalAction(_: ActionState, formData: FormData): Prom
   const values = formDataToObject(formData);
   const parsed = goalSchema.safeParse(values);
   if (!parsed.success) return toActionError(parsed.error, values);
-  return runAction(() => saveGoal(userId, parsed.data), "Meta criada.");
+  return runAction(async () => {
+    const { goalId, reached } = await saveGoal(userId, parsed.data);
+    return reached
+      ? { ok: true, message: "Meta criada e já concluída! Parabéns!", celebrate: { goalId } }
+      : { ok: true, message: "Meta criada." };
+  });
 }
 
 const depositSchema = z.object({ amountCents: moneySchema });
@@ -47,7 +52,12 @@ export async function depositGoalAction(
   const userId = await requireUserId();
   const parsed = depositSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) return toActionError(parsed.error);
-  return runAction(() => depositToGoal(userId, id, parsed.data.amountCents), "Valor guardado!");
+  return runAction(async () => {
+    const { reached } = await depositToGoal(userId, id, parsed.data.amountCents);
+    return reached
+      ? { ok: true, message: "Meta concluída! Parabéns!", celebrate: { goalId: id } }
+      : { ok: true, message: "Valor guardado!" };
+  });
 }
 
 export async function deleteGoalAction(id: string) {

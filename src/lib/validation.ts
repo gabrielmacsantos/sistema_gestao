@@ -195,6 +195,8 @@ export type ActionState = {
   fieldErrors?: Record<string, string[] | undefined>;
   /** Submitted values, so the form can be refilled after React resets it. */
   values?: Record<string, string>;
+  /** A savings goal was just completed by this action (decided on the server, in whole cents): celebrate it. */
+  celebrate?: { goalId: string };
 };
 
 export function toActionError(error: z.ZodError, values?: Record<string, string>): ActionState {

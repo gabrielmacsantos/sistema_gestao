@@ -27,6 +27,10 @@ export function listGoals(userId: string) {
   return prisma.savingsGoal.findMany({ where: { userId }, orderBy: { createdAt: "asc" } });
 }
 
+export function findGoal(userId: string, id: string) {
+  return prisma.savingsGoal.findFirst({ where: { id, userId } });
+}
+
 export function createGoal(userId: string, data: GoalInput) {
   return prisma.savingsGoal.create({ data: { ...data, userId } });
 }
