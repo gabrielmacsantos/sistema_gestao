@@ -10,22 +10,22 @@ test("bell shows unread notices, marks them as read per user and remembers it", 
   await expect(bell).toBeVisible();
   const box = await bell.boundingBox();
   expect(box!.width + 12).toBeGreaterThanOrEqual(48); // 36px button + 6px touch area on each side
-  await expect(bell).toHaveAttribute("aria-label", "Notificações, 3 não lidas");
+  await expect(bell).toHaveAttribute("aria-label", "Notificações, 4 não lidas");
 
   await bell.click();
   const panel = page.getByRole("dialog", { name: "Notificações" });
-  await expect(panel.getByRole("heading", { level: 3 }).first()).toHaveText(/^Entrar com o Google/); // newest first
+  await expect(panel.getByRole("heading", { level: 3 }).first()).toHaveText(/^Atalhos rápidos/); // newest first
   await expect(panel.getByRole("link")).toHaveCount(0); // actionUrl is inactive: no links in this phase
 
   await panel.getByRole("button", { name: "Marcar como lida" }).first().click();
-  await expect(page.getByRole("button", { name: "Notificações, 2 não lidas" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Notificações, 3 não lidas" })).toBeVisible();
 
   await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
 
   await page.reload();
-  await expect(page.getByRole("button", { name: "Notificações, 2 não lidas" })).toBeVisible();
-  await page.getByRole("button", { name: "Notificações, 2 não lidas" }).click();
+  await expect(page.getByRole("button", { name: "Notificações, 3 não lidas" })).toBeVisible();
+  await page.getByRole("button", { name: "Notificações, 3 não lidas" }).click();
   await page.getByRole("button", { name: "Marcar todas como lidas" }).click();
   await expect(page.getByRole("button", { name: "Notificações", exact: true })).toBeVisible();
 
@@ -33,5 +33,5 @@ test("bell shows unread notices, marks them as read per user and remembers it", 
   await context.clearCookies();
   await signUpAndConfirm(page, `e2e-bell-b-${stamp}@test.dev`);
   await page.goto("/dashboard");
-  await expect(page.getByRole("button", { name: "Notificações, 3 não lidas" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Notificações, 4 não lidas" })).toBeVisible();
 });
