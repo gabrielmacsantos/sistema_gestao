@@ -1529,8 +1529,39 @@ const { parseBankNotification, splitNotifications } = (() => {
 })();
 // </notification-parser>
 
+// <account-scope> Self-contained: tests/account-scope.test.ts loads this block from the file.
+// Everything stored on this device belongs to one scope: a Google account, an (older) GitHub login or
+// "local" (no account). Each scope has its own key and its own photo database, so two people using the
+// same device can never see or overwrite each other's records.
+const SCOPE_PREFIX = "minhas-financas:v1";
+const LEGACY_PHOTO_DB = "minhas-financas";
+const OFFLINE_LABEL = "Modo offline • Dados salvos no dispositivo";
+function scopeOf(sync) {
+  if (!sync) return "local";
+  if (sync.provider === "google") return sync.sub ? `g:${sync.sub}` : "unknown";
+  return sync.login ? `gh:${sync.login}` : "unknown";
+}
+const storageKey = (scope) => `${SCOPE_PREFIX}:${scope}`;
+/** Photos kept before scopes existed live in the old database, which belongs to the scope that owned the old data. */
+const photoDbName = (scope, legacyOwner) => (scope === legacyOwner ? LEGACY_PHOTO_DB : `${LEGACY_PHOTO_DB}:${scope}`);
+/** Real records (the sample does not count). */
+function hasRealData(s) {
+  return !!s && !s.demo && ["transactions", "recurrings", "budgets", "goals", "trips"].some((k) => Array.isArray(s[k]) && s[k].length > 0);
+}
+/** What to do with the data made without an account when someone signs in: "none", "ask" or "separate" (the account already has data: never merged). */
+function decideLink(localHasData, remoteHasData) {
+  if (!localHasData) return "none";
+  return remoteHasData ? "separate" : "ask";
+}
+const connectivityLabel = (online, hasSession) => (hasSession && !online ? OFFLINE_LABEL : null);
+// </account-scope>
+
 // ---------- Store ----------
-const KEY = "minhas-financas:v1";
+const SYNC_KEY = "minhas-financas:github";
+const LOCAL_KEY = "minhas-financas:local";
+const PHOTO_OWNER_KEY = "minhas-financas:photo-owner";
+let sync = loadSync();
+const activeScope = () => scopeOf(sync);
 const DEFAULT_CATEGORIES = [
   ["EXPENSE", "Moradia", "#6366f1"], ["EXPENSE", "Alimentação", "#f59e0b"], ["EXPENSE", "Mercado", "#84cc16"],
   ["EXPENSE", "Transporte", "#06b6d4"], ["EXPENSE", "Saúde", "#ef4444"], ["EXPENSE", "Educação", "#8b5cf6"],
@@ -1540,21 +1571,36 @@ const DEFAULT_CATEGORIES = [
 ].map(([type, name, color]) => ({ id: uid(), type, name, color }));
 
 const emptyState = () => ({ version: 1, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c, id: uid() })), transactions: [], recurrings: [], budgets: [], goals: [], trips: [], inbox: [], demo: false, demoDismissed: false });
+/** One-time move of the single-key data of older versions into the scope that owned it (copy, read back, only then delete). */
+function migrateLegacyStorage() {
+  try {
+    const legacy = localStorage.getItem(SCOPE_PREFIX);
+    if (!legacy) return;
+    const scope = activeScope(), key = storageKey(scope);
+    if (localStorage.getItem(key) !== null) return;
+    localStorage.setItem(key, legacy);
+    if (localStorage.getItem(key) !== legacy) return;
+    localStorage.setItem(PHOTO_OWNER_KEY, scope);
+    localStorage.removeItem(SCOPE_PREFIX);
+  } catch (e) { /* private mode: nothing was stored anyway */ }
+}
+migrateLegacyStorage();
 let state = load();
 let storageOk = true;
 let needsOccurrences = true;
 let occurrencesMonth = "";
 
-function load() {
+/** The saved state of a scope (the active one by default); empty when there is none. */
+function load(scope = activeScope()) {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(storageKey(scope));
     if (raw) { const s = JSON.parse(raw); if (s && s.version === 1) return { ...emptyState(), ...s }; }
   } catch (e) { /* first run or private mode */ }
   return emptyState();
 }
-/** Writes to this browser only. */
+/** Writes to this browser only, under the active scope. */
 function persist() {
-  try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; }
+  try { localStorage.setItem(storageKey(activeScope()), JSON.stringify(state)); storageOk = true; }
   catch (e) { storageOk = false; toast("Não foi possível salvar no navegador. Exporte um backup."); }
 }
 /** A user change: stamps it, saves locally and schedules the encrypted copy on GitHub. */
@@ -1620,13 +1666,10 @@ function projected(month) {
 // AES-256-GCM (key from the password via PBKDF2) and stored in a gist of that person. The gist
 // is public so that logging in on another device needs only GitHub username + password: anyone
 // can download the file, but without the password it is unreadable ciphertext.
-const SYNC_KEY = "minhas-financas:github";
-const LOCAL_KEY = "minhas-financas:local";
 const GIST_FILE = "minhas-financas.json";
 const API = "https://api.github.com";
 const PBKDF2_ITERATIONS = 310000;
 const MIN_PASSWORD = 10;
-let sync = loadSync();
 let syncStatus = sync ? "ok" : "off"; // off | ok | saving | error
 let pushTimer = null;
 let pushing = false;
@@ -1725,17 +1768,18 @@ function setSyncStatus(status) {
   if (menu) { menu.classList.toggle("has-alert", syncNeedsAttention(status)); menu.setAttribute("aria-label", menuLabel()); }
 }
 const menuLabel = () => (menuOpen ? "Fechar menu" : syncNeedsAttention(syncStatus) ? "Mais opções. A sincronização precisa de atenção" : "Mais opções");
-const syncView = () => ({ ok: ["ok", "checkCircle", `Salvo no ${providerName()}`], saving: ["", "cloud", "Salvando…"], error: ["err", "alert", "Erro ao salvar"] }[syncStatus] || ["ok", "checkCircle", `Salvo no ${providerName()}`]);
+const offlineLabel = () => connectivityLabel(navigator.onLine, !!sync);
+const syncView = () => offlineLabel() ? ["", "cloud", offlineLabel()] : ({ ok: ["ok", "checkCircle", `Salvo no ${providerName()}`], saving: ["", "cloud", "Salvando…"], error: ["err", "alert", "Erro ao salvar"] }[syncStatus] || ["ok", "checkCircle", `Salvo no ${providerName()}`]);
 function syncBadge() {
   if (!sync) return "";
-  if (syncStatus === "reauth") return `<button type="button" class="sync err" data-act="google-reconnect" title="O acesso ao Google venceu. Toque para continuar sincronizando.">${icon("cloud")}<span class="txt">Toque para sincronizar</span></button>`;
+  if (syncStatus === "reauth" && !offlineLabel()) return `<button type="button" class="sync err" data-act="google-reconnect" title="O acesso ao Google venceu. Toque para continuar sincronizando.">${icon("cloud")}<span class="txt">Toque para sincronizar</span></button>`;
   const [cls, ic, txt] = syncView();
   return `<a class="sync ${cls}" href="${href("backup")}" title="${txt}" aria-label="${txt}">${icon(ic)}<span class="txt">${txt}</span></a>`;
 }
 /** Detailed sync status inside the phone drawer (the header badge is hidden below 768px). */
 function drawerSyncRow() {
   if (!sync) return "";
-  if (syncStatus === "reauth") return `<button type="button" class="drawer-row drawer-sync err" data-act="google-reconnect">${icon("cloud")}<span>Toque para sincronizar<br><small class="hint">O acesso ao Google venceu.</small></span></button>`;
+  if (syncStatus === "reauth" && !offlineLabel()) return `<button type="button" class="drawer-row drawer-sync err" data-act="google-reconnect">${icon("cloud")}<span>Toque para sincronizar<br><small class="hint">O acesso ao Google venceu.</small></span></button>`;
   const [cls, ic, txt] = syncView();
   return `<a class="drawer-row drawer-sync ${cls}" href="${href("backup")}" data-act="close-nav">${icon(ic)}<span>${txt}<br><small class="hint">${syncStatus === "saving" ? "Enviando as alterações" : "Ver backup e dados"}</small></span></a>`;
 }
@@ -1752,18 +1796,22 @@ async function pushNow() {
   // Sample data never goes to the account; with nothing real to send, the account's copy stays as it is.
   const outgoing = syncableState(state);
   if (!outgoing || (!isGoogle() && state.demo)) { setSyncStatus("ok"); return; }
+  // Offline: the change is already saved on the device; the copy goes up when the connection is back (see the "online" event).
+  if (!navigator.onLine) { setSyncStatus("ok"); return; }
+  const scope = activeScope();
   pushing = true; setSyncStatus("saving");
   try {
     if (isGoogle()) {
       const fileId = await writeDriveFile(sync.fileId, DRIVE_FILE, driveDataFile(outgoing), "application/json");
-      storeSync({ ...sync, fileId, lastPush: Date.now() });
+      if (scope === activeScope()) storeSync({ ...sync, fileId, lastPush: Date.now() });
     } else {
       const content = await encryptState(await importKey(sync.key), fromB64(sync.salt), sync.token);
       await gh(`/gists/${sync.gistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files: { [GIST_FILE]: { content } } }) });
-      storeSync({ ...sync, lastPush: Date.now() });
+      if (scope === activeScope()) storeSync({ ...sync, lastPush: Date.now() });
     }
     setSyncStatus("ok");
   } catch (e) {
+    if (scope !== activeScope()) return; // the account changed while this was in flight: not this one's result
     // An expired Google access is not an error: the badge asks for a tap, nothing is lost.
     if (e.reauth) return setSyncStatus("reauth");
     setSyncStatus("error");
@@ -1773,9 +1821,12 @@ async function pushNow() {
 /** On open / when the tab comes back: take the GitHub copy if it is newer (e.g. saved from the phone). */
 async function pullIfNewer() {
   if (!sync || pushTimer || pushing) return;
+  if (!navigator.onLine) return setSyncStatus(syncStatus); // offline: keep working on the device copy
   if (isGoogle()) return pullFromDrive();
+  const scope = activeScope();
   try {
     const file = await readGistFile(await gh(`/gists/${sync.gistId}`, sync.token));
+    if (scope !== activeScope()) return;
     if (file && (file.savedAt || 0) > (state.savedAt || 0)) {
       replaceState((await decryptFile(file, await importKey(sync.key))).data);
       persist(); render(); toast("Dados atualizados com o que foi salvo no GitHub.");
@@ -1788,16 +1839,18 @@ async function pullIfNewer() {
 
 /** Same as for GitHub: take the Drive copy if it is newer, send ours if it is older. */
 async function pullFromDrive() {
+  const scope = activeScope();
   try {
     if (!sync.fileId) return pushNow();
     const remote = readDriveDataFile(await drive(`/files/${sync.fileId}?alt=media`, { as: "text" }));
+    if (scope !== activeScope()) return; // signed out or switched account meanwhile: this copy is not ours to apply
     if (remote.savedAt > (state.savedAt || 0)) {
       replaceState(remote.data); persist(); render(); toast("Dados atualizados com o que foi salvo no Google Drive.");
     } else if ((state.savedAt || 0) > remote.savedAt) {
       return pushNow();
     }
     setSyncStatus("ok");
-  } catch (e) { setSyncStatus(e.reauth ? "reauth" : "error"); }
+  } catch (e) { if (scope === activeScope()) setSyncStatus(e.reauth ? "reauth" : "error"); }
 }
 
 // ---------- Accounts (Google) ----------
@@ -1992,22 +2045,45 @@ async function startGoogleSignIn(btn) {
   catch (e) { reset(); return toast(e.message); }
   const { settings, data } = result;
   const first = settings.name.split(" ")[0];
-  const finish = async (useRemote) => {
+  const finish = async (useRemote, link) => {
+    const from = activeScope(); // "local": where the data made without an account lives
+    const carried = link ? withoutDemo(state) : null;
     storeSync(settings); setLocalMode(false); syncStatus = "ok";
     if (useRemote) { await clearPhotos(); replaceState(data); persist(); }
     else {
-      if (state.demo) replaceState(withoutDemo(state)); // the sample is not taken into the account
-      if (!state.savedAt) state.savedAt = Date.now(); persist(); await pushNow(); syncPhotos();
+      replaceState(carried || load());
+      if (!state.savedAt) state.savedAt = Date.now(); persist();
+      if (link && storageOk) {
+        await movePhotos(from, activeScope());
+        try { localStorage.removeItem(storageKey(from)); } catch { /* it stays as a copy */ }
+      }
+      await pushNow(); syncPhotos();
     }
     location.hash = href("painel"); render();
-    toast(useRemote ? `Bem-vindo de volta, ${first}!` : `Conta criada! Bem-vindo, ${first}.`);
+    const apart = !link && hasRealData(load(from)) ? " Os dados sem conta continuam só neste aparelho." : "";
+    toast((useRemote ? `Bem-vindo de volta, ${first}!` : `Conta criada! Bem-vindo, ${first}.`) + apart);
   };
-  const hasLocal = !state.demo && (state.transactions.length > 0 || state.recurrings.length > 0);
-  if (data && hasLocal) {
-    reset();
-    return confirmDialog("Sua conta Google já tem dados", "Os lançamentos que estão só neste aparelho serão substituídos pelos da sua conta. Se quiser guardá-los, cancele e baixe um backup antes.", "Usar os da conta", () => finish(true));
-  }
-  await finish(!!data);
+  reset();
+  const choice = decideLink(hasRealData(state), hasRealData(data));
+  if (choice === "ask") return finish(false, (await askLinkLocal(settings.email, state.transactions.length)) === "link");
+  await finish(!!data, false);
+}
+/** Asks whether the data made before signing in goes into the account. Closing the window keeps it separate: nothing is lost. */
+function askLinkLocal(email, count) {
+  return new Promise((resolve) => {
+    let done = false, observer = null;
+    const answer = (v) => { if (done) return; done = true; observer?.disconnect(); resolve(v); };
+    openModal({
+      title: "Levar seus dados para a conta?",
+      sub: esc(email),
+      body: `<p class="muted">Você tem ${count} ${count === 1 ? "lançamento criado" : "lançamentos criados"} sem conta, só neste aparelho. Se levar, eles passam a fazer parte desta conta e são salvos no ${providerName()}. Se manter separado, continuam só aqui e aparecem quando você usar o app sem conta.</p>`,
+      foot: `<button type="button" class="btn btn-secondary btn-sm" id="link-separate">Manter separado</button><button type="submit" class="btn btn-primary btn-sm">Levar para a conta</button>`,
+      onSubmit: () => { answer("link"); closeModal(); },
+    });
+    document.getElementById("link-separate").addEventListener("click", () => { answer("separate"); closeModal(); });
+    observer = new MutationObserver(() => { if (!document.getElementById("modal")) answer("separate"); });
+    observer.observe(document.getElementById("layer"), { childList: true });
+  });
 }
 
 // ---------- Receipt photos ----------
@@ -2016,30 +2092,51 @@ async function startGoogleSignIn(btn) {
 // ("comprovantes"), so the main data file stays small. Other devices download a photo only when it
 // is opened, straight from the gist's raw URL.
 const PHOTO_MAX_SIDE = 1600;
-const photoDb = (() => {
-  let opening;
-  const open = () => (opening ||= new Promise((resolve, reject) => {
-    const req = indexedDB.open("minhas-financas", 1);
-    req.onupgradeneeded = () => req.result.createObjectStore("photos", { keyPath: "id" });
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  }));
-  const run = async (mode, fn) => {
-    const db = await open();
+// One database per scope (see <account-scope>), so photos of two accounts never share a store.
+const photoStore = (() => {
+  const opened = new Map();
+  const open = (name) => {
+    if (!opened.has(name)) opened.set(name, new Promise((resolve, reject) => {
+      const req = indexedDB.open(name, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore("photos", { keyPath: "id" });
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    }));
+    return opened.get(name);
+  };
+  const run = async (name, mode, fn) => {
+    const db = await open(name);
     return new Promise((resolve, reject) => {
       const t = db.transaction("photos", mode), req = fn(t.objectStore("photos"));
       t.oncomplete = () => resolve(req?.result);
       t.onerror = () => reject(t.error);
     });
   };
-  return {
-    get: (id) => run("readonly", (st) => st.get(id)),
-    all: () => run("readonly", (st) => st.getAll()),
-    put: (rec) => run("readwrite", (st) => st.put(rec)),
-    del: (id) => run("readwrite", (st) => st.delete(id)),
-    clear: () => run("readwrite", (st) => st.clear()),
-  };
+  return (name) => ({
+    get: (id) => run(name, "readonly", (st) => st.get(id)),
+    all: () => run(name, "readonly", (st) => st.getAll()),
+    put: (rec) => run(name, "readwrite", (st) => st.put(rec)),
+    del: (id) => run(name, "readwrite", (st) => st.delete(id)),
+    clear: () => run(name, "readwrite", (st) => st.clear()),
+  });
 })();
+const photoOwner = () => { try { return localStorage.getItem(PHOTO_OWNER_KEY); } catch { return null; } };
+const photoDbFor = (scope) => photoStore(photoDbName(scope, photoOwner()));
+const photoDb = {
+  get: (id) => photoDbFor(activeScope()).get(id),
+  all: () => photoDbFor(activeScope()).all(),
+  put: (rec) => photoDbFor(activeScope()).put(rec),
+  del: (id) => photoDbFor(activeScope()).del(id),
+  clear: () => photoDbFor(activeScope()).clear(),
+};
+/** Moves the photos of one scope into another (data made without an account that is taken into the account). */
+async function movePhotos(from, to) {
+  try {
+    const source = photoDbFor(from), target = photoDbFor(to);
+    for (const rec of await source.all()) await target.put(rec);
+    await source.clear();
+  } catch { /* the photos stay where they were */ }
+}
 
 async function decodeImage(file) {
   try { return await createImageBitmap(file, { imageOrientation: "from-image" }); } catch {}
@@ -4078,7 +4175,7 @@ function viewAuth() {
 function logoutForm() {
   openModal({
     title: "Sair desta conta?", sub: esc(accountLabel()),
-    body: `<p class="muted">Seus dados continuam salvos no ${providerName()} e voltam quando você entrar de novo ${isGoogle() ? "com o Google" : "com seu usuário e senha"}. Este navegador fica vazio, pronto para outra pessoa usar.</p>`,
+    body: `<p class="muted">Seus dados continuam salvos no ${providerName()} e voltam quando você entrar de novo ${isGoogle() ? "com o Google" : "com seu usuário e senha"}. Os dados da conta saem deste navegador, pronto para outra pessoa usar.</p>`,
     foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="logout-btn">Salvar e sair</button>`,
     onSubmit: async () => {
       const btn = document.getElementById("logout-btn"); btn.disabled = true; btn.textContent = "Salvando…";
@@ -4097,8 +4194,12 @@ function logoutForm() {
       }
       const where = providerName(); // read before the account is cleared
       if (isGoogle() && NATIVE && NativePlugins.SocialLogin) nativeSocialLogin().then(() => NativePlugins.SocialLogin.logout({ provider: "google" })).catch(() => {});
+      // The account's copy leaves this device (photos and records, under its own scope); what was made
+      // without an account, if anything, is a separate scope and stays.
+      await clearPhotos();
+      try { localStorage.removeItem(storageKey(activeScope())); } catch { /* the scope still keeps it apart */ }
       storeSync(null); syncStatus = "off"; setLocalMode(false);
-      replaceState(emptyState()); persist(); await clearPhotos();
+      replaceState(load());
       closeModal(); location.hash = href("entrar"); render();
       toast(`Você saiu. Seus dados estão salvos no ${where}.`);
     },
@@ -4652,7 +4753,13 @@ window.addEventListener("hashchange", () => {
   document.getElementById("live").textContent = `Mostrando ${monthLabel(next.month)}`;
   if (focused) document.querySelector(`[data-month-nav="${focused}"]`)?.focus({ preventScroll: true });
 });
-window.addEventListener("storage", (e) => { if (e.key === KEY) { replaceState(load()); render(); } });
+window.addEventListener("storage", (e) => {
+  // Another tab signed in or out: this tab's account is stale, so start over instead of writing into the wrong one.
+  if (e.key === SYNC_KEY) { location.reload(); return; }
+  if (e.key === storageKey(activeScope())) { replaceState(load()); render(); }
+});
+window.addEventListener("offline", () => { if (sync) setSyncStatus(syncStatus); });
+window.addEventListener("online", () => { if (sync) { setSyncStatus(syncStatus); pullIfNewer(); } });
 
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pullIfNewer(); else if (pushTimer) pushNow(); });
 window.addEventListener("beforeunload", (e) => { if (pushTimer || pushing) { pushNow(); e.preventDefault(); e.returnValue = ""; } });
