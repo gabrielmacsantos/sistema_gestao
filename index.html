@@ -1774,11 +1774,17 @@ function setSyncStatus(status) {
   if (row) row.outerHTML = drawerSyncRow();
   const last = document.getElementById("sync-last");
   if (last) last.textContent = syncLastText();
+  const syncBtn = document.getElementById("sync-now-btn");
+  if (syncBtn && !syncBtn.hasAttribute("aria-busy")) syncBtn.innerHTML = syncNowLabel();
   const menu = document.querySelector('[data-act="menu"]');
   if (menu) { menu.classList.toggle("has-alert", syncNeedsAttention(status)); menu.setAttribute("aria-label", menuLabel()); }
 }
 const menuLabel = () => (menuOpen ? "Fechar menu" : syncNeedsAttention(syncStatus) ? "Mais opções. A sincronização precisa de atenção" : "Mais opções");
 const offlineLabel = () => connectivityLabel(navigator.onLine, !!sync);
+/** In sync: the last send went through and nothing was changed on this device since (the stamp both sides agreed on is not behind). */
+const isSynced = () => !!sync && syncStatus === "ok" && (sync.base == null || (state.savedAt || 0) <= sync.base);
+/** The "Sincronizar agora" button says "Sincronizado" for as long as that is true, and offers the sync again as soon as it is not. */
+const syncNowLabel = () => (isSynced() ? `${icon("checkCircle")} Sincronizado` : `${icon("cloud")} Sincronizar agora`);
 /** "Sincronizado hoje às 15:30": the last time this device and the account agreed. */
 const syncLastText = () => (sync ? describeLastSync(sync.lastSync || sync.lastPush || 0) : "");
 /** States where a tap is needed: [text, hint]. Offline is never one: nothing can be done until the connection is back. */
@@ -3571,7 +3577,7 @@ function viewBackup() {
         <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${isGoogle() ? googleMark() : icon("github")} ${isGoogle() ? `Conta Google ${esc(sync.email)}` : `Conta @${esc(sync.login)}`}</h2><span class="badge ${syncNeedsAttention(syncStatus) ? "b-warning" : "b-success"}">${{ error: "Erro no último envio", saving: "Salvando…", key: "Falta a senha", conflict: "Conflito a resolver", reauth: "Toque para sincronizar" }[syncStatus] || `Salvo no ${providerName()}`}</span></div>
         <p class="muted">${isGoogle() ? "Cada alteração é salva automaticamente na pasta do app no seu Google Drive (só este app a vê, e ela não aparece entre os seus arquivos)." : "Cada alteração é criptografada com a sua senha e salva automaticamente na sua conta do GitHub."} <b id="sync-last" aria-live="polite">${esc(syncLastText())}</b></p>
         <p class="hint" style="margin-top:6px">Em outro aparelho, ${isGoogle() ? (ENCRYPTED_SYNC ? "entre com o Google, com a mesma conta, e digite a senha de criptografia" : "entre com o Google, com a mesma conta") : "entre com seu usuário do GitHub e sua senha"}. Em computador compartilhado, use <b>Sair</b> ao terminar.</p>
-        <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="sync-now">${icon("cloud")} Sincronizar agora</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon("logout")} Sair</button></div>
+        <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" id="sync-now-btn" data-act="sync-now">${syncNowLabel()}</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon("logout")} Sair</button></div>
       </section>`
     : `<section class="card welcome" style="grid-column:1/-1">
         <h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("lock")} Você está sem conta</h2>
@@ -4804,7 +4810,6 @@ async function syncNow(btn) {
   if (!sync) return;
   if (!navigator.onLine) return toast("Sem internet. Suas alterações estão salvas neste aparelho e sobem quando a conexão voltar.");
   if (isGoogle() && !sync.dkey) return createPassphraseDialog();
-  const label = btn.innerHTML;
   btn.disabled = true; btn.setAttribute("aria-busy", "true");
   btn.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>Sincronizando…</span>`;
   clearTimeout(pushTimer); pushTimer = null;
@@ -4812,11 +4817,9 @@ async function syncNow(btn) {
   let ok = false;
   try { await pullIfNewer(); ok = (await syncPhotos()) && syncStatus === "ok"; } catch { ok = false; }
   if (!btn.isConnected) return;
-  btn.removeAttribute("aria-busy");
-  if (!ok) { btn.disabled = false; btn.innerHTML = label; return; }
-  btn.innerHTML = `${icon("checkCircle")} Sincronizado`;
-  document.getElementById("live").textContent = "Sincronizado";
-  setTimeout(() => { if (btn.isConnected) { btn.disabled = false; btn.innerHTML = label; } }, 2500);
+  btn.removeAttribute("aria-busy"); btn.disabled = false;
+  btn.innerHTML = syncNowLabel(); // "Sincronizado" stays while nothing is pending; a failure goes back to "Sincronizar agora"
+  if (ok) document.getElementById("live").textContent = "Sincronizado";
 }
 
 function logoutForm() {
