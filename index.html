@@ -435,6 +435,8 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .drawer-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 8px 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
 .drawer-row.ok { color: var(--success); } .drawer-row.err { color: var(--danger); }
 .drawer-foot { flex: none; padding: 4px 20px 12px; border-top: 1px solid var(--hairline); }
+.conflict-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
+.conflict-list li { padding: 12px 14px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--card); }
 .drawer-account { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px 0 4px; }
 .drawer-account .lbl { flex: 1; min-width: 0; font-size: 14px; line-height: 20px; }
 .drawer-account .lbl > * { display: block; }
@@ -803,7 +805,7 @@ const DRAWER_MS = 280;
 /** Index of the item that gets focus on Tab inside the drawer: it wraps around instead of leaving the panel. */
 const trapFocusIndex = (count, index, shift) => (count <= 0 ? -1 : shift ? (index <= 0 ? count - 1 : index - 1) : (index < 0 || index >= count - 1 ? 0 : index + 1));
 /** Sync states that need the person: shown as a dot on the menu button, since the header badge is hidden on phones. */
-const syncNeedsAttention = (status) => status === "reauth" || status === "error";
+const syncNeedsAttention = (status) => status === "reauth" || status === "error" || status === "key" || status === "conflict";
 // </drawer-state>
 // <account-avatar> Self-contained: tests/account-avatar.test.ts loads this block from the file.
 /** The Google profile photo is shown only when it is an https image from Google's own photo host; anything else is dropped. */
@@ -1764,24 +1766,37 @@ function setSyncStatus(status) {
   if (el) el.outerHTML = syncBadge();
   const row = document.querySelector(".drawer-sync");
   if (row) row.outerHTML = drawerSyncRow();
+  const last = document.getElementById("sync-last");
+  if (last) last.textContent = syncLastText();
   const menu = document.querySelector('[data-act="menu"]');
   if (menu) { menu.classList.toggle("has-alert", syncNeedsAttention(status)); menu.setAttribute("aria-label", menuLabel()); }
 }
 const menuLabel = () => (menuOpen ? "Fechar menu" : syncNeedsAttention(syncStatus) ? "Mais opções. A sincronização precisa de atenção" : "Mais opções");
 const offlineLabel = () => connectivityLabel(navigator.onLine, !!sync);
+/** "Sincronizado hoje às 15:30": the last time this device and the account agreed. */
+const syncLastText = () => (sync ? describeLastSync(sync.lastSync || sync.lastPush || 0) : "");
+/** States where a tap is needed: [text, hint]. Offline is never one: nothing can be done until the connection is back. */
+const syncFixView = () => (offlineLabel() ? null : ({
+  reauth: ["Toque para sincronizar", "O acesso ao Google venceu."],
+  key: ["Crie a senha de criptografia", "Seus dados só vão para a nuvem com ela."],
+  conflict: ["Resolver conflito", "Os dados mudaram em dois lugares."],
+}[syncStatus] || null));
+const syncFixAct = () => (syncStatus === "reauth" ? "google-reconnect" : "sync-fix");
 const syncView = () => offlineLabel() ? ["", "cloud", offlineLabel()] : ({ ok: ["ok", "checkCircle", `Salvo no ${providerName()}`], saving: ["", "cloud", "Salvando…"], error: ["err", "alert", "Erro ao salvar"] }[syncStatus] || ["ok", "checkCircle", `Salvo no ${providerName()}`]);
 function syncBadge() {
   if (!sync) return "";
-  if (syncStatus === "reauth" && !offlineLabel()) return `<button type="button" class="sync err" data-act="google-reconnect" title="O acesso ao Google venceu. Toque para continuar sincronizando.">${icon("cloud")}<span class="txt">Toque para sincronizar</span></button>`;
+  const fix = syncFixView();
+  if (fix) return `<button type="button" class="sync err" data-act="${syncFixAct()}" title="${fix[1]} Toque para resolver.">${icon(syncStatus === "key" ? "lock" : "cloud")}<span class="txt">${fix[0]}</span></button>`;
   const [cls, ic, txt] = syncView();
   return `<a class="sync ${cls}" href="${href("backup")}" title="${txt}" aria-label="${txt}">${icon(ic)}<span class="txt">${txt}</span></a>`;
 }
 /** Detailed sync status inside the phone drawer (the header badge is hidden below 768px). */
 function drawerSyncRow() {
   if (!sync) return "";
-  if (syncStatus === "reauth" && !offlineLabel()) return `<button type="button" class="drawer-row drawer-sync err" data-act="google-reconnect">${icon("cloud")}<span>Toque para sincronizar<br><small class="hint">O acesso ao Google venceu.</small></span></button>`;
+  const fix = syncFixView();
+  if (fix) return `<button type="button" class="drawer-row drawer-sync err" data-act="${syncFixAct()}">${icon(syncStatus === "key" ? "lock" : "cloud")}<span>${fix[0]}<br><small class="hint">${fix[1]}</small></span></button>`;
   const [cls, ic, txt] = syncView();
-  return `<a class="drawer-row drawer-sync ${cls}" href="${href("backup")}" data-act="close-nav">${icon(ic)}<span>${txt}<br><small class="hint">${syncStatus === "saving" ? "Enviando as alterações" : "Ver backup e dados"}</small></span></a>`;
+  return `<a class="drawer-row drawer-sync ${cls}" href="${href("backup")}" data-act="close-nav">${icon(ic)}<span>${txt}<br><small class="hint">${syncStatus === "saving" ? "Enviando as alterações" : esc(syncLastText() || "Ver backup e dados")}</small></span></a>`;
 }
 function schedulePush() {
   if (!sync) return;
@@ -1798,12 +1813,21 @@ async function pushNow() {
   if (!outgoing || (!isGoogle() && state.demo)) { setSyncStatus("ok"); return; }
   // Offline: the change is already saved on the device; the copy goes up when the connection is back (see the "online" event).
   if (!navigator.onLine) { setSyncStatus("ok"); return; }
+  if (isGoogle()) {
+    // Nothing financial goes up without the person's password, and nothing overwrites a conflict they have not settled.
+    if (!sync.dkey) { setSyncStatus("key"); queueKeyPrompt(); return; }
+    if (conflictPending) { setSyncStatus("conflict"); return; }
+  }
   const scope = activeScope();
   pushing = true; setSyncStatus("saving");
   try {
     if (isGoogle()) {
-      const fileId = await writeDriveFile(sync.fileId, DRIVE_FILE, driveDataFile(outgoing), "application/json");
-      if (scope === activeScope()) storeSync({ ...sync, fileId, lastPush: Date.now() });
+      const key = await importDriveKey(sync.dkey);
+      const text = await sealDriveState(outgoing, key, sync.dsalt, sync.sub, sync.diter);
+      await openDriveState(text, key, sync.sub); // never upload what this device could not open again
+      const fileId = await writeDriveFile(sync.fileId, DRIVE_FILE, text, "application/json");
+      const now = Date.now();
+      if (scope === activeScope()) storeSync({ ...sync, fileId, lastPush: now, lastSync: now, base: outgoing.savedAt || 0 });
     } else {
       const content = await encryptState(await importKey(sync.key), fromB64(sync.salt), sync.token);
       await gh(`/gists/${sync.gistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files: { [GIST_FILE]: { content } } }) });
@@ -1837,20 +1861,154 @@ async function pullIfNewer() {
   } catch (e) { setSyncStatus("error"); }
 }
 
-/** Same as for GitHub: take the Drive copy if it is newer, send ours if it is older. */
+/** The Drive copy, opened: { savedAt, data, format }, or null when there is no file yet. Without this device's key, an encrypted file sets `needsKey`. */
+async function fetchDriveCopy() {
+  if (!sync.fileId) return null;
+  const text = await drive(`/files/${sync.fileId}?alt=media`, { as: "text" });
+  if (driveFileFormat(text) === "drive-1") return { ...readDriveDataFile(text), format: "drive-1" };
+  if (!sync.dkey) { const e = new Error("Falta a senha de criptografia."); e.needsKey = true; throw e; }
+  return { ...(await openDriveState(text, await importDriveKey(sync.dkey), sync.sub)), format: "drive-2" };
+}
+/** Marks this device and the cloud as agreeing on `base`. */
+function markSynced(base) {
+  storeSync({ ...sync, base, lastSync: Date.now() });
+  setSyncStatus("ok");
+}
+/** Replaces the device's data with the cloud copy. A copy still in the older plain format is rewritten encrypted right after. */
+function applyRemote(remote) {
+  replaceState(remote.data); persist(); markSynced(remote.savedAt); render();
+  toast("Dados atualizados com o que foi salvo no Google Drive.");
+  if (remote.format === "drive-1") return pushNow();
+}
+/** Take the Drive copy if only it changed, send ours if only ours did, ask the person if both did. */
 async function pullFromDrive() {
   const scope = activeScope();
   try {
     if (!sync.fileId) return pushNow();
-    const remote = readDriveDataFile(await drive(`/files/${sync.fileId}?alt=media`, { as: "text" }));
-    if (scope !== activeScope()) return; // signed out or switched account meanwhile: this copy is not ours to apply
-    if (remote.savedAt > (state.savedAt || 0)) {
-      replaceState(remote.data); persist(); render(); toast("Dados atualizados com o que foi salvo no Google Drive.");
-    } else if ((state.savedAt || 0) > remote.savedAt) {
-      return pushNow();
+    let remote;
+    try { remote = await fetchDriveCopy(); }
+    catch (e) {
+      if (e.needsKey) { if (scope === activeScope()) { setSyncStatus("key"); queueKeyPrompt(); } return; }
+      throw e;
     }
-    setSyncStatus("ok");
-  } catch (e) { if (scope === activeScope()) setSyncStatus(e.reauth ? "reauth" : "error"); }
+    if (scope !== activeScope()) return; // signed out or switched account meanwhile: this copy is not ours to apply
+    const decision = syncDecision(state.savedAt || 0, remote.savedAt, sync.base);
+    if (decision === "pull") return applyRemote(remote);
+    if (decision === "push") return pushNow();
+    if (decision === "conflict") return askConflict(remote);
+    conflictPending = false;
+    markSynced(remote.savedAt);
+    if (remote.format === "drive-1") return pushNow(); // the older plain file becomes an encrypted one
+  } catch (e) {
+    if (scope !== activeScope()) return;
+    if (e.badKey) { setSyncStatus("error"); return toast("A senha guardada neste aparelho não abre os dados da nuvem. Saia e entre de novo."); }
+    setSyncStatus(e.reauth ? "reauth" : "error");
+  }
+}
+
+// Encryption password and conflicts (Google accounts).
+let conflictPending = false, conflictOpen = false, keyPrompted = false;
+/** Runs `cb` once, when the open window goes away by any route (button, X, outside tap, Esc). */
+function onModalGone(cb) {
+  const observer = new MutationObserver(() => { if (!document.getElementById("modal")) { observer.disconnect(); cb(); } });
+  observer.observe(document.getElementById("layer"), { childList: true });
+}
+const savedLine = (n, at) => `${n} ${n === 1 ? "lançamento" : "lançamentos"} • salvo em ${new Date(at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" })}`;
+/** Both sides changed since they last agreed: the person picks, or leaves it for later (the badge keeps asking and nothing is overwritten). */
+function askConflict(remote) {
+  conflictPending = true;
+  setSyncStatus("conflict");
+  if (conflictOpen || document.getElementById("modal")) return;
+  conflictOpen = true;
+  const count = (d) => d.transactions.filter((t) => t.status !== "SKIPPED").length;
+  openModal({
+    title: "Os dados mudaram em dois lugares",
+    body: `<p class="muted">Este aparelho e o ${providerName()} foram alterados desde a última sincronização. Escolha qual versão manter. A outra será substituída.</p>
+      <ul class="conflict-list"><li><b>Este aparelho</b><br><span class="hint">${esc(savedLine(count(state), state.savedAt || 0))}</span></li><li><b>${providerName()}</b><br><span class="hint">${esc(savedLine(count(remote.data), remote.savedAt))}</span></li></ul>
+      <p class="hint">Quer guardar uma cópia antes? <a href="javascript:void 0" data-act="export">Baixar backup deste aparelho</a>.</p>`,
+    foot: `<button type="button" class="btn btn-secondary btn-sm" id="conflict-remote">Usar o ${providerName()}</button><button type="submit" class="btn btn-primary btn-sm">Usar este aparelho</button>`,
+    onSubmit: () => { conflictPending = false; closeModal(); save(); pushNow(); },
+  });
+  document.getElementById("conflict-remote").addEventListener("click", () => { conflictPending = false; closeModal(); applyRemote(remote); });
+  onModalGone(() => { conflictOpen = false; });
+}
+/** The first sync after the update (or a new account) asks for the password once per session; the badge keeps offering it. */
+function queueKeyPrompt() {
+  if (keyPrompted) return;
+  keyPrompted = true;
+  setTimeout(() => { if (sync && isGoogle() && !sync.dkey && !document.getElementById("modal") && !AUTH_PAGES.includes(route().path)) createPassphraseDialog(); }, 600);
+}
+/** Window to create the password that protects the data in Drive. Resolves true when it is set. */
+function createPassphraseDialog() {
+  return new Promise((resolve) => {
+    let done = false;
+    const end = (v) => { if (!done) { done = true; resolve(v); } };
+    openModal({
+      title: "Proteger seus dados com uma senha",
+      sub: sync ? esc(sync.email) : "",
+      body: `<p class="muted">Seus dados são criptografados neste aparelho antes de irem para o ${providerName()}. Só esta senha abre. <b>Não existe recuperação</b>: se você esquecer, os dados salvos na nuvem não podem ser restaurados (os que estão neste aparelho continuam, e você pode baixar um backup).</p>
+        ${field("Senha de criptografia", "kp1", input("kp1", "", `type="password" autocomplete="new-password" autofocus`), "", `Mínimo de ${DRIVE_MIN_PASSPHRASE} caracteres. Pode ser uma frase.`)}
+        ${field("Repita a senha", "kp2", input("kp2", "", `type="password" autocomplete="new-password"`))}`,
+      foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Agora não</button><button type="submit" class="btn btn-primary btn-sm" id="kp-btn">Proteger e salvar</button>`,
+      onSubmit: async () => {
+        const modal = document.getElementById("modal"), btn = document.getElementById("kp-btn");
+        const p1 = modal.querySelector('[name="kp1"]').value, p2 = modal.querySelector('[name="kp2"]').value;
+        const errors = {};
+        const problem = passphraseProblem(p1);
+        if (problem) errors.kp1 = problem; else if (p1 !== p2) errors.kp2 = "As senhas não são iguais.";
+        if (Object.keys(errors).length) return showErrors(errors);
+        btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = "Protegendo…";
+        try {
+          const scope = activeScope();
+          const salt = newDriveSalt(), key = await deriveDriveKey(p1, salt);
+          const dkey = await exportDriveKey(key);
+          if (scope !== activeScope()) return;
+          storeSync({ ...sync, dkey, dsalt: salt, diter: DRIVE_KDF_ITERATIONS });
+          end(true); closeModal(); setSyncStatus("saving");
+          await pushNow(); syncPhotos();
+          toast("Pronto. Seus dados agora são criptografados antes de sair do aparelho.");
+        } catch (e) { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = "Proteger e salvar"; toast("Não foi possível criar a senha neste navegador."); }
+      },
+    });
+    onModalGone(() => end(false));
+  });
+}
+/** Sign-in on a device that does not have the key: asks the password of an existing encrypted account.
+ * Resolves { result, dkey, dsalt, diter }, { reset: true } (forgot it: start the account over) or null (cancelled). */
+function unlockDialog(text, settings) {
+  return new Promise((resolve) => {
+    let done = false, switching = false;
+    const end = (v) => { if (!done) { done = true; resolve(v); } };
+    const params = driveKeyParams(text);
+    openModal({
+      title: "Digite sua senha de criptografia",
+      sub: esc(settings.email),
+      body: `<p class="muted">Seus dados no Google Drive estão criptografados. Digite a senha que você criou para restaurá-los neste aparelho.</p>
+        ${field("Senha de criptografia", "ku", input("ku", "", `type="password" autocomplete="current-password" autofocus`))}
+        <p class="hint"><a href="javascript:void 0" id="forgot-pass">Esqueci a senha</a></p>`,
+      foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="ku-btn">Restaurar</button>`,
+      onSubmit: async () => {
+        const modal = document.getElementById("modal"), btn = document.getElementById("ku-btn");
+        const pass = modal.querySelector('[name="ku"]').value;
+        if (!pass) return showErrors({ ku: "Digite a senha." });
+        btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = "Restaurando…";
+        try {
+          const key = await deriveDriveKey(pass, params.salt, params.iter);
+          const result = await openDriveState(text, key, settings.sub);
+          end({ result, dkey: await exportDriveKey(key), dsalt: params.salt, diter: params.iter }); closeModal();
+        } catch (e) {
+          btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = "Restaurar";
+          showErrors({ ku: e.badKey ? "Senha incorreta." : "Não foi possível abrir os dados." });
+        }
+      },
+    });
+    document.getElementById("forgot-pass").addEventListener("click", () => {
+      switching = true; closeModal();
+      confirmDialog("Começar esta conta do zero?", "Sem a senha, os dados salvos na nuvem não podem ser abertos por ninguém. Você pode criar uma senha nova e recomeçar: os dados antigos da nuvem serão substituídos. Os lançamentos que estiverem só neste aparelho serão mantidos.", "Recomeçar", () => end({ reset: true }));
+      onModalGone(() => end(null));
+    });
+    onModalGone(() => { if (!switching) end(null); });
+  });
 }
 
 // ---------- Accounts (Google) ----------
@@ -1866,7 +2024,9 @@ const PRIVACY_URL = "https://gabrielmacsantos.github.io/sistema_gestao/privacida
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const GOOGLE_SCOPES = `openid email profile ${DRIVE_SCOPE}`;
 const DRIVE_FILE = "minhas-financas.json";
-const photoDriveName = (id) => `photo-${id}.jpg`;
+// Photos in Drive are encrypted (.bin). Older plain ones (.jpg) are still read and replaced by an encrypted copy.
+const photoDriveName = (id) => `photo-${id}.bin`;
+const photoLegacyDriveName = (id) => `photo-${id}.jpg`;
 const isGoogle = () => sync?.provider === "google";
 /** Google blocks sign-in inside WebViews, so the app signs in through the native SocialLogin plugin. */
 const googleReady = () => !!GOOGLE_CLIENT_ID && (!NATIVE || !!NativePlugins.SocialLogin);
@@ -1885,11 +2045,7 @@ const googleMark = () => `<svg class="g-mark" viewBox="0 0 48 48" aria-hidden="t
 const googleButton = (label = "Continuar com o Google") => `<button type="button" class="btn-google" data-act="google-sign-in">${googleMark()}<span>${label}</span></button>`;
 
 // <google-drive> Self-contained (uses hasValidMoney): tests/google-drive.test.ts loads this block.
-/** The data file kept in Drive: plain JSON, protected by the Google account (Drive's app folder). */
-function driveDataFile(data) {
-  return JSON.stringify({ app: "minhas-financas", format: "drive-1", savedAt: data.savedAt || 0, state: data });
-}
-/** Reads the Drive data file, refusing anything that is not our data with integer cents. */
+/** Reads the older plain data file ("drive-1", from before the encryption password), refusing anything that is not our data with integer cents. */
 function readDriveDataFile(text) {
   const file = JSON.parse(text);
   const data = file && file.app === "minhas-financas" ? file.state : null;
@@ -1904,6 +2060,93 @@ function driveMultipart(metadata, content, mime, boundary) {
   };
 }
 // </google-drive>
+
+// <drive-crypto> Self-contained (uses hasValidMoney): tests/drive-crypto.test.ts loads this block.
+// The file kept in Drive is encrypted on the device with AES-256-GCM before it leaves: the key comes
+// from a password only the person knows (PBKDF2-SHA256), and the account id is part of what the cipher
+// authenticates, so one account's file does not open under another. Money stays integer cents inside
+// the encrypted payload; the envelope holds only the timestamp, salt, iv and ciphertext.
+const DRIVE_KDF_ITERATIONS = 310000;
+const DRIVE_MIN_PASSPHRASE = 10;
+const dcEncode = (bytes) => { let s = ""; const a = new Uint8Array(bytes); for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode(...a.subarray(i, i + 0x8000)); return btoa(s); };
+const dcDecode = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+const driveAad = (sub, savedAt) => new TextEncoder().encode(`minhas-financas:drive-2:${sub}:${savedAt}`);
+const photoAad = (sub, id) => new TextEncoder().encode(`minhas-financas:photo:${sub}:${id}`);
+const newDriveSalt = () => dcEncode(crypto.getRandomValues(new Uint8Array(16)));
+/** Why a password is not acceptable, or null. */
+const passphraseProblem = (p) => (p.length < DRIVE_MIN_PASSPHRASE ? `Use pelo menos ${DRIVE_MIN_PASSPHRASE} caracteres.` : null);
+async function deriveDriveKey(passphrase, saltB64, iterations = DRIVE_KDF_ITERATIONS) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(passphrase), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", salt: dcDecode(saltB64), iterations, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+}
+const exportDriveKey = async (key) => dcEncode(await crypto.subtle.exportKey("raw", key));
+const importDriveKey = (b64) => crypto.subtle.importKey("raw", dcDecode(b64), "AES-GCM", false, ["encrypt", "decrypt"]);
+const invalidDriveFile = () => new Error("Arquivo de dados inválido.");
+/** "drive-1" (older plain file) or "drive-2" (encrypted); anything else is refused. */
+function driveFileFormat(text) {
+  const f = JSON.parse(text);
+  if (!f || f.app !== "minhas-financas") throw invalidDriveFile();
+  return f.format === "drive-2" ? "drive-2" : "drive-1";
+}
+/** Salt and iterations of an encrypted file, to derive the key from the password on a new device. */
+function driveKeyParams(text) {
+  const f = JSON.parse(text);
+  if (!f || f.format !== "drive-2" || typeof f.salt !== "string" || !Number.isInteger(f.iter) || f.iter < 1000 || f.iter > 1000000) throw invalidDriveFile();
+  return { salt: f.salt, iter: f.iter };
+}
+async function sealDriveState(state, key, salt, sub, iter = DRIVE_KDF_ITERATIONS) {
+  const savedAt = state.savedAt || 0, iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: driveAad(sub, savedAt) }, key, new TextEncoder().encode(JSON.stringify(state)));
+  return JSON.stringify({ app: "minhas-financas", format: "drive-2", savedAt, kdf: "PBKDF2-SHA256", iter, salt, iv: dcEncode(iv), data: dcEncode(data) });
+}
+/** Decrypts and checks an encrypted data file. A wrong password (or another account's file) sets `badKey`. */
+async function openDriveState(text, key, sub) {
+  const f = JSON.parse(text);
+  if (!f || f.app !== "minhas-financas" || f.format !== "drive-2" || typeof f.iv !== "string" || typeof f.data !== "string") throw invalidDriveFile();
+  let plain;
+  try { plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: dcDecode(f.iv), additionalData: driveAad(sub, f.savedAt || 0) }, key, dcDecode(f.data)); }
+  catch { const e = new Error("A senha não abre os dados desta conta."); e.badKey = true; throw e; }
+  const data = JSON.parse(new TextDecoder().decode(plain));
+  if (!data || data.version !== 1 || !Array.isArray(data.transactions) || !hasValidMoney(data)) throw invalidDriveFile();
+  return { savedAt: f.savedAt || 0, data };
+}
+/** A receipt photo: 12-byte iv followed by the ciphertext, tied to the account and the photo. */
+async function sealBytes(buffer, key, aad) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: aad }, key, buffer));
+  const out = new Uint8Array(12 + data.length); out.set(iv); out.set(data, 12);
+  return out;
+}
+async function openBytes(buffer, key, aad) {
+  const bytes = new Uint8Array(buffer);
+  return crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes.subarray(0, 12), additionalData: aad }, key, bytes.subarray(12));
+}
+// </drive-crypto>
+
+// <sync-state> Self-contained: tests/drive-crypto.test.ts loads this block.
+/** What a sync does, given when each side last changed and the stamp both agreed on last time (base).
+ * Both changed since base: a conflict the person decides. No base (sessions from before this existed): the newer wins. */
+function syncDecision(local, remote, base) {
+  if (local === remote) return "none";
+  if (base == null) return remote > local ? "pull" : "push";
+  const localChanged = local > base, remoteChanged = remote > base;
+  if (localChanged && remoteChanged) return "conflict";
+  if (remoteChanged) return "pull";
+  if (localChanged) return "push";
+  return "none";
+}
+/** "Sincronizado hoje às 15:30" (São Paulo time). */
+function describeLastSync(at, now = Date.now()) {
+  if (!at) return "Ainda não sincronizado";
+  const tz = "America/Sao_Paulo";
+  const day = (t) => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(t); // YYYY-MM-DD
+  const time = new Intl.DateTimeFormat("pt-BR", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).format(at);
+  const d = day(at);
+  if (d === day(now)) return `Sincronizado hoje às ${time}`;
+  if (d === day(now - 86400000)) return `Sincronizado ontem às ${time}`;
+  return `Sincronizado em ${d.slice(8, 10)}/${d.slice(5, 7)} às ${time}`;
+}
+// </sync-state>
 
 let gis = null;
 function loadGis() {
@@ -2025,8 +2268,8 @@ async function googleSignIn() {
   const token = await requestGoogleToken("select_account");
   const me = await googleProfile(token.access);
   const fileId = await findDriveFile(DRIVE_FILE, token.access);
-  const remote = fileId ? readDriveDataFile(await drive(`/files/${fileId}?alt=media`, { as: "text" }, token.access)) : null;
-  return { settings: { provider: "google", sub: me.sub, email: me.email, name: me.name, picture: me.picture, fileId, token }, data: remote && remote.data };
+  const remoteText = fileId ? await drive(`/files/${fileId}?alt=media`, { as: "text" }, token.access) : null;
+  return { settings: { provider: "google", sub: me.sub, email: me.email, name: me.name, picture: me.picture, fileId, token }, remoteText };
 }
 /** After the access ran out: one tap renews it, for the same Google account only. */
 async function reconnectGoogle() {
@@ -2043,7 +2286,25 @@ async function startGoogleSignIn(btn) {
   let result;
   try { result = await googleSignIn(); }
   catch (e) { reset(); return toast(e.message); }
-  const { settings, data } = result;
+  let { settings } = result, data = null;
+  // What the account already holds: an older plain file is read as is (and encrypted at the first sync);
+  // an encrypted one needs the password, asked here, before anything on this device is touched.
+  if (result.remoteText) {
+    try {
+      if (driveFileFormat(result.remoteText) === "drive-1") {
+        const remote = readDriveDataFile(result.remoteText);
+        data = remote.data; settings = { ...settings, base: remote.savedAt, lastSync: Date.now() };
+      } else {
+        reset();
+        const unlocked = await unlockDialog(result.remoteText, settings);
+        if (!unlocked) return;
+        if (!unlocked.reset) {
+          data = unlocked.result.data;
+          settings = { ...settings, dkey: unlocked.dkey, dsalt: unlocked.dsalt, diter: unlocked.diter, base: unlocked.result.savedAt, lastSync: Date.now() };
+        }
+      }
+    } catch (e) { reset(); return toast(e.message); }
+  }
   const first = settings.name.split(" ")[0];
   const finish = async (useRemote, link) => {
     const from = activeScope(); // "local": where the data made without an account lives
@@ -2076,7 +2337,7 @@ function askLinkLocal(email, count) {
     openModal({
       title: "Levar seus dados para a conta?",
       sub: esc(email),
-      body: `<p class="muted">Você tem ${count} ${count === 1 ? "lançamento criado" : "lançamentos criados"} sem conta, só neste aparelho. Se levar, eles passam a fazer parte desta conta e são salvos no ${providerName()}. Se manter separado, continuam só aqui e aparecem quando você usar o app sem conta.</p>`,
+      body: `<p class="muted">Você tem ${count} ${count === 1 ? "lançamento criado" : "lançamentos criados"} sem conta, só neste aparelho. Se levar, eles passam a fazer parte desta conta e são salvos no Google Drive. Se manter separado, continuam só aqui e aparecem quando você usar o app sem conta.</p>`,
       foot: `<button type="button" class="btn btn-secondary btn-sm" id="link-separate">Manter separado</button><button type="submit" class="btn btn-primary btn-sm">Levar para a conta</button>`,
       onSubmit: () => { answer("link"); closeModal(); },
     });
@@ -2179,10 +2440,20 @@ async function getPhoto(id) {
   try { const rec = await photoDb.get(id); if (rec) return rec.blob; } catch {}
   if (isGoogle()) {
     try {
-      const fileId = await findDriveFile(photoDriveName(id));
-      if (!fileId) return null;
-      const blob = await drive(`/files/${fileId}?alt=media`, { as: "blob" });
-      photoDb.put({ id, blob, uploaded: true }).catch(() => {});
+      const encryptedId = await findDriveFile(photoDriveName(id));
+      if (encryptedId) {
+        if (!sync.dkey) return null;
+        const sealed = await drive(`/files/${encryptedId}?alt=media`, { as: "blob" });
+        const plain = await openBytes(await sealed.arrayBuffer(), await importDriveKey(sync.dkey), photoAad(sync.sub, id));
+        const blob = new Blob([plain], { type: "image/jpeg" });
+        photoDb.put({ id, blob, uploaded: true }).catch(() => {});
+        return blob;
+      }
+      const legacyId = await findDriveFile(photoLegacyDriveName(id));
+      if (!legacyId) return null;
+      const blob = await drive(`/files/${legacyId}?alt=media`, { as: "blob" });
+      // Kept as "not uploaded": the next photo sync stores it encrypted and removes the plain file.
+      photoDb.put({ id, blob, uploaded: false, legacyFileId: legacyId }).then(() => syncPhotos()).catch(() => {});
       return blob;
     } catch { return null; }
   }
@@ -2205,8 +2476,11 @@ function syncPhotos() {
       const pending = (await photoDb.all()).filter((r) => !r.uploaded);
       for (const rec of pending) {
         if (isGoogle()) {
-          await writeDriveFile(null, photoDriveName(rec.id), rec.blob, "image/jpeg");
-          await photoDb.put({ ...rec, uploaded: true });
+          if (!sync.dkey) return false; // nothing leaves the device without the password
+          const sealed = await sealBytes(await rec.blob.arrayBuffer(), await importDriveKey(sync.dkey), photoAad(sync.sub, rec.id));
+          await writeDriveFile(null, photoDriveName(rec.id), new Blob([sealed]), "application/octet-stream");
+          if (rec.legacyFileId) drive(`/files/${rec.legacyFileId}`, { method: "DELETE" }).catch(() => {});
+          await photoDb.put({ id: rec.id, blob: rec.blob, uploaded: true });
           continue;
         }
         const files = { [photoFile(rec.id)]: { content: await encryptPhoto(rec.blob) } };
@@ -2230,7 +2504,9 @@ function syncPhotos() {
 async function deletePhoto(id) {
   try { await photoDb.del(id); } catch {}
   if (isGoogle()) {
-    findDriveFile(photoDriveName(id)).then((fileId) => fileId && drive(`/files/${fileId}`, { method: "DELETE" })).catch(() => {});
+    for (const name of [photoDriveName(id), photoLegacyDriveName(id)]) {
+      findDriveFile(name).then((fileId) => fileId && drive(`/files/${fileId}`, { method: "DELETE" })).catch(() => {});
+    }
     return;
   }
   if (sync && state.photosGistId) gh(`/gists/${state.photosGistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files: { [photoFile(id)]: null } }) }).catch(() => {});
@@ -2939,13 +3215,12 @@ function viewReview() {
 
 function viewBackup() {
   const n = state.transactions.filter((t) => t.status !== "SKIPPED").length;
-  const last = sync?.lastPush ? new Date(sync.lastPush).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : null;
   const github = sync
     ? `<section class="card" style="grid-column:1/-1;border-color:color-mix(in srgb,var(--success) 35%,transparent)">
-        <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${isGoogle() ? googleMark() : icon("github")} ${isGoogle() ? `Conta Google ${esc(sync.email)}` : `Conta @${esc(sync.login)}`}</h2><span class="badge ${syncStatus === "error" ? "b-warning" : "b-success"}">${syncStatus === "error" ? "Erro no último envio" : syncStatus === "saving" ? "Salvando…" : "Salvo no GitHub"}</span></div>
-        <p class="muted">${isGoogle() ? "Cada alteração é salva automaticamente na pasta do app no seu Google Drive (só este app a vê, e ela não aparece entre os seus arquivos)." : "Cada alteração é criptografada com a sua senha e salva automaticamente na sua conta do GitHub."}${last ? ` Último envio: ${esc(last)}.` : ""}</p>
-        <p class="hint" style="margin-top:6px">Em outro aparelho, ${isGoogle() ? "entre com o Google, com a mesma conta" : "entre com seu usuário do GitHub e sua senha"}. Em computador compartilhado, use <b>Sair</b> ao terminar.</p>
-        <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="push-now">${icon("cloud")} Salvar agora</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon("logout")} Sair</button></div>
+        <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${isGoogle() ? googleMark() : icon("github")} ${isGoogle() ? `Conta Google ${esc(sync.email)}` : `Conta @${esc(sync.login)}`}</h2><span class="badge ${syncNeedsAttention(syncStatus) ? "b-warning" : "b-success"}">${{ error: "Erro no último envio", saving: "Salvando…", key: "Falta a senha", conflict: "Conflito a resolver", reauth: "Toque para sincronizar" }[syncStatus] || `Salvo no ${providerName()}`}</span></div>
+        <p class="muted">${isGoogle() ? "Cada alteração é criptografada neste aparelho, com a sua senha, antes de ser salva na pasta do app no seu Google Drive (só este app a vê, e ela não aparece entre os seus arquivos)." : "Cada alteração é criptografada com a sua senha e salva automaticamente na sua conta do GitHub."} <b id="sync-last" aria-live="polite">${esc(syncLastText())}</b></p>
+        <p class="hint" style="margin-top:6px">Em outro aparelho, ${isGoogle() ? "entre com o Google, com a mesma conta, e digite a senha de criptografia" : "entre com seu usuário do GitHub e sua senha"}. Em computador compartilhado, use <b>Sair</b> ao terminar.</p>
+        <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="sync-now">${icon("cloud")} Sincronizar agora</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon("logout")} Sair</button></div>
       </section>`
     : `<section class="card welcome" style="grid-column:1/-1">
         <h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("lock")} Você está sem conta</h2>
@@ -4103,6 +4378,7 @@ document.addEventListener("keydown", (e) => {
 // Same catalog as src/lib/notices-data.ts. `actionUrl` is reserved for the store links at launch and is
 // not rendered while the app is in testing. The read state is per account and stays on this device.
 const NOTICES = [
+  { id: "2026-11-17-encrypted-sync", title: "Dados criptografados na nuvem", body: "Ao entrar com o Google, você cria uma senha de criptografia. Seus dados e fotos são embaralhados neste aparelho antes de irem para o Google Drive, e só essa senha abre. Guarde-a: não há como recuperá-la.", date: "2026-11-17" },
   { id: "2026-11-15-google-login", title: "Entrar com o Google", body: "Agora você entra com a sua conta Google, sem criar token nem senha extra.", date: "2026-11-15" },
   { id: "2026-11-15-quick-assistant", title: "Atalhos rápidos", body: "O balão no canto da tela abre o chat de lançamentos (fale ou escreva) e uma calculadora que funciona sem internet.", date: "2026-11-15" },
   { id: "2026-11-14-voice-assistant", title: "Assistente de voz", body: "Fale o lançamento no formulário e o app preenche valor, categoria e data para você revisar.", date: "2026-11-14" },
@@ -4172,12 +4448,33 @@ function viewAuth() {
 }
 
 /** Saves what is pending to GitHub and then clears this browser, so another person can use it. */
+/** "Sincronizar agora": brings the account's copy in (asking about a conflict), sends ours and the photos, with progress and a result on the button. */
+async function syncNow(btn) {
+  if (!sync) return;
+  if (!navigator.onLine) return toast("Sem internet. Suas alterações estão salvas neste aparelho e sobem quando a conexão voltar.");
+  if (isGoogle() && !sync.dkey) return createPassphraseDialog();
+  const label = btn.innerHTML;
+  btn.disabled = true; btn.setAttribute("aria-busy", "true");
+  btn.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>Sincronizando…</span>`;
+  clearTimeout(pushTimer); pushTimer = null;
+  while (pushing) await new Promise((r) => setTimeout(r, 200));
+  let ok = false;
+  try { await pullIfNewer(); ok = (await syncPhotos()) && syncStatus === "ok"; } catch { ok = false; }
+  if (!btn.isConnected) return;
+  btn.removeAttribute("aria-busy");
+  if (!ok) { btn.disabled = false; btn.innerHTML = label; return; }
+  btn.innerHTML = `${icon("checkCircle")} Sincronizado`;
+  document.getElementById("live").textContent = "Sincronizado";
+  setTimeout(() => { if (btn.isConnected) { btn.disabled = false; btn.innerHTML = label; } }, 2500);
+}
+
 function logoutForm() {
   openModal({
     title: "Sair desta conta?", sub: esc(accountLabel()),
     body: `<p class="muted">Seus dados continuam salvos no ${providerName()} e voltam quando você entrar de novo ${isGoogle() ? "com o Google" : "com seu usuário e senha"}. Os dados da conta saem deste navegador, pronto para outra pessoa usar.</p>`,
     foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="logout-btn">Salvar e sair</button>`,
     onSubmit: async () => {
+      if (!navigator.onLine) return toast("Sem internet. Conecte-se para salvar suas alterações na conta antes de sair.");
       const btn = document.getElementById("logout-btn"); btn.disabled = true; btn.textContent = "Salvando…";
       // Wait for an upload already in flight, then send the latest state.
       while (pushing) await new Promise((r) => setTimeout(r, 200));
@@ -4188,6 +4485,10 @@ function logoutForm() {
       }
       const photosOk = await syncPhotos();
       await pushNow();
+      if (syncStatus === "key" || syncStatus === "conflict") {
+        btn.disabled = false; btn.textContent = "Salvar e sair";
+        return toast(syncStatus === "key" ? "Crie a senha de criptografia antes de sair, ou seus dados não serão salvos na conta." : "Resolva o conflito de dados antes de sair.");
+      }
       if (syncStatus === "error" || syncStatus === "reauth" || !photosOk) {
         btn.disabled = false; btn.textContent = "Salvar e sair";
         return toast(`Não foi possível salvar no ${providerName()}. Verifique a internet e tente de novo.`);
@@ -4648,7 +4949,8 @@ document.addEventListener("click", (e) => {
     "photo-view": () => { if (formPhoto.shown) viewPhoto(formPhoto.shown); },
     "photo-remove": () => { formPhoto.blob = null; formPhoto.removed = true; formPhoto.shown = null; renderPhotoSlot(); },
     "use-local": () => { setLocalMode(true); location.hash = href("painel"); render(); },
-    "push-now": pushNow,
+    "sync-now": () => syncNow(el),
+    "sync-fix": () => (syncStatus === "key" ? createPassphraseDialog() : pullIfNewer()),
     "logout": logoutForm,
     "cancel-import": () => { importDrafts = null; importInboxIds = null; render(); },
     "read-notifs": readPastedNotifications,
