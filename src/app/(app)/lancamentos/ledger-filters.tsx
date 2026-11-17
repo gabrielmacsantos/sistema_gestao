@@ -27,6 +27,13 @@ export function LedgerFilters({
   const router = useRouter();
   const pathname = usePathname();
   const [text, setText] = useState(filters.busca ?? "");
+  // The URL is the source of truth: when it changes from outside (a "clear filters" link), the box follows it,
+  // but while the person types the URL still holds the trimmed text, so nothing is overwritten.
+  const [seenBusca, setSeenBusca] = useState(filters.busca ?? "");
+  if ((filters.busca ?? "") !== seenBusca) {
+    setSeenBusca(filters.busca ?? "");
+    if (text.trim() !== (filters.busca ?? "")) setText(filters.busca ?? "");
+  }
   const [pending, startTransition] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -62,7 +69,7 @@ export function LedgerFilters({
         />
       </label>
       <Select
-        defaultValue={filters.status ?? ""}
+        value={filters.status ?? ""}
         onChange={(e) => apply({ status: e.target.value })}
         aria-label="Status"
         className="h-11"
@@ -71,7 +78,7 @@ export function LedgerFilters({
         <option value="pendentes">Pendentes</option>
       </Select>
       <Select
-        defaultValue={filters.categoria ?? ""}
+        value={filters.categoria ?? ""}
         onChange={(e) => apply({ categoria: e.target.value })}
         aria-label="Categoria"
         className="h-11"

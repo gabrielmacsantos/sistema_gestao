@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
+import { SlidingTabs } from "@/components/sliding-tabs";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Field, FormMessage, Input, Select } from "@/components/ui/form";
 import { MoneyInput } from "@/components/ui/money-input";
@@ -34,6 +35,9 @@ export function RecurringForm({
     {},
   );
   const [type, setType] = useState(initial.type);
+  // Controlled, so switching the type swaps the options without remounting the select; a choice that does not
+  // exist for the other type shows as "Sem categoria" and comes back if the type is switched back.
+  const [categoryId, setCategoryId] = useState(initial.categoryId);
   const errors = state.fieldErrors ?? {};
   const values: RecurringFormValues = { ...initial, ...state.values };
   const options = categories.filter((c) => c.type === type);
@@ -47,17 +51,24 @@ export function RecurringForm({
         </p>
       )}
 
-      <Field label="Tipo" htmlFor="type">
-        <Select
-          id="type"
-          name="type"
-          value={type}
-          onChange={(e) => setType(e.target.value as RecurringFormValues["type"])}
-        >
-          <option value="EXPENSE">Despesa fixa</option>
-          <option value="INCOME">Receita fixa</option>
-        </Select>
-      </Field>
+      <fieldset>
+        <legend className="sr-only">Tipo</legend>
+        <SlidingTabs kind="radio" fill>
+          {(["EXPENSE", "INCOME"] as const).map((t) => (
+            <label key={t} data-active={type === t} data-tone={t === "EXPENSE" ? "exp" : undefined} className="t-tab">
+              <input
+                type="radio"
+                name="type"
+                value={t}
+                checked={type === t}
+                onChange={() => setType(t)}
+                className="sr-only"
+              />
+              {t === "EXPENSE" ? "Despesa" : "Receita"}
+            </label>
+          ))}
+        </SlidingTabs>
+      </fieldset>
 
       <Field label="Descrição" htmlFor="description" error={errors.description}>
         <Input
@@ -101,8 +112,8 @@ export function RecurringForm({
           <Select
             id="categoryId"
             name="categoryId"
-            key={type}
-            defaultValue={options.some((c) => c.id === values.categoryId) ? values.categoryId : ""}
+            value={options.some((c) => c.id === categoryId) ? categoryId : ""}
+            onChange={(e) => setCategoryId(e.target.value)}
           >
             <option value="">Sem categoria</option>
             {options.map((c) => (

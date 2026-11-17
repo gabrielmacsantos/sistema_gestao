@@ -40,6 +40,8 @@ export function TransactionForm({
     {},
   );
   const [type, setType] = useState(initial.type);
+  // Controlled, so switching the type swaps the options without remounting the select.
+  const [categoryId, setCategoryId] = useState(initial.categoryId);
   const errors = state.fieldErrors ?? {};
   // Spoken values fill only the fields the sentence mentioned; the key remounts just those inputs.
   const [spoken, setSpoken] = useState<{ values: Partial<TransactionFormValues>; rev: Record<string, number> }>({
@@ -54,6 +56,7 @@ export function TransactionForm({
     if (p.date) next.date = p.date;
     if (p.categoryId) next.categoryId = p.categoryId;
     if (p.status) next.status = p.status;
+    if (p.categoryId) setCategoryId(p.categoryId);
     setType(p.type);
     setSpoken((prev) => ({
       values: { ...prev.values, ...next },
@@ -116,8 +119,8 @@ export function TransactionForm({
           <Select
             id="categoryId"
             name="categoryId"
-            key={`${type}-${spoken.rev.categoryId ?? 0}`}
-            defaultValue={options.some((c) => c.id === values.categoryId) ? values.categoryId : ""}
+            value={options.some((c) => c.id === categoryId) ? categoryId : ""}
+            onChange={(e) => setCategoryId(e.target.value)}
           >
             <option value="">Sem categoria</option>
             {options.map((c) => (
