@@ -434,7 +434,7 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .t-stagger.is-hiding .t-stagger-line { opacity: 0; transform: translateY(0); filter: blur(0); transition: opacity 200ms ease, transform 0s linear, filter 0s linear; transition-delay: 0s; }
 @media (prefers-reduced-motion: reduce) { .t-stagger-line { transition: none !important; } .toast { animation: none !important; transition: none !important; } }
 #goal-confetti { position: fixed; inset: 0; z-index: 65; width: 100%; height: 100%; pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { #goal-confetti { display: none; } }
+@media (prefers-reduced-motion: reduce) { #goal-confetti:not(.soft) { display: none; } }
 #toast-region { position: fixed; z-index: 70; left: 0; right: 0; bottom: calc(96px + env(safe-area-inset-bottom)); display: flex; justify-content: center; padding: 0 16px; pointer-events: none; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 4px 4px 4px 16px; border-radius: 12px; background: var(--toast-bg); color: var(--toast-fg); box-shadow: var(--shadow-3); font-weight: 500; animation: up .2s; max-width: 100%; transition: opacity .2s; }
 .toast.is-leaving { opacity: 0; }
@@ -901,25 +901,31 @@ function celebrationDecision({ goalId, beforeCents, afterCents, targetCents, cel
 // ---------- Goal confetti ----------
 // One burst from one point: a fixed, full-screen canvas that ignores pointer events, lets the pieces fall by gravity and
 // removes itself. It has no pointer or touch listeners at all: it never follows the cursor or the finger.
-const CONFETTI_MS = 3500, CONFETTI_MAX = 140;
+const CONFETTI_MS = 3500, CONFETTI_MAX = 140, CONFETTI_SOFT_MS = 2000, CONFETTI_SOFT_MAX = 40;
 function confettiColors() {
   const css = getComputedStyle(document.documentElement);
   const list = ["--primary", "--tertiary", "--success", "--warning", "--stage-accent", "--primary-fixed"].map((n) => css.getPropertyValue(n).trim()).filter(Boolean);
   return list.length ? list : ["#00685f", "#4edea3", "#fbbf24", "#6bd8cb"];
 }
 let confettiStop = null;
-/** Returns false when nothing was shown (reduced motion). */
+/**
+ * Returns false when nothing was shown. With reduced motion the site shows nothing; the app shows a short, small burst
+ * anyway, because the Android WebView reports "Remove animations" (also set by battery saver) as reduced motion.
+ */
 function burstConfetti({ x, y, count = 110, colors = confettiColors() } = {}) {
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+  const soft = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (soft && !NATIVE) return false;
+  const maxPieces = soft ? CONFETTI_SOFT_MAX : CONFETTI_MAX, totalMs = soft ? CONFETTI_SOFT_MS : CONFETTI_MS;
   confettiStop?.();
   const canvas = document.createElement("canvas");
   canvas.id = "goal-confetti"; canvas.setAttribute("aria-hidden", "true");
+  if (soft) canvas.classList.add("soft");
   document.body.appendChild(canvas);
   const ctx = canvas.getContext("2d"), dpr = Math.min(window.devicePixelRatio || 1, 2), w = window.innerWidth, h = window.innerHeight;
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
   ctx.scale(dpr, dpr);
   const ox = x ?? w / 2, oy = y ?? h * 0.25, pick = (list) => list[Math.floor(Math.random() * list.length)];
-  const pieces = Array.from({ length: Math.min(count, CONFETTI_MAX) }, () => {
+  const pieces = Array.from({ length: Math.min(count, maxPieces) }, () => {
     const angle = (-90 + (Math.random() - 0.5) * 140) * Math.PI / 180, speed = 7 + Math.random() * 9;
     return { x: ox, y: oy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, size: 6 + Math.random() * 6, spin: Math.random() * Math.PI * 2, vspin: (Math.random() - 0.5) * 0.4, flip: Math.random() * Math.PI * 2, shape: pick(["rect", "strip", "circle"]), color: pick(colors) };
   });
@@ -931,7 +937,7 @@ function burstConfetti({ x, y, count = 110, colors = confettiColors() } = {}) {
     const elapsed = now - started, step = Math.min((now - last) / 16.67, 2.5); // visual physics only: not money
     last = now;
     ctx.clearRect(0, 0, w, h);
-    const fade = Math.min(Math.max(1 - (elapsed - 2200) / (CONFETTI_MS - 2200), 0), 1);
+    const fadeFrom = totalMs * 0.63, fade = Math.min(Math.max(1 - (elapsed - fadeFrom) / (totalMs - fadeFrom), 0), 1);
     let alive = 0;
     for (const p of pieces) {
       p.vx *= Math.pow(0.985, step); p.vy = p.vy * Math.pow(0.985, step) + 0.32 * step;
@@ -946,7 +952,7 @@ function burstConfetti({ x, y, count = 110, colors = confettiColors() } = {}) {
       else ctx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.66);
       ctx.restore();
     }
-    if (elapsed >= CONFETTI_MS || !alive) return stop();
+    if (elapsed >= totalMs || !alive) return stop();
     raf = requestAnimationFrame(frame);
   };
   confettiStop = stop;
