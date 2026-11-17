@@ -32,7 +32,7 @@ test("switching between Despesa and Receita keeps the dialog and what was typed"
   await expect(dialog.getByRole("heading", { name: "Novo gasto" })).toBeVisible();
 
   await dialog.getByLabel("Descrição").fill("Salário E2E");
-  await dialog.getByRole("button", { name: "Receita" }).click();
+  await dialog.getByRole("radio", { name: "Receita" }).click();
   await expect(dialog.getByRole("heading", { name: "Nova entrada" })).toBeVisible();
   await expect(dialog.getByLabel("Descrição")).toHaveValue("Salário E2E");
   await expect(dialog.getByLabel("Situação")).toContainText("Recebido");

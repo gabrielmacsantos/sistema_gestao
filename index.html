@@ -275,12 +275,33 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .boot p { opacity: 0; animation: fade-in .2s 6s forwards; text-align: center; color: var(--secondary); }
 .boot p a { color: var(--primary); font-weight: 600; text-decoration: underline; }
 @keyframes fade-in { to { opacity: 1; } }
-.seg { display: inline-flex; align-items: center; padding: 4px; border-radius: 8px; border: 1px solid var(--hairline); background: var(--surface); font-size: 12px; font-weight: 500; }
-.seg a { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; color: var(--secondary); }
-.seg button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; min-height: 32px; padding: 4px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--secondary); font: inherit; }
-.seg button::after { content: ""; position: absolute; inset: -6px -2px; }
-.seg a.on, .seg button.on { background: var(--card); color: var(--primary); font-weight: 600; box-shadow: var(--shadow); }
-.seg a:hover:not(.on), .seg button:hover:not(.on) { color: var(--on); }
+/* Tabs sliding (transitions.dev): one segmented control for every tab, radio and link choice. The indicator glides to
+   the chosen option. Build it with tabsHtml(); slideTabs()/paintTabs() place the indicator. Colors follow the theme. */
+:root {
+  --tabs-dur: 250ms; --tabs-ease: cubic-bezier(.22,1,.36,1);
+  --tabs-bar-bg: var(--surface); --tabs-bar-border: var(--stage-border); --tabs-pill-bg: var(--stage-bg);
+  --tabs-text-muted: var(--secondary); --tabs-text-active: var(--primary);
+  --tabs-pad: 3px; --tabs-radius: 8px; --tabs-h: 36px;
+}
+/* In the dark theme card and surface are nearly the same: the indicator takes a lighter tone so it still reads. */
+:root[data-theme="dark"] { --tabs-pill-bg: var(--c); }
+/* Touch: the option is a real 44px target (an invisible ::after would be clipped by the horizontal scroll). */
+@media (pointer: coarse), (max-width: 767px) { :root { --tabs-h: 44px; } }
+.t-tabs { position: relative; display: inline-flex; align-items: center; gap: 2px; min-width: 0; max-width: 100%; padding: var(--tabs-pad); border: 1px solid var(--tabs-bar-border); border-radius: var(--tabs-radius); background: var(--tabs-bar-bg); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; font-size: 12px; font-weight: 500; }
+.t-tabs::-webkit-scrollbar { display: none; }
+.t-tabs--fill { display: flex; width: 100%; }
+.t-tabs--fill .t-tab { flex: 1 1 0; }
+.t-tab { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 44px; height: var(--tabs-h); padding: 0 12px; border: 0; border-radius: calc(var(--tabs-radius) - 2px); background: transparent; color: var(--tabs-text-muted); font: inherit; white-space: nowrap; text-decoration: none; cursor: pointer; transition: color var(--tabs-dur) var(--tabs-ease); }
+.t-tab:not(:is([aria-selected="true"], [aria-checked="true"], [aria-current])):hover { color: var(--on); }
+.t-tab:is([aria-selected="true"], [aria-checked="true"], [aria-current]) { color: var(--tabs-text-active); font-weight: 600; }
+.t-tab[data-tone="exp"]:is([aria-selected="true"], [aria-checked="true"]) { color: var(--danger); }
+.t-tab[data-tone="inc"]:is([aria-selected="true"], [aria-checked="true"]) { color: var(--success); }
+.t-tab:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.t-tabs-pill { position: absolute; top: var(--tabs-pad); bottom: var(--tabs-pad); left: 0; z-index: 0; width: 0; border-radius: calc(var(--tabs-radius) - 2px); background: var(--tabs-pill-bg); box-shadow: var(--shadow); opacity: 0; transform: translateX(0); transition: transform var(--tabs-dur) var(--tabs-ease), width var(--tabs-dur) var(--tabs-ease); will-change: transform, width; pointer-events: none; }
+.t-tabs[data-ready] .t-tabs-pill { opacity: 1; }
+/* Before the first measurement (or without JavaScript) the chosen option shows its own background, so nothing flashes. */
+.t-tabs:not([data-ready]) .t-tab:is([aria-selected="true"], [aria-checked="true"], [aria-current]) { background: var(--tabs-pill-bg); box-shadow: var(--shadow); }
+@media (prefers-reduced-motion: reduce) { .t-tabs-pill, .t-tab { transition: none !important; } }
 
 /* Ledger */
 .ledger { list-style: none; margin: 0; padding: 0; }
@@ -324,10 +345,6 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .search-field svg.i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--secondary); pointer-events: none; }
 .search-field .input { width: 100%; padding-left: 34px; }
 .ledger-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px; }
-.seg a { position: relative; }
-/* Four chips do not fit in one row on small phones: two by two there. */
-@media (max-width: 399px) { .seg-filter { display: grid; grid-template-columns: 1fr 1fr; width: 100%; } }
-.seg a::after { content: ""; position: absolute; inset: -6px -2px; }
 .section-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; border-top: 1px solid var(--hairline); font-size: 12px; color: var(--secondary); }
 
 /* Chart */
@@ -396,14 +413,6 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .form-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 @media (min-width: 560px) { .form-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); } .form-grid .full { grid-column: 1 / -1; } }
 @media (min-width: 640px) { .input { font-size: 14px; } }
-.tabs { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border-radius: 8px; background: var(--c); }
-.tabs button { height: 36px; border: 0; border-radius: 6px; background: transparent; color: var(--secondary); font-weight: 600; transition: background-color .15s, color .15s, box-shadow .15s; }
-@media (prefers-reduced-motion: reduce) { .tabs button { transition: none; } }
-/* 36px buttons inside a 44px bar: the touch area covers the whole bar height. */
-.tabs button { position: relative; }
-.tabs button::after { content: ""; position: absolute; inset: -4px -2px; }
-.tabs button.on { background: var(--card); box-shadow: var(--shadow); }
-.tabs button.on.exp { color: var(--danger); } .tabs button.on.inc { color: var(--success); }
 
 /* Modal + toast */
 .overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: var(--scrim); backdrop-filter: blur(2px); animation: fade .15s; padding-top: env(safe-area-inset-top); }
@@ -444,8 +453,6 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .auth-card { padding: 24px; box-shadow: var(--shadow-3); }
 .auth-form { display: flex; flex-direction: column; gap: 16px; }
 .auth-form .btn { margin-top: 4px; }
-.tabs a { display: grid; place-items: center; height: 36px; border-radius: 6px; color: var(--secondary); font-weight: 600; }
-.tabs a.on { background: var(--card); color: var(--primary); box-shadow: var(--shadow); }
 .auth-switch { margin-top: 16px; text-align: center; color: var(--secondary); }
 .auth-switch a, .steps a, .auth-note a { color: var(--primary); font-weight: 600; text-decoration: underline; }
 .auth-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
@@ -762,6 +769,104 @@ const serializeRailCollapsed = (collapsed) => (collapsed ? "1" : "0");
 const railToggleLabel = (collapsed) => (collapsed ? "Expandir menu" : "Recolher menu");
 // </rail-state>
 const isRailCollapsed = () => document.documentElement.dataset.rail === "collapsed";
+// <sliding-tabs> Self-contained, same as src/lib/sliding-tabs.ts: tests/sliding-tabs.test.ts loads this block from the file.
+/** Where a horizontally scrolling bar should scroll so the chosen tab is fully visible (unchanged when it already is). */
+function tabScrollLeft({ scrollLeft, clientWidth, tabLeft, tabWidth, margin = 8 }) {
+  if (tabLeft - margin < scrollLeft) return Math.max(0, tabLeft - margin);
+  if (tabLeft + tabWidth + margin > scrollLeft + clientWidth) return Math.max(0, tabLeft + tabWidth + margin - clientWidth);
+  return scrollLeft;
+}
+/** The tab an arrow key moves to (wrapping around the ends), or -1 for any other key. */
+function nextTabIndex(key, index, count) {
+  if (count < 1) return -1;
+  if (key === "ArrowRight") return (index + 1) % count;
+  if (key === "ArrowLeft") return (index - 1 + count) % count;
+  if (key === "Home") return 0;
+  if (key === "End") return count - 1;
+  return -1;
+}
+/**
+ * Markup of a sliding-tabs bar, the one way to make a tab, radio or link choice.
+ * kind: "tabs" (switches a panel), "radio" (picks a value) or "nav" (links that change the address).
+ * items: { value, label (HTML, already escaped), attrs (static attributes), tone ("exp" | "inc"), href (nav only) }.
+ */
+function tabsHtml({ kind = "tabs", key, label, items, active, panel = "", fill = false, cls = "" }) {
+  const q = (x) => String(x).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const role = kind === "radio" ? "radiogroup" : kind === "tabs" ? "tablist" : "";
+  const tag = kind === "nav" ? "nav" : "div";
+  const body = items.map((item) => {
+    const on = item.value === active;
+    const common = `class="t-tab" id="${q(key)}-tab-${q(item.value)}"${item.tone ? ` data-tone="${item.tone}"` : ""}${item.attrs ? ` ${item.attrs}` : ""}`;
+    if (kind === "nav") return `<a ${common} href="${q(item.href)}"${on ? ' aria-current="true"' : ""}>${item.label}</a>`;
+    const state = kind === "radio" ? `role="radio" aria-checked="${on}"` : `role="tab" aria-selected="${on}"${panel ? ` aria-controls="${q(panel)}"` : ""}`;
+    return `<button type="button" ${common} ${state} tabindex="${on ? 0 : -1}">${item.label}</button>`;
+  }).join("");
+  return `<${tag} class="t-tabs${fill ? " t-tabs--fill" : ""}${cls ? ` ${cls}` : ""}" data-tabs="${q(key)}" data-kind="${kind}"${role ? ` role="${role}"` : ""} aria-label="${q(label)}"><span class="t-tabs-pill" aria-hidden="true"></span>${body}</${tag}>`;
+}
+// </sliding-tabs>
+// ---------- Tabs sliding (DOM) ----------
+// The indicator is a pill under the chosen option: slideTabs() moves it (translateX + width, from offsetLeft/offsetWidth),
+// paintTabs() places every bar of a piece of the page after it was drawn, selectTab() changes the choice in place.
+const tabsMemory = new Map(); // bar key -> { left, width } of its last indicator: a bar redrawn by render() still glides
+let tabsPath = "";
+const isActiveTab = (t) => t.getAttribute("aria-selected") === "true" || t.getAttribute("aria-checked") === "true" || t.hasAttribute("aria-current");
+const tabsOf = (bar) => [...bar.querySelectorAll(".t-tab")];
+function placePill(bar, tab, animate) {
+  const pill = bar.querySelector(".t-tabs-pill");
+  if (!pill || !tab.offsetWidth) return false; // hidden (display: none): the resize observer places it when it shows
+  const move = () => { pill.style.transform = `translateX(${tab.offsetLeft}px)`; pill.style.width = `${tab.offsetWidth}px`; };
+  if (animate) move();
+  else { const kept = pill.style.transition; pill.style.transition = "none"; move(); void pill.offsetWidth; pill.style.transition = kept; }
+  return true;
+}
+// Scrolls the bar itself (not the page) so the chosen option is in view when the bar does not fit.
+function revealTab(bar, tab, smooth) {
+  if (bar.scrollWidth <= bar.clientWidth) return;
+  const left = tabScrollLeft({ scrollLeft: bar.scrollLeft, clientWidth: bar.clientWidth, tabLeft: tab.offsetLeft, tabWidth: tab.offsetWidth });
+  if (left !== bar.scrollLeft) bar.scrollTo({ left, behavior: smooth && !matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" });
+}
+function slideTabs(bar, animate = true) {
+  const tab = tabsOf(bar).find(isActiveTab);
+  if (!tab || !placePill(bar, tab, animate)) return;
+  bar.dataset.ready = "";
+  tabsMemory.set(bar.dataset.tabs, { left: tab.offsetLeft, width: tab.offsetWidth });
+  revealTab(bar, tab, animate);
+}
+// Sizes change when a label grows ("Pendentes (3)"), a font loads late or the screen turns: place the pill again, without gliding.
+const tabsResizer = typeof ResizeObserver === "function" ? new ResizeObserver((entries) => {
+  new Set(entries.map((e) => e.target.closest?.(".t-tabs")).filter(Boolean)).forEach((bar) => {
+    const tab = tabsOf(bar).find(isActiveTab), at = tabsMemory.get(bar.dataset.tabs);
+    if (tab && !(at && at.left === tab.offsetLeft && at.width === tab.offsetWidth)) slideTabs(bar, false);
+  });
+}) : null;
+function paintTabs(scope, { fresh = false } = {}) {
+  scope?.querySelectorAll(".t-tabs[data-tabs]").forEach((bar) => {
+    const tab = tabsOf(bar).find(isActiveTab), pill = bar.querySelector(".t-tabs-pill");
+    if (!tab || !pill) return;
+    tabsOf(bar).forEach((t) => tabsResizer?.observe(t));
+    const from = fresh ? null : tabsMemory.get(bar.dataset.tabs);
+    if (!from || (from.left === tab.offsetLeft && from.width === tab.offsetWidth)) return slideTabs(bar, false);
+    // A bar drawn again (render, list repaint): it starts where the indicator was and glides to the chosen option.
+    pill.style.transition = "none"; pill.style.transform = `translateX(${from.left}px)`; pill.style.width = `${from.width}px`;
+    bar.dataset.ready = ""; void pill.offsetWidth; pill.style.transition = "";
+    slideTabs(bar, true);
+  });
+}
+function selectTab(bar, tab) {
+  if (!bar || !tab) return;
+  const attr = bar.dataset.kind === "radio" ? "aria-checked" : "aria-selected";
+  tabsOf(bar).forEach((t) => { const on = t === tab; t.setAttribute(attr, String(on)); t.tabIndex = on ? 0 : -1; });
+  document.getElementById(tab.getAttribute("aria-controls") || "")?.setAttribute("aria-labelledby", tab.id);
+  slideTabs(bar, true);
+}
+// Arrows, Home and End move between the options of a tab or radio bar and choose the one that gets focus.
+document.addEventListener("keydown", (e) => {
+  const tab = e.target.closest?.('.t-tabs[data-kind="tabs"] .t-tab, .t-tabs[data-kind="radio"] .t-tab');
+  if (!tab || e.altKey || e.ctrlKey || e.metaKey) return;
+  const tabs = tabsOf(tab.closest(".t-tabs")), next = nextTabIndex(e.key, tabs.indexOf(tab), tabs.length);
+  if (next < 0) return;
+  e.preventDefault(); tabs[next].focus(); tabs[next].click();
+});
 // <reel> Self-contained, same as src/lib/reel.ts: tests/reel.test.ts loads this block from the file.
 const REEL_SPINS = 1;
 function reelChars(text) {
@@ -2159,7 +2264,8 @@ function setFlowView(view) {
   flowView = view === "week" ? "week" : "month";
   try { localStorage.setItem(FLOW_KEY, flowView); } catch {}
   const m = route().month, chart = document.getElementById("flow-chart");
-  document.querySelectorAll('[data-act="flow-view"]').forEach((b) => { const on = b.dataset.view === flowView; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+  const flowBar = document.querySelector('[data-tabs="flow-view"]');
+  selectTab(flowBar, flowBar?.querySelector(`[data-view="${flowView}"]`));
   document.getElementById("flow-sub").textContent = flowSubtitle(m);
   if (chart) chart.innerHTML = flowChart(m);
   document.getElementById("live").textContent = flowView === "week" ? "Gráfico por semana" : "Gráfico por mês";
@@ -2184,7 +2290,8 @@ function recentBody(m) {
 }
 function setRecentFilter(f) {
   recentFilter = RECENT_FILTERS[f] ? f : "todas";
-  document.querySelectorAll('[data-act="recent-filter"]').forEach((b) => { const on = b.dataset.f === recentFilter; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+  const recentBar = document.querySelector('[data-tabs="recent-filter"]');
+  selectTab(recentBar, recentBar?.querySelector(`[data-f="${recentFilter}"]`));
   document.getElementById("recent-body").innerHTML = recentBody(route().month);
   document.getElementById("live").textContent = document.getElementById("recent-count").textContent;
 }
@@ -2214,7 +2321,7 @@ function ledgerMetrics(list) {
     ${metric({ label: "Pendente", ic: "clock", chip: "background:var(--warning-c);color:var(--warning)", cents: pen, valueCls: pen ? "t-warning" : "", cls: "span2" })}`;
 }
 function ledgerTipoTabs(m, f) {
-  return `<nav class="seg" aria-label="Tipo">${[["", "Todos"], ["receitas", "Entradas"], ["despesas", "Saídas"]].map(([v, l]) => `<a href="${href("lancamentos", { ...ledgerLinkParams(f), mes: m, tipo: v })}" class="${f.tipo === v ? "on" : ""}" ${f.tipo === v ? 'aria-current="true"' : ""}>${l}</a>`).join("")}</nav>`;
+  return tabsHtml({ kind: "nav", key: "ledger-tipo", label: "Tipo", active: f.tipo, items: [["", "Todos"], ["receitas", "Entradas"], ["despesas", "Saídas"]].map(([v, l]) => ({ value: v, label: l, href: href("lancamentos", { ...ledgerLinkParams(f), mes: m, tipo: v }) })) });
 }
 const ledgerFoot = () => {
   const { list, shown } = ledgerView, n = Math.min(shown, list.length), more = Math.min(LEDGER_PAGE, list.length - n);
@@ -2252,6 +2359,7 @@ function onLedgerSearch(value) {
     document.getElementById("tx-metrics").innerHTML = ledgerMetrics(ledgerView.list);
     document.getElementById("tx-month").innerHTML = monthPicker("lancamentos", next.month, ledgerLinkParams(f));
     document.getElementById("tx-tipo").innerHTML = ledgerTipoTabs(next.month, f);
+    paintTabs(document.getElementById("tx-tipo"));
     const n = ledgerView.list.length;
     document.getElementById("live").textContent = value.trim() ? `${n} ${n === 1 ? "lançamento encontrado" : "lançamentos encontrados"}` : `${n} ${n === 1 ? "lançamento" : "lançamentos"}`;
   }, 150);
@@ -2318,14 +2426,14 @@ function viewPainel(r) {
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--hairline)">
           <div><div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px"><h2 class="h-card">Fluxo de caixa</h2><span class="badge nodot b-success">${icon("swap", 'style="width:12px;height:12px"')} Entradas vs. saídas</span></div><p class="sub" id="flow-sub">${flowSubtitle(m)}</p></div>
           <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px"><div class="legend"><span><i style="background:var(--chart-in)"></i>Entradas</span><span><i style="background:var(--chart-out)"></i>Saídas</span></div>
-            <div class="seg" role="group" aria-label="Período do gráfico">${[["month", "Mensal"], ["week", "Semanal"]].map(([v, t]) => `<button type="button" data-act="flow-view" data-view="${v}" class="${flowView === v ? "on" : ""}" aria-pressed="${flowView === v}">${t}</button>`).join("")}</div></div>
+            ${tabsHtml({ kind: "tabs", key: "flow-view", label: "Período do gráfico", panel: "flow-chart", active: flowView, items: [["month", "Mensal"], ["week", "Semanal"]].map(([v, t]) => ({ value: v, label: t, attrs: `data-act="flow-view" data-view="${v}"` })) })}</div>
         </div>
         <div class="flow">
           <div><span class="chip" style="background:var(--card);color:var(--primary)">${icon("down")}</span><span style="min-width:0"><span class="metric-label">Total entradas</span><b class="t-income">${amountHtml(s.income, "flow-in", "+ ")}</b></span></div>
           <div><span class="chip" style="background:var(--card);color:var(--primary)">${icon("up")}</span><span style="min-width:0"><span class="metric-label">Total saídas</span><b>${amountHtml(s.expense, "flow-out")}</b></span></div>
           <div class="hl"><span class="chip" style="background:var(--tertiary-fixed);color:var(--on-tertiary-fixed)">${icon("piggy")}</span><span style="min-width:0"><span class="metric-label">Saldo líquido</span><b class="${net >= 0 ? "t-income" : "t-danger"}">${amountHtml(Math.abs(net), "flow-net", net >= 0 ? "+ " : "− ")}</b></span></div>
         </div>
-        <div id="flow-chart">${flowChart(m)}</div>
+        <div id="flow-chart" role="tabpanel" aria-labelledby="flow-view-tab-${flowView}">${flowChart(m)}</div>
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--hairline);color:var(--secondary)">
           <span style="display:flex;align-items:center;gap:6px">${icon("trendUp", 'style="width:16px;height:16px"')} Taxa de poupança de <b class="t-income">${fmtPct(ratio(Math.max(s.forecast, 0), s.income))}</b> no mês.</span>
           <a class="t-primary" style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:12px" href="${href("lancamentos", { mes: m })}">Ver lançamentos ${icon("right", 'style="width:16px;height:16px"')}</a>
@@ -2344,9 +2452,9 @@ function viewPainel(r) {
     <section class="card card-flush">
       <div class="section-head">
         <div><h2 class="h-card">Últimos lançamentos</h2><p class="sub">Extrato recente de ${monthLabel(m).toLowerCase()}.</p></div>
-        <div class="actions" style="width:100%;justify-content:flex-end"><div class="seg seg-filter" role="group" aria-label="Filtrar extrato">${Object.entries(RECENT_FILTERS).map(([f, x]) => `<button type="button" data-act="recent-filter" data-f="${f}" class="${recentFilter === f ? "on" : ""}" aria-pressed="${recentFilter === f}">${x.icon ? icon(x.icon, 'style="width:14px;height:14px"') : ""}${x.label}${f === "pendentes" && pending ? ` (${pending})` : ""}</button>`).join("")}</div></div>
+        <div class="actions" style="width:100%;justify-content:flex-end">${tabsHtml({ kind: "tabs", key: "recent-filter", label: "Filtrar extrato", panel: "recent-body", active: recentFilter, items: Object.entries(RECENT_FILTERS).map(([f, x]) => ({ value: f, attrs: `data-act="recent-filter" data-f="${f}"`, label: `${x.icon ? icon(x.icon, 'style="width:14px;height:14px"') : ""}${x.label}${f === "pendentes" && pending ? ` (${pending})` : ""}` })) })}</div>
       </div>
-      <div id="recent-body">${recentBody(m)}</div>
+      <div id="recent-body" role="tabpanel" aria-labelledby="recent-filter-tab-${recentFilter}">${recentBody(m)}</div>
     </section>
   </div>`;
 }
@@ -2700,6 +2808,8 @@ function renderPage() {
   }
   document.getElementById("app").innerHTML = shell(r, VIEWS[r.path](r));
   paintReels();
+  if (tabsPath !== r.path) { tabsMemory.clear(); tabsPath = r.path; } // another screen: its bars do not glide from the last one
+  paintTabs(document.getElementById("app"));
   mountAssistant();
   if (hasIncoming()) flushIncoming();
   document.title = `${ROUTES.find((x) => x.path === r.path).label} · Minhas Finanças`;
@@ -2712,6 +2822,7 @@ function openModal({ title, sub = "", body, foot, wide = false, onSubmit }) {
   document.getElementById("layer").innerHTML = `<div class="overlay" data-act="close-overlay"><form class="modal ${wide ? "wide" : ""}" role="dialog" aria-modal="true" aria-labelledby="mtitle" id="modal" novalidate>
     <div class="modal-head"><div><h3 class="h-card" id="mtitle">${title}</h3>${sub ? `<p class="sub">${sub}</p>` : ""}</div><button type="button" class="icon-btn" data-act="close" aria-label="Fechar">${icon("x")}</button></div>
     <div class="modal-body">${body}</div>${foot ? `<div class="modal-foot">${foot}</div>` : ""}</form></div>`;
+  paintTabs(document.getElementById("modal"), { fresh: true });
   const first = document.querySelector("#modal [autofocus]") || document.querySelector("#modal .modal-body input, #modal .modal-body select");
   if (first && matchMedia("(min-width: 640px)").matches) first.focus();
 }
@@ -2832,7 +2943,7 @@ function txForm(tx, presetType, presetTrip) {
       title: title(),
       sub: tx?.recurringId ? "Ocorrência de um gasto fixo. Alterar aqui não muda os outros meses." : "Preencha os detalhes do lançamento.",
       body: `<div class="form-grid two">
-        <div class="tabs full" role="group" aria-label="Tipo"><button type="button" class="${type === "EXPENSE" ? "on exp" : ""}" data-act="tx-type" data-type="EXPENSE" aria-pressed="${type === "EXPENSE"}">Despesa</button><button type="button" class="${type === "INCOME" ? "on inc" : ""}" data-act="tx-type" data-type="INCOME" aria-pressed="${type === "INCOME"}">Receita</button></div>
+        ${tabsHtml({ kind: "radio", key: "tx-type", label: "Tipo", fill: true, cls: "full", active: type, items: [{ value: "EXPENSE", label: "Despesa", tone: "exp", attrs: 'data-act="tx-type" data-type="EXPENSE"' }, { value: "INCOME", label: "Receita", tone: "inc", attrs: 'data-act="tx-type" data-type="INCOME"' }] })}
         ${!tx && SpeechRec ? `<div class="full" id="voice-slot" aria-live="polite"></div>` : ""}
         ${field("Descrição", "description", input("description", d.description ?? tx?.description ?? "", `placeholder="${TX_DESCRIPTION_HINT[type]}" maxlength="120" autofocus`), "full")}
         ${field("Valor", "amount", moneyInput("amount", d.amount ? parseMoneyToCents(d.amount) : tx?.amountCents))}
@@ -2869,11 +2980,8 @@ function txForm(tx, presetType, presetTrip) {
   // so the other fields, the focus and the attached photo stay as they are.
   txForm.setType = (t) => {
     type = t === "INCOME" ? "INCOME" : "EXPENSE";
-    document.querySelectorAll('#modal [data-act="tx-type"]').forEach((b) => {
-      const on = b.dataset.type === type;
-      b.classList.toggle("on", on); b.classList.toggle("exp", on && type === "EXPENSE"); b.classList.toggle("inc", on && type === "INCOME");
-      b.setAttribute("aria-pressed", String(on));
-    });
+    const typeBar = document.querySelector('#modal [data-tabs="tx-type"]');
+    selectTab(typeBar, typeBar?.querySelector(`[data-type="${type}"]`));
     document.getElementById("mtitle").innerHTML = title();
     const cat = document.getElementById("f-categoryId");
     if (cat) cat.innerHTML = catOptions(type, cat.value);
@@ -3509,7 +3617,7 @@ function recForm(rec) {
       title: rec ? "Editar gasto fixo" : "Novo gasto fixo",
       sub: rec ? "As mudanças valem para os meses que ainda não foram gerados." : "Aluguel, contas, assinaturas, salário... Um lançamento pendente é criado todo mês.",
       body: `<div class="form-grid two">
-        <div class="tabs full"><button type="button" class="${type === "EXPENSE" ? "on exp" : ""}" data-act="rec-type" data-type="EXPENSE">Despesa</button><button type="button" class="${type === "INCOME" ? "on inc" : ""}" data-act="rec-type" data-type="INCOME">Receita</button></div>
+        ${tabsHtml({ kind: "radio", key: "rec-type", label: "Tipo", fill: true, cls: "full", active: type, items: [{ value: "EXPENSE", label: "Despesa", tone: "exp", attrs: 'data-act="rec-type" data-type="EXPENSE"' }, { value: "INCOME", label: "Receita", tone: "inc", attrs: 'data-act="rec-type" data-type="INCOME"' }] })}
         ${field("Descrição", "description", input("description", d.description ?? rec?.description ?? "", 'placeholder="Ex.: Aluguel, Internet, Salário" maxlength="120" autofocus'), "full")}
         ${field("Valor mensal", "amount", moneyInput("amount", d.amount ? parseMoneyToCents(d.amount) : rec?.amountCents))}
         ${field("Dia do vencimento", "day", input("day", d.day ?? rec?.dayOfMonth ?? 5, 'type="number" min="1" max="31" inputmode="numeric"'))}
@@ -3534,7 +3642,14 @@ function recForm(rec) {
       },
     });
   };
-  recForm.setType = (t) => { type = t; draw(); };
+  // Like txForm.setType: only the category list depends on the type, so the dialog is not drawn again (the indicator glides).
+  recForm.setType = (t) => {
+    type = t === "INCOME" ? "INCOME" : "EXPENSE";
+    const typeBar = document.querySelector('#modal [data-tabs="rec-type"]');
+    selectTab(typeBar, typeBar?.querySelector(`[data-type="${type}"]`));
+    const cat = document.getElementById("f-categoryId");
+    if (cat) cat.innerHTML = catOptions(type, cat.value);
+  };
   draw();
 }
 
@@ -3974,7 +4089,7 @@ function askNotifications() {
         <li>Depois, o Android vai pedir para você ativar o <b>acesso às notificações</b> do Minhas Finanças.</li>
       </ul>
       <div class="field"><span class="field-label">Quando chegar uma movimentação</span>
-        <div class="tabs" role="radiogroup"><button type="button" class="${auto ? "" : "on"}" data-act="notif-ask-mode" data-mode="review" role="radio" aria-checked="${!auto}">Revisar antes</button><button type="button" class="${auto ? "on" : ""}" data-act="notif-ask-mode" data-mode="auto" role="radio" aria-checked="${auto}">Lançar sozinho</button></div>
+        ${tabsHtml({ kind: "radio", key: "notif-ask-mode", label: "Quando chegar uma movimentação", fill: true, active: auto ? "auto" : "review", items: [{ value: "review", label: "Revisar antes", attrs: 'data-act="notif-ask-mode" data-mode="review"' }, { value: "auto", label: "Lançar sozinho", attrs: 'data-act="notif-ask-mode" data-mode="auto"' }] })}
         <span class="hint" id="notif-ask-hint">${auto ? NOTIF_HINT_AUTO : NOTIF_HINT_REVIEW}</span>
       </div>
     </div>`,
@@ -3985,10 +4100,8 @@ function askNotifications() {
 }
 // Marks the chosen mode button and swaps the hint without redrawing anything.
 function paintModeTabs(act, hintId, auto) {
-  document.querySelectorAll(`[data-act="${act}"]`).forEach((b) => {
-    const on = (b.dataset.mode === "auto") === auto;
-    b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on));
-  });
+  const modeBar = document.querySelector(`[data-act="${act}"]`)?.closest(".t-tabs");
+  selectTab(modeBar, modeBar?.querySelector(`[data-mode="${auto ? "auto" : "review"}"]`));
   const hint = document.getElementById(hintId);
   if (hint) hint.textContent = auto ? NOTIF_HINT_AUTO : NOTIF_HINT_REVIEW;
 }
@@ -4033,7 +4146,7 @@ function notifAppCard() {
       <div class="actions" style="margin-top:8px"><button class="btn btn-primary btn-sm" data-act="notif-access">Dar acesso às notificações</button><button class="btn btn-ghost btn-sm" data-act="notif-app-details">Abrir informações do app</button></div>
       <p class="hint" style="margin-top:8px">Se a opção aparecer cinza, toque em “Abrir informações do app”, no menu ⋮ e em <b>Permitir configurações restritas</b>. Volte e tente de novo.</p>`}
     <div class="field" style="margin-top:16px"><span class="field-label">Quando chegar uma movimentação</span>
-      <div class="tabs" role="radiogroup"><button type="button" class="${auto ? "" : "on"}" data-act="notif-mode" data-mode="review" role="radio" aria-checked="${!auto}">Revisar antes</button><button type="button" class="${auto ? "on" : ""}" data-act="notif-mode" data-mode="auto" role="radio" aria-checked="${auto}">Lançar sozinho</button></div>
+      ${tabsHtml({ kind: "radio", key: "notif-mode", label: "Quando chegar uma movimentação", fill: true, active: auto ? "auto" : "review", items: [{ value: "review", label: "Revisar antes", attrs: 'data-act="notif-mode" data-mode="review"' }, { value: "auto", label: "Lançar sozinho", attrs: 'data-act="notif-mode" data-mode="auto"' }] })}
       <span class="hint" id="notif-mode-hint">${auto ? NOTIF_HINT_AUTO : NOTIF_HINT_REVIEW}</span>
     </div>
     <div class="actions" style="margin-top:16px"><button class="btn btn-secondary btn-sm" data-act="notif-apps">Bancos e carteiras (${s.apps || 0})</button><button class="btn btn-ghost btn-sm" data-act="notif-off">Desligar</button></div>
