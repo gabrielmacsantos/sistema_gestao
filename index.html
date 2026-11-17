@@ -433,6 +433,8 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .t-stagger.is-shown .t-stagger-line { opacity: 1; transform: translateY(0); filter: blur(0); }
 .t-stagger.is-hiding .t-stagger-line { opacity: 0; transform: translateY(0); filter: blur(0); transition: opacity 200ms ease, transform 0s linear, filter 0s linear; transition-delay: 0s; }
 @media (prefers-reduced-motion: reduce) { .t-stagger-line { transition: none !important; } .toast { animation: none !important; transition: none !important; } }
+#goal-confetti { position: fixed; inset: 0; z-index: 65; width: 100%; height: 100%; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { #goal-confetti { display: none; } }
 #toast-region { position: fixed; z-index: 70; left: 0; right: 0; bottom: calc(96px + env(safe-area-inset-bottom)); display: flex; justify-content: center; padding: 0 16px; pointer-events: none; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 4px 4px 4px 16px; border-radius: 12px; background: var(--toast-bg); color: var(--toast-fg); box-shadow: var(--shadow-3); font-weight: 500; animation: up .2s; max-width: 100%; transition: opacity .2s; }
 .toast.is-leaving { opacity: 0; }
@@ -867,6 +869,115 @@ document.addEventListener("keydown", (e) => {
   if (next < 0) return;
   e.preventDefault(); tabs[next].focus(); tabs[next].click();
 });
+// <goal-celebration> Self-contained, same as src/lib/goal-celebration.ts: tests/goal-celebration.test.ts loads this block from the file.
+/** A goal is complete when what was saved reaches the target. Whole cents only; a target of 0 is never reached. */
+function goalReached(savedCents, targetCents) {
+  return Number.isSafeInteger(savedCents) && Number.isSafeInteger(targetCents) && targetCents > 0 && savedCents >= targetCents;
+}
+/** True only at the moment a change takes a goal from "not yet" to "reached": opening a finished goal never counts. */
+function goalJustReached(beforeCents, afterCents, targetCents) {
+  return !goalReached(beforeCents, targetCents) && goalReached(afterCents, targetCents);
+}
+/** The ids of goals already celebrated (a JSON list in localStorage); anything else reads as none. */
+function parseCelebrated(raw) {
+  try {
+    const ids = JSON.parse(raw == null ? "[]" : raw);
+    return Array.isArray(ids) ? [...new Set(ids.filter((id) => typeof id === "string" && id !== ""))] : [];
+  } catch { return []; }
+}
+const serializeCelebrated = (ids) => JSON.stringify([...new Set(ids)]);
+/**
+ * Whether a change celebrates, and the new list of celebrated ids. It celebrates once: when the goal has just been
+ * reached and was not celebrated yet. Falling back under the target clears the mark, so a new completion celebrates again.
+ */
+function celebrationDecision({ goalId, beforeCents, afterCents, targetCents, celebrated }) {
+  const others = celebrated.filter((id) => id !== goalId);
+  if (!goalReached(afterCents, targetCents)) return { celebrate: false, celebrated: others };
+  const wasMarked = celebrated.includes(goalId);
+  const celebrate = goalJustReached(beforeCents, afterCents, targetCents) && !wasMarked;
+  return { celebrate, celebrated: celebrate || wasMarked ? [...others, goalId] : celebrated };
+}
+// </goal-celebration>
+// ---------- Goal confetti ----------
+// One burst from one point: a fixed, full-screen canvas that ignores pointer events, lets the pieces fall by gravity and
+// removes itself. It has no pointer or touch listeners at all: it never follows the cursor or the finger.
+const CONFETTI_MS = 3500, CONFETTI_MAX = 140;
+function confettiColors() {
+  const css = getComputedStyle(document.documentElement);
+  const list = ["--primary", "--tertiary", "--success", "--warning", "--stage-accent", "--primary-fixed"].map((n) => css.getPropertyValue(n).trim()).filter(Boolean);
+  return list.length ? list : ["#00685f", "#4edea3", "#fbbf24", "#6bd8cb"];
+}
+let confettiStop = null;
+/** Returns false when nothing was shown (reduced motion). */
+function burstConfetti({ x, y, count = 110, colors = confettiColors() } = {}) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+  confettiStop?.();
+  const canvas = document.createElement("canvas");
+  canvas.id = "goal-confetti"; canvas.setAttribute("aria-hidden", "true");
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d"), dpr = Math.min(window.devicePixelRatio || 1, 2), w = window.innerWidth, h = window.innerHeight;
+  canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  ctx.scale(dpr, dpr);
+  const ox = x ?? w / 2, oy = y ?? h * 0.25, pick = (list) => list[Math.floor(Math.random() * list.length)];
+  const pieces = Array.from({ length: Math.min(count, CONFETTI_MAX) }, () => {
+    const angle = (-90 + (Math.random() - 0.5) * 140) * Math.PI / 180, speed = 7 + Math.random() * 9;
+    return { x: ox, y: oy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, size: 6 + Math.random() * 6, spin: Math.random() * Math.PI * 2, vspin: (Math.random() - 0.5) * 0.4, flip: Math.random() * Math.PI * 2, shape: pick(["rect", "strip", "circle"]), color: pick(colors) };
+  });
+  let raf = 0;
+  const started = performance.now();
+  let last = started;
+  const stop = () => { cancelAnimationFrame(raf); canvas.remove(); if (confettiStop === stop) confettiStop = null; };
+  const frame = (now) => {
+    const elapsed = now - started, step = Math.min((now - last) / 16.67, 2.5); // visual physics only: not money
+    last = now;
+    ctx.clearRect(0, 0, w, h);
+    const fade = Math.min(Math.max(1 - (elapsed - 2200) / (CONFETTI_MS - 2200), 0), 1);
+    let alive = 0;
+    for (const p of pieces) {
+      p.vx *= Math.pow(0.985, step); p.vy = p.vy * Math.pow(0.985, step) + 0.32 * step;
+      p.x += p.vx * step; p.y += p.vy * step; p.spin += p.vspin * step; p.flip += 0.15 * step;
+      if (p.y > h + 24) continue;
+      alive++;
+      ctx.save();
+      ctx.globalAlpha = fade; ctx.fillStyle = p.color;
+      ctx.translate(p.x, p.y); ctx.rotate(p.spin); ctx.scale(1, Math.cos(p.flip)); // tumbling paper
+      if (p.shape === "circle") { ctx.beginPath(); ctx.arc(0, 0, p.size / 3, 0, Math.PI * 2); ctx.fill(); }
+      else if (p.shape === "strip") ctx.fillRect(-p.size / 6, -p.size / 2, p.size / 3, p.size);
+      else ctx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.66);
+      ctx.restore();
+    }
+    if (elapsed >= CONFETTI_MS || !alive) return stop();
+    raf = requestAnimationFrame(frame);
+  };
+  confettiStop = stop;
+  raf = requestAnimationFrame(frame);
+  return true;
+}
+// The mark of already celebrated goals lives on this device, one list per account (like the read notices): outside backups and sync.
+const celebratedKey = () => `goals-celebrated:${sync ? (isGoogle() ? sync.sub : sync.login) : "local"}`;
+const celebratedMemory = {};
+function readCelebrated() {
+  let raw = null;
+  try { raw = localStorage.getItem(celebratedKey()); } catch {}
+  return parseCelebrated(raw ?? celebratedMemory[celebratedKey()]);
+}
+function writeCelebrated(ids) {
+  const raw = serializeCelebrated(ids);
+  celebratedMemory[celebratedKey()] = raw;
+  try { localStorage.setItem(celebratedKey(), raw); } catch {}
+}
+/** Call after a goal changed and the page was drawn again; `beforeCents` is what it had saved before the change. */
+function celebrateGoal(goalId, beforeCents) {
+  const goal = state.goals.find((x) => x.id === goalId);
+  if (!goal) return;
+  const marked = readCelebrated();
+  const out = celebrationDecision({ goalId, beforeCents, afterCents: goal.savedCents, targetCents: goal.targetCents, celebrated: marked });
+  if (serializeCelebrated(out.celebrated) !== serializeCelebrated(marked)) writeCelebrated(out.celebrated);
+  if (!out.celebrate) return;
+  document.getElementById("live").textContent = `Meta "${goal.name}" atingida!`;
+  const box = document.querySelector(`[data-goal="${goalId}"]`)?.getBoundingClientRect();
+  burstConfetti(box ? { x: box.left + box.width / 2, y: box.top + Math.min(box.height / 2, 60) } : {});
+}
 // <reel> Self-contained, same as src/lib/reel.ts: tests/reel.test.ts loads this block from the file.
 const REEL_SPINS = 1;
 function reelChars(text) {
@@ -2510,10 +2621,10 @@ function viewOrcamentos(r) {
     </section>
     <section class="card">
       <div class="card-head"><h2 class="h-card">Metas de economia</h2><button class="btn btn-primary btn-sm" data-act="new-goal">${icon("target")} Nova meta</button></div>
-      ${state.goals.length ? `<ul class="dist">${state.goals.map((g) => { const rr = ratio(g.savedCents, g.targetCents); return `<li>
+      ${state.goals.length ? `<ul class="dist">${state.goals.map((g) => { const rr = ratio(g.savedCents, g.targetCents); return `<li data-goal="${g.id}">
         <div class="dist-row" style="align-items:center"><span style="font-weight:600;min-width:0" class="truncate">${esc(g.name)}</span><span class="actions"><button class="btn btn-secondary btn-sm" data-act="deposit-goal" data-id="${g.id}">${icon("plus")} Guardar</button><button class="btn btn-ghost btn-sm" data-act="edit-goal" data-id="${g.id}" aria-label="Editar">${icon("edit")}</button></span></div>
         <div class="bar"><div style="width:${clamp01(rr) * 100}%;background:var(--tertiary)"></div></div>
-        <p class="hint" style="margin-top:6px">${amountHtml(g.savedCents, "goal-s" + g.id)} de ${amountHtml(g.targetCents, "goal-t" + g.id)} · ${fmtPct(clamp01(rr))}${g.deadline ? ` · até ${formatDate(g.deadline)}` : ""}${rr >= 1 ? ' · <b class="t-income">meta atingida 🎉</b>' : ""}</p></li>`; }).join("")}</ul>` : `<p class="empty">Nenhuma meta ainda. Que tal uma reserva de emergência?</p>`}
+        <p class="hint" style="margin-top:6px">${amountHtml(g.savedCents, "goal-s" + g.id)} de ${amountHtml(g.targetCents, "goal-t" + g.id)} · ${fmtPct(clamp01(rr))}${g.deadline ? ` · até ${formatDate(g.deadline)}` : ""}${goalReached(g.savedCents, g.targetCents) ? ' · <b class="t-income">meta atingida 🎉</b>' : ""}</p></li>`; }).join("")}</ul>` : `<p class="empty">Nenhuma meta ainda. Que tal uma reserva de emergência?</p>`}
     </section>
   </div>`;
 }
@@ -3701,8 +3812,10 @@ function goalForm(g) {
       if (v.deadline && !isDate(v.deadline)) errors.deadline = "Data inválida.";
       if (Object.keys(errors).length) return showErrors(errors);
       const data = { name: v.name.trim(), targetCents: target, savedCents: saved, deadline: v.deadline || null };
-      if (g) Object.assign(state.goals.find((x) => x.id === g.id), data); else state.goals.push({ id: uid(), ...data });
+      const goal = g && state.goals.find((x) => x.id === g.id), before = goal ? goal.savedCents : 0, id = goal ? goal.id : uid();
+      if (goal) Object.assign(goal, data); else state.goals.push({ id, ...data });
       save(); closeModal(); render(); toast("Meta salva.");
+      celebrateGoal(id, before);
     },
   });
 }
@@ -3715,8 +3828,10 @@ function depositForm(g) {
     onSubmit: () => {
       const amount = parseMoneyToCents(formData().amount);
       if (amount === null || amount === 0) return showErrors({ amount: "Informe um valor." });
-      const goal = state.goals.find((x) => x.id === g.id); goal.savedCents = Math.max(0, goal.savedCents + amount);
+      const goal = state.goals.find((x) => x.id === g.id), before = goal.savedCents;
+      goal.savedCents = Math.max(0, goal.savedCents + amount);
       save(); closeModal(); render(); toast("Meta atualizada.");
+      celebrateGoal(goal.id, before);
     },
   });
 }
@@ -4256,7 +4371,7 @@ document.addEventListener("click", (e) => {
     "new-goal": () => goalForm(null),
     "edit-goal": () => goalForm(state.goals.find((g) => g.id === id)),
     "deposit-goal": () => depositForm(state.goals.find((g) => g.id === id)),
-    "del-goal": () => confirmDialog("Excluir meta?", "A meta será removida.", "Excluir", () => { state.goals = state.goals.filter((g) => g.id !== id); save(); toast("Meta excluída."); }),
+    "del-goal": () => confirmDialog("Excluir meta?", "A meta será removida.", "Excluir", () => { state.goals = state.goals.filter((g) => g.id !== id); writeCelebrated(readCelebrated().filter((x) => x !== id)); save(); toast("Meta excluída."); }),
     "photo-view": () => { if (formPhoto.shown) viewPhoto(formPhoto.shown); },
     "photo-remove": () => { formPhoto.blob = null; formPhoto.removed = true; formPhoto.shown = null; renderPhotoSlot(); },
     "use-local": () => { setLocalMode(true); location.hash = href("painel"); render(); },

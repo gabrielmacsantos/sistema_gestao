@@ -9,6 +9,7 @@ import { listGoals } from "@/server/services/budgets";
 import { ensureOccurrences } from "@/server/services/recurring";
 import { BUDGET_WARNING_RATIO, budgetStatus } from "@/server/services/reports";
 import { formatDate } from "@/lib/dates";
+import { goalReached } from "@/lib/goal-celebration";
 import { monthParam, type SearchParams } from "@/lib/search-params";
 import { deleteBudgetAction, deleteGoalAction } from "./actions";
 import { BudgetForm, DepositForm, GoalForm } from "./forms";
@@ -90,11 +91,11 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Sear
                       <p className="text-body-sm text-secondary">
                         <AnimatedCurrency cents={g.savedCents} /> de <AnimatedCurrency cents={g.targetCents} /> ({Math.round(ratio * 100)}%)
                         {g.deadline && ` · até ${formatDate(g.deadline)}`}
-                        {ratio >= 1 && (
+                        {goalReached(g.savedCents, g.targetCents) && (
                           <span className="ml-1 font-medium text-primary">· concluída!</span>
                         )}
                       </p>
-                      <DepositForm goalId={g.id} />
+                      <DepositForm goalId={g.id} userId={userId} />
                     </li>
                   );
                 })}
@@ -103,7 +104,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Sear
           </Card>
           <Card>
             <CardTitle>Nova meta</CardTitle>
-            <GoalForm />
+            <GoalForm userId={userId} />
           </Card>
         </section>
       </div>

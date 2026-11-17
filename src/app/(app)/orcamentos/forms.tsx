@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FormMessage, Input, Select } from "@/components/ui/form";
 import { MoneyInput } from "@/components/ui/money-input";
+import { useGoalCelebration } from "@/components/use-goal-celebration";
 import type { CategoryOption } from "@/lib/constants";
 import type { ActionState } from "@/lib/validation";
 import { createGoalAction, depositGoalAction, setBudgetAction } from "./actions";
@@ -40,13 +41,15 @@ export function BudgetForm({ categories }: { categories: CategoryOption[] }) {
   );
 }
 
-export function GoalForm() {
+export function GoalForm({ userId }: { userId: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createGoalAction, {});
+  const formRef = useRef<HTMLFormElement>(null);
+  useGoalCelebration(state, userId, formRef);
   const errors = state.fieldErrors ?? {};
   const values = state.ok ? {} : (state.values ?? {});
 
   return (
-    <form action={action} className="flex flex-col gap-3">
+    <form ref={formRef} action={action} className="flex flex-col gap-3">
       <FormMessage ok={state.ok} message={state.message} />
       <Field label="Nome da meta" htmlFor="goal-name" error={errors.name}>
         <Input id="goal-name" name="name" placeholder="Ex.: Reserva de emergência" defaultValue={values.name} required />
@@ -69,13 +72,15 @@ export function GoalForm() {
   );
 }
 
-export function DepositForm({ goalId }: { goalId: string }) {
+export function DepositForm({ goalId, userId }: { goalId: string; userId: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(
     depositGoalAction.bind(null, goalId),
     {},
   );
+  const formRef = useRef<HTMLFormElement>(null);
+  useGoalCelebration(state, userId, formRef);
   return (
-    <form action={action} className="flex flex-col gap-1">
+    <form ref={formRef} action={action} className="flex flex-col gap-1">
       <div className="flex gap-2">
         <MoneyInput name="amountCents" placeholder="0,00" aria-label="Valor a guardar" className="h-9" />
         <Button type="submit" size="sm" variant="secondary" disabled={pending}>
