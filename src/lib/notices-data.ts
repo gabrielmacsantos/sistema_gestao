@@ -4,18 +4,6 @@ import type { AppNotice } from "./notifications";
 // Keep `actionUrl` empty until the store listings exist.
 export const NOTICES: AppNotice[] = [
   {
-    id: "2026-11-17-recovery-key",
-    title: "Chave de recuperação",
-    body: "Agora você pode criar uma chave de recuperação para o caso de esquecer a senha de criptografia, e trocar a senha em Backup e dados. Guarde a chave fora do aparelho: quem a tiver abre os seus dados.",
-    date: "2026-11-17",
-  },
-  {
-    id: "2026-11-17-encrypted-sync",
-    title: "Dados criptografados na nuvem",
-    body: "Ao entrar com o Google, você cria uma senha de criptografia. Seus dados e fotos são embaralhados neste aparelho antes de irem para o Google Drive, e só essa senha abre. Guarde-a: não há como recuperá-la.",
-    date: "2026-11-17",
-  },
-  {
     id: "2026-11-15-quick-assistant",
     title: "Atalhos rápidos",
     body: "O balão no canto da tela abre o chat de lançamentos (fale ou escreva) e uma calculadora que funciona sem internet.",
