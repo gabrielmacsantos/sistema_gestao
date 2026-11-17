@@ -35,7 +35,7 @@
   --primary-fixed: #89f5e7; --on-primary-fixed: #00201d;
   --secondary: #565e74; --secondary-c: #dae2fd; --on-secondary-c: #5c647a;
   --tertiary: #006947; --on-tertiary: #fff; --tertiary-c: #00855b; --tertiary-fixed: #6ffbbe; --on-tertiary-fixed: #002113;
-  --success: #059669; --success-c: #ecfdf5; --warning: #d97706; --warning-c: #fffbeb; --danger: #e11d48; --danger-c: #fff1f2;
+  --success: #059669; --success-c: #ecfdf5; --warning: #d97706; --warning-c: #fffbeb; --danger: #e11d48; --danger-c: #fff1f2; --on-danger: #fff;
   --chart-in: #059669; --chart-out: #4460a2; --chart-grid: #e2e8f0;
   --shadow: 0 1px 2px rgb(15 23 42 / .05);
   --shadow-3: 0 20px 25px -5px rgb(15 23 42 / .06), 0 8px 10px -6px rgb(15 23 42 / .04);
@@ -54,7 +54,7 @@
   --secondary: #a9b3cc; --secondary-c: #2a3550; --on-secondary-c: #c6cee6;
   --tertiary: #4edea3; --on-tertiary: #002113; --tertiary-c: #3cc58e; --tertiary-fixed: #005236; --on-tertiary-fixed: #6ffbbe;
   --success: #34d399; --success-c: rgb(16 185 129 / .14); --warning: #fbbf24; --warning-c: rgb(245 158 11 / .14);
-  --danger: #fb7185; --danger-c: rgb(225 29 72 / .16);
+  --danger: #fb7185; --danger-c: rgb(225 29 72 / .16); --on-danger: #2a0510;
   --chart-in: #23ac74; --chart-out: #5a78bc; --chart-grid: #233149;
   color-scheme: dark;
 }
@@ -436,6 +436,17 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .drawer-row.ok { color: var(--success); } .drawer-row.err { color: var(--danger); }
 .drawer-foot { flex: none; padding: 4px 20px 12px; border-top: 1px solid var(--hairline); }
 .recovery-key { margin: 12px 0; padding: 14px; border: 1px dashed var(--hairline); border-radius: 12px; background: var(--card); font: 600 1.05rem/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em; word-break: break-word; user-select: all; }
+.btn-danger-solid { background: var(--danger); color: var(--on-danger); }
+.btn-danger-solid:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 88%, #000); }
+.btn-danger-solid:disabled { opacity: .45; cursor: not-allowed; }
+.danger-zone { border-color: color-mix(in srgb, var(--danger) 45%, transparent); background: color-mix(in srgb, var(--danger) 4%, var(--card)); }
+.profile-id { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.profile-id .avatar { width: 64px; height: 64px; font-size: 22px; }
+.profile-text { min-width: 0; display: grid; gap: 4px; justify-items: start; }
+.profile-text > * { max-width: 100%; margin: 0; }
+.legal-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.delete-list { margin: 12px 0; padding-left: 20px; }
+.delete-list li + li { margin-top: 6px; }
 .conflict-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
 .conflict-list li { padding: 12px 14px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--card); }
 .drawer-account { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px 0 4px; }
@@ -763,6 +774,7 @@ const ICONS = {
   edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
   target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
   logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
   camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
   settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
@@ -1559,6 +1571,32 @@ function decideLink(localHasData, remoteHasData) {
 const connectivityLabel = (online, hasSession) => (hasSession && !online ? OFFLINE_LABEL : null);
 // </account-scope>
 
+// <account-delete> Self-contained (uses scopeOf, storageKey and photoDbName from <account-scope>): tests/account-delete.test.ts loads both blocks.
+// Deleting an account removes what belongs to that account on this device, and nothing else: never the
+// no-account scope ("local") and never the device's own preferences (theme, menu, voice notice...).
+const DELETE_PHRASE = "EXCLUIR";
+/** What typing counts as the explicit confirmation (any case, surrounding spaces ignored). */
+const confirmationMatches = (typed) => String(typed).trim().toUpperCase() === DELETE_PHRASE;
+/** Everything on this device that belongs to the signed-in account, or null when there is no account to delete. */
+function deletionPlan(sync, legacyPhotoOwner) {
+  const scope = scopeOf(sync);
+  if (!sync || scope === "local" || scope === "unknown") return null;
+  const id = sync.provider === "google" ? sync.sub : sync.login;
+  return {
+    scope,
+    localStorageKeys: [storageKey(scope), `goals-celebrated:${id}`, `notices-read:${id}`],
+    photoDatabases: [photoDbName(scope, legacyPhotoOwner)],
+    clearPhotoOwner: legacyPhotoOwner === scope,
+  };
+}
+/** Why the deletion cannot start now: the cloud copy has to be deleted too, so it needs the connection. */
+function deletionBlocker({ online, hasSession }) {
+  if (!hasSession) return "no-account";
+  if (!online) return "offline";
+  return null;
+}
+// </account-delete>
+
 // ---------- Store ----------
 const SYNC_KEY = "minhas-financas:github";
 const LOCAL_KEY = "minhas-financas:local";
@@ -2256,6 +2294,8 @@ async function changePasswordDialog() {
 const GOOGLE_CLIENT_ID = "404240084515-tgo3q5ptt6tvfujkkkl6psu2gh208u37.apps.googleusercontent.com";
 // Absolute: the app ships index.html only, so the policy always comes from the site.
 const PRIVACY_URL = "https://gabrielmacsantos.github.io/sistema_gestao/privacidade.html";
+const TERMS_URL = "https://gabrielmacsantos.github.io/sistema_gestao/termos.html";
+const DELETE_HELP_URL = `${PRIVACY_URL}#excluir-conta`;
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const GOOGLE_SCOPES = `openid email profile ${DRIVE_SCOPE}`;
 const DRIVE_FILE = "minhas-financas.json";
@@ -2707,13 +2747,21 @@ const photoStore = (() => {
       t.onerror = () => reject(t.error);
     });
   };
-  return (name) => ({
+  const store = (name) => ({
     get: (id) => run(name, "readonly", (st) => st.get(id)),
     all: () => run(name, "readonly", (st) => st.getAll()),
     put: (rec) => run(name, "readwrite", (st) => st.put(rec)),
     del: (id) => run(name, "readwrite", (st) => st.delete(id)),
     clear: () => run(name, "readwrite", (st) => st.clear()),
   });
+  /** Removes a whole database: empties it, closes this page's connection and deletes it (best effort if another tab holds it open). */
+  store.drop = async (name) => {
+    try { await store(name).clear(); } catch { /* nothing to empty */ }
+    try { (await opened.get(name))?.close(); } catch { /* already closed */ }
+    opened.delete(name);
+    await new Promise((resolve) => { const req = indexedDB.deleteDatabase(name); req.onsuccess = req.onerror = req.onblocked = () => resolve(); });
+  };
+  return store;
 })();
 const photoOwner = () => { try { return localStorage.getItem(PHOTO_OWNER_KEY); } catch { return null; } };
 const photoDbFor = (scope) => photoStore(photoDbName(scope, photoOwner()));
@@ -2998,10 +3046,12 @@ const ROUTES = [
   { path: "backup", label: "Backup", icon: "save" },
 ];
 const AUTH_PAGES = ["entrar", "cadastro"];
+// The profile is reached from the account block, not from the section menus, so it is not in ROUTES.
+const PROFILE_ROUTE = { path: "perfil", label: "Perfil", icon: "user" };
 function route() {
   const [p, q] = location.hash.replace(/^#\/?/, "").split("?");
   const params = new URLSearchParams(q || "");
-  const path = ROUTES.some((r) => r.path === p) || AUTH_PAGES.includes(p) ? p : "painel";
+  const path = ROUTES.some((r) => r.path === p) || p === PROFILE_ROUTE.path || AUTH_PAGES.includes(p) ? p : "painel";
   const mes = params.get("mes");
   return { path, params, month: isMonth(mes) ? mes : currentMonth() };
 }
@@ -3020,7 +3070,7 @@ function shell(r, content) {
   const navLink = (x) => `<a href="${navHref(x.path)}" class="${r.path === x.path ? "active" : ""}" title="${x.label}" ${r.path === x.path ? 'aria-current="page"' : ""}>${icon(x.icon)}<span class="lbl">${x.label}</span></a>`;
   const bottom = (path, label, ic) => `<li><a href="${navHref(path)}" class="${r.path === path ? "active" : ""}" ${r.path === path ? 'aria-current="page"' : ""}>${icon(ic)}${label}</a></li>`;
   const dark = document.documentElement.dataset.theme === "dark";
-  const current = ROUTES.find((x) => x.path === r.path);
+  const current = ROUTES.find((x) => x.path === r.path) || PROFILE_ROUTE;
   const railLabel = railToggleLabel(isRailCollapsed());
   return `
   <button class="rail-toggle" data-act="rail-toggle" aria-label="${railLabel}" aria-expanded="${!isRailCollapsed()}" aria-controls="rail" title="${railLabel}"><span class="rail-disc">${icon("left")}</span></button>
@@ -3031,7 +3081,7 @@ function shell(r, content) {
       <nav class="nav" aria-label="Principal">${ROUTES.filter((x) => x.path !== "backup").map(navLink).join("")}</nav>
     </div>
     <div class="rail-foot nav">${navLink(ROUTES.find((x) => x.path === "backup"))}${sync
-      ? `<a href="javascript:void 0" data-act="logout" title="Sair">${icon("logout")}<span class="lbl">Sair</span></a><div class="account" title="${esc(accountLabel())}">${accountAvatar()}<span class="lbl"><b class="truncate">${esc(accountLabel())}</b><span class="hint truncate">Dados salvos no ${providerName()}</span></span></div>`
+      ? `${navLink(PROFILE_ROUTE)}<a href="javascript:void 0" data-act="logout" title="Sair">${icon("logout")}<span class="lbl">Sair</span></a><div class="account" title="${esc(accountLabel())}">${accountAvatar()}<span class="lbl"><b class="truncate">${esc(accountLabel())}</b><span class="hint truncate">Dados salvos no ${providerName()}</span></span></div>`
       : `<a href="${href("entrar")}" title="Entrar">${icon("lock")}<span class="lbl">Entrar com o Google</span></a>`}</div>
   </aside>
   <div class="page">
@@ -3515,6 +3565,134 @@ function readerCard() {
 }
 
 // ---------- Configurações ----------
+/** Profile: who is signed in, sign out, the documents and the danger zone (permanent deletion of the account and its data). */
+function viewPerfil() {
+  const legal = `<div class="legal-links"><a class="btn btn-secondary" href="${PRIVACY_URL}" target="_blank" rel="noopener">Política de Privacidade</a><a class="btn btn-secondary" href="${TERMS_URL}" target="_blank" rel="noopener">Termos de Uso</a></div>`;
+  if (!sync) {
+    return `${pageHead("Perfil", "Você está usando o app sem conta.")}
+    <div class="grid-2">
+      <section class="card welcome"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("lock")} Você está sem conta</h2>
+        <p class="muted" style="margin:6px 0 16px">Os dados estão só neste aparelho. Entre com o Google para guardá-los na sua conta. Para apagar o que está aqui, use <b>Backup › Apagar dados</b>.</p>
+        ${googleReady() ? `<div style="max-width:320px">${googleButton("Continuar com o Google")}</div>` : ""}</section>
+      <section class="card"><h2 class="h-card">Documentos</h2><p class="muted" style="margin:6px 0 16px">Como tratamos seus dados e as regras de uso do app.</p>${legal}</section>
+    </div>`;
+  }
+  const fullName = isGoogle() && sync.name && sync.name !== sync.email ? sync.name : "";
+  return `${pageHead("Perfil", "Sua conta, os documentos do app e a exclusão dos seus dados.")}
+  <div class="grid-2">
+    <section class="card" style="grid-column:1/-1">
+      <div class="profile-id">${accountAvatar()}<div class="profile-text"><h2 class="h-card truncate">${esc(fullName || accountLabel())}</h2>${fullName ? `<p class="muted truncate">${esc(accountLabel())}</p>` : ""}<span class="badge b-success">${isGoogle() ? "Conta Google" : "Conta GitHub"}</span></div></div>
+      <div class="actions" style="margin-top:16px"><button class="btn btn-secondary" data-act="logout">${icon("logout")} Sair da conta</button></div>
+      <p class="hint" style="margin-top:8px">Sair tira os dados da conta deste aparelho. Eles continuam salvos no ${providerName()} e voltam quando você entrar de novo.</p>
+    </section>
+    <section class="card"><h2 class="h-card">Documentos</h2><p class="muted" style="margin:6px 0 16px">Como tratamos seus dados e as regras de uso do app.</p>${legal}</section>
+    <section class="card danger-zone" aria-labelledby="danger-title">
+      <h2 class="h-card" id="danger-title" style="display:flex;align-items:center;gap:8px;color:var(--danger)">${icon("alert")} Zona de perigo</h2>
+      <p class="muted" style="margin:6px 0 16px">Exclui para sempre a sua conta e todos os seus dados: no ${providerName()} e neste aparelho. <b>Não dá para desfazer.</b></p>
+      <button class="btn btn-danger" data-act="delete-account">${icon("trash")} Excluir minha conta e todos os dados</button>
+    </section>
+  </div>`;
+}
+
+/** Step 1: what will be deleted. Needs the connection, because the copy in the cloud is deleted too. */
+function startDeleteAccount() {
+  const blocker = deletionBlocker({ online: navigator.onLine, hasSession: !!sync });
+  if (blocker === "offline") return toast("Sem internet. Para excluir também os dados da nuvem, conecte-se e tente de novo.");
+  if (blocker) return;
+  openModal({
+    title: "Excluir sua conta?", sub: esc(accountLabel()),
+    body: `<p class="muted">Isto apaga <b>para sempre</b>:</p>
+      <ul class="delete-list"><li>todos os lançamentos, gastos fixos, orçamentos, metas, viagens e categorias da conta;</li><li>as fotos de comprovante;</li><li>a cópia salva no seu ${providerName()};</li><li>os dados desta conta neste aparelho.</li></ul>
+      <p class="muted">O que você criou <b>sem conta</b> neste aparelho e as preferências do aparelho (tema, por exemplo) não são apagados. Não dá para desfazer.</p>
+      <p class="hint">Quer guardar uma cópia? <a href="javascript:void 0" data-act="export">Baixar backup</a> antes de continuar.</p>`,
+    foot: `<button type="button" class="btn btn-secondary" data-act="close">Cancelar</button><button type="submit" class="btn btn-danger">Continuar</button>`,
+    onSubmit: confirmDeleteStep,
+  });
+}
+/** Step 2: an explicit confirmation, typed, so a stray tap cannot delete anything. */
+function confirmDeleteStep() {
+  openModal({
+    title: "Confirme a exclusão", sub: esc(accountLabel()),
+    body: `<p class="muted">Esta é a última etapa. Depois dela, a conta e os dados somem e não podem ser recuperados.</p>
+      ${field(`Digite ${DELETE_PHRASE} para confirmar`, "dc", input("dc", "", `autocomplete="off" autocapitalize="characters" spellcheck="false" autofocus`))}`,
+    foot: `<button type="button" class="btn btn-secondary" data-act="close">Cancelar</button><button type="submit" class="btn btn-danger-solid" id="del-final" disabled>Excluir definitivamente</button>`,
+    onSubmit: runDeleteAccount,
+  });
+  const typed = document.querySelector('#modal [name="dc"]');
+  typed.addEventListener("input", () => { document.getElementById("del-final").disabled = !confirmationMatches(typed.value); });
+}
+/** Every file the app keeps in the account's hidden Drive folder (the data file and the photos). */
+async function listDriveAppFiles() {
+  const out = [];
+  let pageToken = "";
+  do {
+    const r = await drive(`/files?spaces=appDataFolder&fields=nextPageToken,files(id,name)&pageSize=1000${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}`);
+    out.push(...(r.files || []));
+    pageToken = r.nextPageToken || "";
+  } while (pageToken);
+  return out;
+}
+/** Deletes the account's copy in the cloud and checks nothing is left. Throws if it could not. */
+async function deleteCloudData() {
+  if (isGoogle()) {
+    for (const f of await listDriveAppFiles()) {
+      try { await drive(`/files/${f.id}`, { method: "DELETE" }); } catch (e) { if (!e.notFound) throw e; }
+    }
+    if ((await listDriveAppFiles()).length) throw new Error("Ainda restam arquivos na nuvem.");
+    return;
+  }
+  // Older GitHub accounts (dormant): the data gist and the photos gist.
+  for (const id of [sync.gistId, state.photosGistId].filter(Boolean)) {
+    let res;
+    try { res = await fetch(`${API}/gists/${id}`, { method: "DELETE", headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${sync.token}` } }); }
+    catch { throw new Error("Sem conexão com o GitHub. Verifique a internet."); }
+    if (!res.ok && res.status !== 404) throw new Error("Não foi possível excluir os dados no GitHub.");
+  }
+}
+/** Takes the app's access away from the Google account (best effort: it can also be removed at myaccount.google.com/connections). */
+async function revokeGoogleAccess() {
+  if (!isGoogle()) return;
+  try {
+    if (NATIVE && NativePlugins.SocialLogin) { await nativeSocialLogin(); await NativePlugins.SocialLogin.logout({ provider: "google" }); return; }
+    const access = sync.token && sync.token.access;
+    if (!access) return;
+    const google = await loadGis();
+    await new Promise((resolve) => { google.accounts.oauth2.revoke(access, resolve); setTimeout(resolve, 4000); });
+  } catch { /* the cloud data is already gone; the access can be removed by the person */ }
+}
+/** Removes this account's records, photos, session and per-account marks from the device. The no-account scope and the device preferences stay. */
+async function wipeAccountFromDevice(plan) {
+  for (const key of plan.localStorageKeys) {
+    try { localStorage.removeItem(key); } catch { /* private mode: nothing was kept */ }
+    delete celebratedMemory[key]; delete noticesMemory[key];
+  }
+  for (const name of plan.photoDatabases) await photoStore.drop(name);
+  if (plan.clearPhotoOwner) { try { localStorage.removeItem(PHOTO_OWNER_KEY); } catch { /* ignore */ } }
+  try { sessionStorage.removeItem(INCOMING_KEY); } catch { /* ignore */ }
+  if (NATIVE && BankNotif()) await BankNotif().takeQueue().catch(() => {}); // bank notifications still waiting in the reader
+  storeSync(null); syncStatus = "off"; setLocalMode(false);
+  replaceState(load());
+}
+/** The deletion, in an order that never leaves the person half-deleted without knowing: cloud first, then the access, then the device. */
+async function runDeleteAccount() {
+  const typed = document.querySelector('#modal [name="dc"]'), btn = document.getElementById("del-final");
+  if (!confirmationMatches(typed.value)) return showErrors({ dc: `Digite ${DELETE_PHRASE} para confirmar.` });
+  const plan = deletionPlan(sync, photoOwner());
+  if (!plan) return toast("Não há conta para excluir.");
+  btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = "Excluindo…";
+  const back = (msg) => { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = "Excluir definitivamente"; toast(msg); };
+  try {
+    // Right after the tap, so the browser lets Google's window open if the access ran out.
+    if (isGoogle() && !NATIVE && !(sync.token && sync.token.expiresAt > Date.now())) await reconnectGoogle();
+  } catch (e) { return back(e.message); }
+  try { await deleteCloudData(); }
+  catch (e) { return back(e.reauth ? "O acesso ao Google venceu. Toque em Excluir de novo para entrar com o Google e continuar." : "Não foi possível excluir os dados na nuvem. Nada foi apagado deste aparelho. Verifique a internet e tente de novo."); }
+  await revokeGoogleAccess();
+  await wipeAccountFromDevice(plan);
+  closeModal(); location.hash = href("entrar"); render();
+  toast("Sua conta e todos os seus dados foram excluídos.");
+}
+
 function viewConfiguracoes() {
   const dark = document.documentElement.dataset.theme === "dark";
   const notif = BankNotif() ? notifAppCard() : NATIVE ? `<section class="card"><h2 class="h-card">Notificações do banco</h2><p class="muted" style="margin-top:8px">Este aparelho não deixa um app ler as notificações de outros apps. Cole as notificações em <a class="t-primary" href="${href("importar")}">Importar</a>.</p></section>` : readerCard();
@@ -3530,7 +3708,7 @@ function viewConfiguracoes() {
       <h2 class="h-card">Privacidade</h2>
       <p class="muted" style="margin-top:8px">Seus dados ficam neste aparelho e na sua própria conta. Sem anúncios, sem rastreamento e sem servidor nosso.</p>
       <p class="muted" style="margin-top:8px">Gratuito apenas nesta fase de testes: depois da publicação oficial, o download na Google Play e na App Store será pago.</p>
-      <div class="actions" style="margin-top:12px"><a class="btn btn-secondary btn-sm" href="${PRIVACY_URL}" target="_blank" rel="noopener">Ler a política de privacidade</a></div>
+      <div class="actions" style="margin-top:12px"><a class="btn btn-secondary btn-sm" href="${PRIVACY_URL}" target="_blank" rel="noopener">Ler a política de privacidade</a><a class="btn btn-secondary btn-sm" href="${TERMS_URL}" target="_blank" rel="noopener">Termos de Uso</a>${sync ? `<a class="btn btn-secondary btn-sm" href="${href("perfil")}">Perfil e conta</a>` : ""}</div>
     </section>
     ${NATIVE ? `<section class="card"><h2 class="h-card">Sobre o app</h2><p class="muted" style="margin-top:8px">Versão ${esc(appVersion || "—")}. O app avisa sozinho quando sai uma versão nova.</p></section>` : ""}
   </div>`;
@@ -3719,7 +3897,7 @@ function deleteTripDialog(trip) {
   document.getElementById("trip-keep")?.addEventListener("click", () => finish(true));
 }
 
-const VIEWS = { painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, orcamentos: viewOrcamentos, viagens: viewViagens, categorias: viewCategorias, importar: viewImportar, configuracoes: viewConfiguracoes, backup: viewBackup };
+const VIEWS = { painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, orcamentos: viewOrcamentos, viagens: viewViagens, categorias: viewCategorias, importar: viewImportar, configuracoes: viewConfiguracoes, backup: viewBackup, perfil: viewPerfil };
 // A failed render must never leave a blank screen: show a way out instead (nothing is erased).
 function render() {
   try { renderPage(); } catch (err) {
@@ -3756,7 +3934,7 @@ function renderPage() {
   mountAssistant();
   if (drawerEl) setPageInert(true); // the redraw made new, interactive copies of what sits behind the drawer
   if (hasIncoming()) flushIncoming();
-  document.title = `${ROUTES.find((x) => x.path === r.path).label} · Minhas Finanças`;
+  document.title = `${(ROUTES.find((x) => x.path === r.path) || PROFILE_ROUTE).label} · Minhas Finanças`;
 }
 
 // ---------- Modal & toast ----------
@@ -4681,7 +4859,7 @@ let drawerEl = null, drawerPrevScroll = "", drawerTimer = null;
 const drawerThemeRow = () => { const dark = document.documentElement.dataset.theme === "dark"; return `<button type="button" class="drawer-row drawer-theme" data-act="theme" aria-pressed="${dark}">${icon(dark ? "sun" : "moon")}<span>${dark ? "Tema claro" : "Tema escuro"}</span></button>`; };
 function drawerHtml() {
   const account = sync
-    ? `<div class="drawer-account" title="${esc(accountLabel())}">${accountAvatar()}<span class="lbl">${isGoogle() && sync.name && sync.name !== sync.email ? `<b class="truncate">${esc(sync.name)}</b>` : ""}<span class="hint truncate">${esc(accountLabel())}</span></span></div><a href="javascript:void 0" data-act="logout">${icon("logout")} Sair</a>`
+    ? `<div class="drawer-account" title="${esc(accountLabel())}">${accountAvatar()}<span class="lbl">${isGoogle() && sync.name && sync.name !== sync.email ? `<b class="truncate">${esc(sync.name)}</b>` : ""}<span class="hint truncate">${esc(accountLabel())}</span></span></div><a href="${href("perfil")}" data-act="close-nav">${icon("user")} Perfil e conta</a><a href="javascript:void 0" data-act="logout">${icon("logout")} Sair</a>`
     : `<a href="${href("entrar")}" data-act="close-nav">${icon("lock")} Entrar com o Google</a>`;
   return `<div class="drawer-root" id="drawer-root" data-state="closed"><div class="drawer-backdrop" data-act="drawer-close"></div>
     <aside class="drawer" id="drawer" role="dialog" aria-label="Menu">
@@ -4798,7 +4976,7 @@ function viewAuth() {
         <button class="btn btn-ghost btn-sm" data-act="use-local">${hasLocal ? "Continuar sem conta" : "Usar sem conta (só neste aparelho)"}</button>
         <button class="icon-btn" data-act="theme" aria-label="Alternar tema claro/escuro">${icon(document.documentElement.dataset.theme === "dark" ? "sun" : "moon")}</button>
       </div>
-      <p class="auth-note">${icon("lock", 'style="width:14px;height:14px"')} Seus dados ficam na sua própria conta: na pasta do app no seu Google Drive. <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Política de privacidade</a></p>
+      <p class="auth-note">${icon("lock", 'style="width:14px;height:14px"')} Seus dados ficam na sua própria conta: na pasta do app no seu Google Drive. <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Política de privacidade</a> · <a href="${TERMS_URL}" target="_blank" rel="noopener">Termos de Uso</a></p>
       <p class="auth-note">Gratuito apenas nesta fase de testes; nas lojas oficiais (Google Play e App Store), o download será pago.</p>
     </div>
   </main>`;
@@ -5311,6 +5489,7 @@ document.addEventListener("click", (e) => {
     "change-pass": changePasswordDialog,
     "sync-fix": () => (syncStatus === "key" ? createPassphraseDialog() : pullIfNewer()),
     "logout": logoutForm,
+    "delete-account": startDeleteAccount,
     "cancel-import": () => { importDrafts = null; importInboxIds = null; render(); },
     "read-notifs": readPastedNotifications,
     "review-inbox": reviewInbox,

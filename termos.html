@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Termos de Uso · Minhas Finanças</title>
+<meta name="description" content="Regras de uso do Minhas Finanças, app pessoal de controle de gastos: o que o app faz, o que esperamos de você e o que você pode esperar do app." />
+<!-- RASCUNHO para revisão do responsável: confira o texto (principalmente responsabilidade, foro e contato) antes da publicação oficial nas lojas. -->
+<!-- Self-contained on purpose, like the privacy policy: no external fonts or scripts. -->
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f8f9ff; --card: #ffffff; --on: #0b1c30; --secondary: #565e74; --primary: #00685f;
+    --hairline: rgb(226 232 240 / .9); --c-low: #eff4ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0b1220; --card: #111a2b; --on: #e6edf8; --secondary: #a9b6cc; --primary: #6bd8cb;
+      --hairline: rgb(52 69 94 / .7); --c-low: #152035;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0b1220; --card: #111a2b; --on: #e6edf8; --secondary: #a9b6cc; --primary: #6bd8cb;
+    --hairline: rgb(52 69 94 / .7); --c-low: #152035;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--on); font: 400 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .logo { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--primary); color: var(--card); flex: none; }
+  h1 { margin: 0; font-size: 26px; line-height: 1.25; letter-spacing: -.01em; }
+  .sub { margin: 2px 0 0; color: var(--secondary); font-size: 14px; }
+  .summary { background: var(--card); border: 1px solid var(--hairline); border-radius: 16px; padding: 20px; margin-bottom: 28px; }
+  .summary ul { margin: 8px 0 0; padding-left: 20px; }
+  .summary li + li { margin-top: 6px; }
+  h2 { font-size: 19px; line-height: 1.3; margin: 32px 0 8px; }
+  p, li { color: var(--on); }
+  .muted { color: var(--secondary); }
+  a { color: var(--primary); font-weight: 600; text-underline-offset: 2px; overflow-wrap: anywhere; }
+  ul { padding-left: 22px; }
+  li + li { margin-top: 6px; }
+  .box { background: var(--c-low); border-radius: 12px; padding: 14px 16px; margin: 12px 0; }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--hairline); font-size: 14px; color: var(--secondary); }
+  @media (min-width: 640px) { main { padding: 48px 24px 80px; } h1 { font-size: 30px; } }
+</style>
+<script>
+  // Same theme as the app, when it was chosen there (same site, same storage).
+  try { const t = localStorage.getItem("mf-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+</script>
+</head>
+<body>
+<main>
+  <header>
+    <span class="logo" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+    </span>
+    <div>
+      <h1>Termos de Uso</h1>
+      <p class="sub">Minhas Finanças · versão de 17 de novembro de 2026</p>
+    </div>
+  </header>
+
+  <div class="box" role="note">
+    <b>Versão preliminar.</b> Este texto está em revisão e pode mudar antes do lançamento oficial nas lojas. Quando mudar, a data no topo é atualizada.
+  </div>
+
+  <section class="summary" aria-labelledby="resumo">
+    <h2 id="resumo" style="margin-top:0">Em poucas palavras</h2>
+    <ul>
+      <li>O Minhas Finanças ajuda você a <b>organizar os seus gastos</b>. Ele não é consultoria financeira, contábil, jurídica ou de investimentos.</li>
+      <li>Os dados são <b>seus</b>. Você pode exportá-los e excluir a sua conta quando quiser.</li>
+      <li>Use o app de forma honesta e cuidadosa com a sua conta Google e o seu aparelho.</li>
+      <li>Faça backups de vez em quando: o app é oferecido <b>como está</b>, sem garantia de que nunca vai falhar.</li>
+    </ul>
+  </section>
+
+  <h2>1. Aceitação</h2>
+  <p>Ao usar o Minhas Finanças (no navegador ou no aplicativo), você concorda com estes Termos e com a <a href="privacidade.html">Política de Privacidade</a>. Se não concordar, não use o app.</p>
+
+  <h2>2. O que o app faz</h2>
+  <p>O app permite registrar receitas e despesas, gastos fixos, orçamentos, metas e viagens, importar extratos e notificações para revisão, e ver resumos do seu mês. Os valores são calculados com base no que <b>você</b> informa ou confirma. O app não acessa a sua conta bancária e não movimenta dinheiro.</p>
+
+  <h2>3. Sua conta</h2>
+  <ul>
+    <li>Você pode usar o app <b>sem conta</b> (os dados ficam só no aparelho) ou entrar com o <b>Google</b> para guardar os dados na pasta do app no seu Google Drive.</li>
+    <li>Você é responsável por manter a sua conta Google e o seu aparelho seguros e por tudo o que for feito com eles.</li>
+    <li>Você precisa ter idade para usar serviços do Google e, no mínimo, 13 anos. Menores devem usar o app com a ciência de um responsável.</li>
+  </ul>
+
+  <h2>4. Seus dados</h2>
+  <p>Os dados que você cadastra continuam sendo seus. Nós não os recebemos nem guardamos: eles ficam no seu aparelho e na sua conta Google, como explica a Política de Privacidade. Você pode <b>exportar</b> uma cópia em arquivo e <b>excluir a sua conta e os seus dados</b> em <b>Perfil › Excluir minha conta e todos os dados</b>. A exclusão é definitiva e não pode ser desfeita.</p>
+
+  <h2>5. Uso adequado</h2>
+  <p>Você concorda em não:</p>
+  <ul>
+    <li>usar o app para atividades ilegais ou para prejudicar outras pessoas;</li>
+    <li>tentar acessar dados de outras pessoas, burlar limites técnicos ou interferir no funcionamento do app ou do site;</li>
+    <li>copiar, vender ou redistribuir o app, ou o seu código-fonte, de modo que viole os direitos de quem o criou.</li>
+  </ul>
+
+  <h2>6. Gratuidade na fase de testes e cobrança nas lojas</h2>
+  <p>Esta versão é <b>gratuita porque está em teste</b>. Depois da publicação oficial na Google Play e na App Store, será cobrado um <b>valor único</b> para baixar o app nas lojas oficiais; o valor aparece na página do app em cada loja. Não há assinatura nem cobrança dentro do app. As regras de pagamento, reembolso e uso da loja são as da própria loja.</p>
+
+  <h2>7. Precisão das informações</h2>
+  <p>Fazemos o possível para que os cálculos estejam corretos, mas o app depende do que é informado, importado ou lido de notificações, extratos e outras fontes, que podem conter erros ou mudar de formato. <b>Confira as informações importantes</b> antes de tomar decisões financeiras com base nelas.</p>
+
+  <h2>8. Disponibilidade e mudanças</h2>
+  <p>O app pode ficar indisponível por manutenção ou por problemas fora do nosso controle (como falhas do GitHub Pages ou do Google). Podemos atualizar, alterar ou descontinuar funcionalidades. Como os dados ficam com você, recomendamos exportar um backup de vez em quando.</p>
+
+  <h2>9. Sem garantias e limite de responsabilidade</h2>
+  <p>O app é oferecido <b>"como está"</b>. Na extensão permitida pela lei, não garantimos que ele funcionará sem interrupções ou erros e não nos responsabilizamos por perdas indiretas, por dados perdidos por falta de backup, por decisões tomadas com base nas informações do app ou por falhas de serviços de terceiros. Nada nestes Termos limita direitos que a lei, inclusive o Código de Defesa do Consumidor, garante a você.</p>
+
+  <h2>10. Propriedade intelectual</h2>
+  <p>O app, o seu nome, a sua marca e o seu design pertencem a quem o criou. Estes Termos não transferem nenhum direito de propriedade a você; apenas permitem o uso pessoal do app, conforme descrito aqui.</p>
+
+  <h2>11. Encerramento</h2>
+  <p>Você pode parar de usar o app e excluir a sua conta quando quiser. Podemos suspender o acesso de quem violar estes Termos.</p>
+
+  <h2>12. Mudanças nestes Termos</h2>
+  <p>Se estes Termos mudarem, a data no topo é atualizada. Mudanças importantes também são avisadas no app. Continuar usando o app depois da mudança significa que você concorda com o novo texto.</p>
+
+  <h2>13. Lei aplicável</h2>
+  <p>Estes Termos seguem as leis do Brasil. Qualquer dúvida ou conflito será tratado conforme a legislação brasileira, respeitados os direitos do consumidor.</p>
+
+  <h2>14. Contato</h2>
+  <p>Dúvidas sobre estes Termos: abra um chamado em <a href="https://github.com/gabrielmacsantos/sistema_gestao/issues">github.com/gabrielmacsantos/sistema_gestao/issues</a>.</p>
+
+  <footer><a href="./">Voltar para o Minhas Finanças</a> · <a href="privacidade.html">Política de Privacidade</a></footer>
+</main>
+</body>
+</html>
