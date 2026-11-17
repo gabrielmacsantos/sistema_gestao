@@ -131,7 +131,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           </SlidingTabs>
         </div>
         <div className="border-b border-hairline px-4 pb-4">
-          <LedgerFilters key={`${month}|${tipo}`} filters={filters} categories={categories} />
+          <LedgerFilters filters={filters} categories={categories} />
         </div>
 
         {transactions.length === 0 ? (
