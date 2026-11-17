@@ -422,16 +422,14 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 /* Modal + toast */
 .overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: var(--scrim); backdrop-filter: blur(2px); animation: fade .15s; padding-top: env(safe-area-inset-top); }
 @media (min-width: 640px) { .overlay { align-items: center; padding: 16px; } }
-/* Phone menu drawer: anchored to the right edge (next to the hamburger), slides in from the right. Same layer as .overlay. */
-:root { --drawer-dur: 280ms; --drawer-ease: cubic-bezier(.32,.72,0,1); --drawer-w: min(320px, 86vw); }
-.drawer-root { position: fixed; inset: 0; z-index: 60; }
+/* Phone menu drawer: drops down from behind the header (the header and its hamburger/X stay on top and close it). Same layer as .overlay. */
+:root { --drawer-dur: 280ms; --drawer-ease: cubic-bezier(.32,.72,0,1); --drawer-top: calc(env(safe-area-inset-top) + 65px); }
+.drawer-root { position: fixed; inset: var(--drawer-top) 0 0 0; z-index: 60; overflow: hidden; }
 .drawer-backdrop { position: absolute; inset: 0; background: var(--scrim); opacity: 0; transition: opacity var(--drawer-dur) var(--drawer-ease); }
-.drawer { position: absolute; top: 0; right: 0; bottom: 0; width: var(--drawer-w); display: flex; flex-direction: column; background: var(--card); border-left: 1px solid var(--hairline); box-shadow: var(--shadow-3); padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) 0; transform: translateX(100%); transition: transform var(--drawer-dur) var(--drawer-ease); will-change: transform; }
-.drawer-root[data-state="open"] .drawer { transform: translateX(0); }
+.drawer { position: absolute; top: 0; left: 0; right: 0; max-height: 100%; display: flex; flex-direction: column; background: var(--card); border-bottom: 1px solid var(--hairline); border-radius: 0 0 20px 20px; box-shadow: var(--shadow-3); padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); transform: translateY(-100%); transition: transform var(--drawer-dur) var(--drawer-ease); will-change: transform; }
+.drawer-root[data-state="open"] .drawer { transform: translateY(0); }
 .drawer-root[data-state="open"] .drawer-backdrop { opacity: 1; }
-.drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 64px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--hairline); flex: none; }
-.drawer-head .icon-btn { width: 44px; height: 44px; }
-.drawer-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 8px 20px 16px; }
+.drawer-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 8px 20px 12px; }
 .drawer-body .sheet-nav a { min-height: 44px; }
 .drawer-label { margin: 16px 0 4px; font: 600 12px/16px var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--secondary); }
 .drawer-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 8px 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
@@ -1710,7 +1708,7 @@ function setSyncStatus(status) {
   const menu = document.querySelector('[data-act="menu"]');
   if (menu) { menu.classList.toggle("has-alert", syncNeedsAttention(status)); menu.setAttribute("aria-label", menuLabel()); }
 }
-const menuLabel = () => (syncNeedsAttention(syncStatus) ? "Mais opções. A sincronização precisa de atenção" : "Mais opções");
+const menuLabel = () => (menuOpen ? "Fechar menu" : syncNeedsAttention(syncStatus) ? "Mais opções. A sincronização precisa de atenção" : "Mais opções");
 const syncView = () => ({ ok: ["ok", "checkCircle", `Salvo no ${providerName()}`], saving: ["", "cloud", "Salvando…"], error: ["err", "alert", "Erro ao salvar"] }[syncStatus] || ["ok", "checkCircle", `Salvo no ${providerName()}`]);
 function syncBadge() {
   if (!sync) return "";
@@ -3004,6 +3002,7 @@ function renderPage() {
   if (tabsPath !== r.path) { tabsMemory.clear(); tabsPath = r.path; } // another screen: its bars do not glide from the last one
   paintTabs(document.getElementById("app"));
   mountAssistant();
+  if (drawerEl) setPageInert(true); // the redraw made new, interactive copies of what sits behind the drawer
   if (hasIncoming()) flushIncoming();
   document.title = `${ROUTES.find((x) => x.path === r.path).label} · Minhas Finanças`;
 }
@@ -3027,6 +3026,7 @@ function setMenuOpen(open) {
   const button = document.querySelector('[data-act="menu"]');
   if (!button) return;
   button.setAttribute("aria-expanded", String(open));
+  button.setAttribute("aria-label", menuLabel());
   button.querySelector(".t-icon-swap")?.setAttribute("data-state", open ? "b" : "a");
 }
 const closeModal = () => { stopVoice(); teardownDrawer(); document.getElementById("layer").innerHTML = ""; modalSubmit = null; if (menuOpen) setMenuOpen(false); };
@@ -3924,7 +3924,7 @@ function confirmDialog(title, text, label, onYes) {
   openModal({ title, body: `<p class="muted">${text}</p>`, foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-danger btn-sm">${label}</button>`, onSubmit: () => { onYes(); closeModal(); render(); } });
 }
 
-// Phone menu: a drawer anchored to the right edge that slides in from the right (lives in #layer, so render() keeps it).
+// Phone menu: a drawer that drops down from behind the header (lives in #layer, so render() keeps it).
 let drawerEl = null, drawerPrevScroll = "", drawerTimer = null;
 const drawerThemeRow = () => { const dark = document.documentElement.dataset.theme === "dark"; return `<button type="button" class="drawer-row drawer-theme" data-act="theme" aria-pressed="${dark}">${icon(dark ? "sun" : "moon")}<span>${dark ? "Tema claro" : "Tema escuro"}</span></button>`; };
 function drawerHtml() {
@@ -3932,8 +3932,7 @@ function drawerHtml() {
     ? `<a href="javascript:void 0" data-act="logout">${icon("logout")} Sair (${esc(accountLabel())})</a>`
     : `<a href="${href("entrar")}" data-act="close-nav">${icon("lock")} Entrar com o Google</a>`;
   return `<div class="drawer-root" id="drawer-root" data-state="closed"><div class="drawer-backdrop" data-act="drawer-close"></div>
-    <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
-      <div class="drawer-head"><h3 class="h-card" id="drawer-title">Menu</h3><button type="button" class="icon-btn" data-act="drawer-close" aria-label="Fechar menu">${icon("x")}</button></div>
+    <aside class="drawer" id="drawer" role="dialog" aria-label="Menu">
       <div class="drawer-body">
         <nav class="sheet-nav" aria-label="Seções">${ROUTES.map((x) => `<a href="${navHref(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}</nav>
         <h4 class="drawer-label">Aparência</h4>${drawerThemeRow()}
@@ -3947,24 +3946,24 @@ function menuSheet() {
   const layer = document.getElementById("layer");
   layer.innerHTML = drawerHtml();
   drawerEl = document.getElementById("drawer-root");
-  const app = document.getElementById("app"), asst = document.getElementById("asst");
-  app.inert = true; if (asst) asst.inert = true;
+  setPageInert(true);
   drawerPrevScroll = document.body.style.overflow; document.body.style.overflow = "hidden";
   setMenuOpen(true);
   void drawerEl.offsetWidth; // paint the closed position first, so the slide plays
-  drawerEl.dataset.state = "open";
-  drawerEl.querySelector('[data-act="drawer-close"].icon-btn').focus({ preventScroll: true });
+  drawerEl.dataset.state = "open"; // focus stays on the hamburger (now the X): it is the control that closes the drawer
 }
+// The header stays usable (its X closes the drawer), so only the content behind the drawer is inert.
+const PAGE_BEHIND = "#main, .bottomnav, .rail, .rail-toggle, #asst";
+const setPageInert = (on) => document.querySelectorAll(PAGE_BEHIND).forEach((el) => { el.inert = on; });
 /** Removes the drawer at once and gives the page back (scroll, focus, inert). No animation. */
 function teardownDrawer() {
   if (!drawerEl) return;
   clearTimeout(drawerTimer); drawerTimer = null;
   drawerEl.remove(); drawerEl = null;
-  document.getElementById("app").inert = false;
-  const asst = document.getElementById("asst"); if (asst) asst.inert = false;
+  setPageInert(false);
   document.body.style.overflow = drawerPrevScroll;
 }
-/** Slides the drawer back to the right, then tears it down. `restoreFocus` is false when a link is navigating away. */
+/** Slides the drawer back up behind the header, then tears it down. `restoreFocus` is false when a link is navigating away. */
 function closeDrawer(restoreFocus = true) {
   if (!drawerEl || drawerEl.dataset.state === "closing") return;
   setMenuOpen(false);
@@ -3976,7 +3975,7 @@ function closeDrawer(restoreFocus = true) {
 // Keeps Tab inside the open drawer.
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Tab" || !drawerEl) return;
-  const items = [...drawerEl.querySelectorAll("a[href], button:not([disabled])")].filter((x) => x.offsetParent !== null || x === document.activeElement);
+  const items = [document.querySelector('[data-act="menu"]'), ...drawerEl.querySelectorAll("a[href], button:not([disabled])")].filter((x) => x && (x.offsetParent !== null || x === document.activeElement));
   const next = trapFocusIndex(items.length, items.indexOf(document.activeElement), e.shiftKey);
   if (next >= 0) { e.preventDefault(); items[next].focus(); }
 });
@@ -4458,7 +4457,7 @@ document.addEventListener("click", (e) => {
       const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem("mf-theme", t); } catch {} render();
       const row = document.querySelector(".drawer-theme"); if (row) { row.outerHTML = drawerThemeRow(); document.querySelector(".drawer-theme").focus({ preventScroll: true }); }
     },
-    "menu": menuSheet, "close": closeModal, "notices": noticesSheet, "drawer-close": () => closeDrawer(),
+    "menu": () => (drawerEl ? closeDrawer() : menuSheet()), "close": closeModal, "notices": noticesSheet, "drawer-close": () => closeDrawer(),
     "rail-toggle": () => {
       const collapsed = !isRailCollapsed();
       if (collapsed) document.documentElement.dataset.rail = "collapsed"; else delete document.documentElement.dataset.rail;

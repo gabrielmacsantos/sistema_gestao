@@ -61,7 +61,8 @@ test("phone: the bottom bar navigates and the menu button swaps hamburger and cl
   await bottom.getByRole("link", { name: "Fixos" }).click();
   await expect(page).toHaveTitle(/Gastos fixos/);
 
-  const menu = page.getByRole("button", { name: "Mais opções" });
+  // Its name flips to "Fechar menu" while the drawer is open, so find it by what it does.
+  const menu = page.locator('[data-act="menu"]');
   await expect(menu).toHaveAttribute("aria-expanded", "false");
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
@@ -72,15 +73,24 @@ test("phone: the bottom bar navigates and the menu button swaps hamburger and cl
   await expect(menu).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  // The drawer holds the theme switch, locks the page scroll and closes with Esc.
+  // The drawer drops from behind the header and holds the theme switch, locks the page scroll and closes with Esc.
   await menu.click();
+  await expect(menu).toHaveAccessibleName("Fechar menu");
   const drawer = page.getByRole("dialog", { name: "Menu" });
+  await expect(drawer.getByRole("button", { name: "Fechar menu" })).toHaveCount(0); // the hamburger is the only X
   await expect(drawer.getByRole("button", { name: /Tema (claro|escuro)/ })).toBeVisible();
   await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
   await expect(menu).toBeFocused();
+
+  // The same button closes it again.
+  await menu.click();
+  await expect(drawer).toBeVisible();
+  await menu.click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(menu).toHaveAccessibleName("Mais opções");
 
   // The header keeps at most three actions and the full brand name.
   const brand = page.locator(".mob-brand .brand-name");
