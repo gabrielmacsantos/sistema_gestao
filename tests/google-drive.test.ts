@@ -8,20 +8,18 @@ const block = (name: string) => {
   if (!code) throw new Error(`${name} block not found in index.html`);
   return code;
 };
-const { driveDataFile, readDriveDataFile, driveMultipart } = new Function(
-  `${block("money-check")}\n${block("google-drive")}\nreturn { driveDataFile, readDriveDataFile, driveMultipart };`,
+const { readDriveDataFile, driveMultipart } = new Function(
+  `${block("money-check")}\n${block("google-drive")}\nreturn { readDriveDataFile, driveMultipart };`,
 )() as {
-  driveDataFile: (data: object) => string;
   readDriveDataFile: (text: string) => { savedAt: number; data: { transactions: unknown[] } };
   driveMultipart: (meta: object, content: string, mime: string, boundary: string) => { type: string; parts: string[] };
 };
 
 const state = { version: 1, savedAt: 1731600000000, categories: [], transactions: [{ amountCents: 4590 }], recurrings: [] };
 
-describe("Drive data file", () => {
-  it("round-trips the state with its savedAt", () => {
-    const text = driveDataFile(state);
-    expect(JSON.parse(text)).toMatchObject({ app: "minhas-financas", format: "drive-1", savedAt: 1731600000000 });
+describe("Drive data file (older plain format)", () => {
+  it("still reads the state with its savedAt", () => {
+    const text = JSON.stringify({ app: "minhas-financas", format: "drive-1", savedAt: 1731600000000, state });
     expect(readDriveDataFile(text)).toEqual({ savedAt: 1731600000000, data: state });
   });
 
