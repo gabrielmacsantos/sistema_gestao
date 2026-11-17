@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import type { SpokenTransaction } from "@/lib/voice-parser";
+import { SlidingTabs } from "@/components/sliding-tabs";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Field, FormMessage, Input, Select, Textarea } from "@/components/ui/form";
 import { MoneyInput } from "@/components/ui/money-input";
 import { PAYMENT_METHODS, type CategoryOption } from "@/lib/constants";
 import { formatCentsInput } from "@/lib/money";
-import { cn } from "@/lib/utils";
 import type { ActionState } from "@/lib/validation";
 import { saveTransactionAction } from "./actions";
 import { VoiceCard } from "./voice-card";
@@ -74,19 +74,9 @@ export function TransactionForm({
 
       <fieldset>
         <legend className="sr-only">Tipo</legend>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-surface-container p-1">
+        <SlidingTabs kind="radio" fill>
           {(["EXPENSE", "INCOME"] as const).map((t) => (
-            <label
-              key={t}
-              className={cn(
-                "cursor-pointer rounded-md py-2.5 text-center text-body-md font-medium transition-[background-color,color,box-shadow] duration-150 motion-reduce:transition-none has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary",
-                type === t
-                  ? t === "EXPENSE"
-                    ? "bg-surface-container-lowest text-danger shadow-sm"
-                    : "bg-surface-container-lowest text-primary shadow-sm"
-                  : "text-secondary",
-              )}
-            >
+            <label key={t} data-active={type === t} data-tone={t === "EXPENSE" ? "exp" : undefined} className="t-tab">
               <input
                 type="radio"
                 name="type"
@@ -98,7 +88,7 @@ export function TransactionForm({
               {t === "EXPENSE" ? "Despesa" : "Receita"}
             </label>
           ))}
-        </div>
+        </SlidingTabs>
       </fieldset>
 
       <Field label="Descrição" htmlFor="description" error={errors.description}>

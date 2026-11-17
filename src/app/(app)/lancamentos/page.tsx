@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, CirclePlus, Clock } from "lucide-react";
 import { MonthPicker } from "@/components/month-picker";
+import { SlidingTabs } from "@/components/sliding-tabs";
 import { TransactionList } from "@/components/transaction-list";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState, MetricCard, PageHeader } from "@/components/ui/card";
@@ -12,7 +13,6 @@ import { ensureOccurrences } from "@/server/services/recurring";
 import { searchTransactions } from "@/server/services/transactions";
 import { formatMonthLabel, monthRange } from "@/lib/dates";
 import { monthParam, param, type SearchParams } from "@/lib/search-params";
-import { cn } from "@/lib/utils";
 import { LedgerFilters } from "./ledger-filters";
 import { StatusToggle } from "./status-toggle";
 
@@ -109,7 +109,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
             basePath="/lancamentos"
             params={{ tipo, categoria: categoryId, status: statusParam, busca: busca || undefined }}
           />
-          <nav aria-label="Tipo" className="flex items-center self-start rounded-lg border border-hairline bg-surface p-1 text-label-md">
+          <SlidingTabs kind="nav" aria-label="Tipo" className="self-start">
             {(
               [
                 [undefined, "Todos"],
@@ -122,15 +122,13 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                 href={filterHref({ tipo: value })}
                 scroll={false}
                 aria-current={tipo === value ? "true" : undefined}
-                className={cn(
-                  "relative rounded-md px-3 py-1.5 after:absolute after:-inset-1",
-                  tipo === value ? "bg-surface-container-lowest font-semibold text-primary shadow-xs" : "text-secondary hover:text-on-surface",
-                )}
+                data-active={tipo === value}
+                className="t-tab"
               >
                 {label}
               </Link>
             ))}
-          </nav>
+          </SlidingTabs>
         </div>
         <div className="border-b border-hairline px-4 pb-4">
           <LedgerFilters key={`${month}|${tipo}`} filters={filters} categories={categories} />

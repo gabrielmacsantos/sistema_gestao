@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useState, useTransition } from "react";
+import { SlidingTabs } from "@/components/sliding-tabs";
 import { FormMessage } from "@/components/ui/form";
 import type { CategoryOption } from "@/lib/constants";
-import { cn } from "@/lib/utils";
 import type { TransactionDraft } from "@/lib/validation";
 import { readNfceAction, readReceiptAction, readStatementAction, type ImportResult } from "./actions";
 import { DraftReview } from "./draft-review";
@@ -46,26 +46,31 @@ export function ImportClient({
 
   return (
     <div className="flex flex-col gap-4">
-      <div role="tablist" className="grid grid-cols-3 gap-1 rounded-lg bg-surface-container p-1">
+      <SlidingTabs aria-label="Origem dos lançamentos" fill>
         {TABS.map((t) => (
           <button
             key={t.id}
+            type="button"
             role="tab"
+            id={`import-tab-${t.id}`}
             aria-selected={tab === t.id}
+            aria-controls="import-panel"
+            tabIndex={tab === t.id ? 0 : -1}
+            data-active={tab === t.id}
             onClick={() => { setTab(t.id); setError(null); }}
-            className={cn(
-              "rounded-md py-2 text-body-sm font-medium sm:text-body-md",
-              tab === t.id
-                ? "bg-surface-container-lowest shadow-sm"
-                : "text-secondary",
-            )}
+            className="t-tab"
           >
             {t.label}
           </button>
         ))}
-      </div>
+      </SlidingTabs>
 
-      <div className="rounded-2xl border border-hairline bg-surface-container-lowest p-4">
+      <div
+        role="tabpanel"
+        id="import-panel"
+        aria-labelledby={`import-tab-${tab}`}
+        className="rounded-2xl border border-hairline bg-surface-container-lowest p-4"
+      >
         {tab === "nfce" && <NfceTab onQr={onQr} busy={busy} />}
         {tab === "foto" &&
           (photoEnabled ? (
