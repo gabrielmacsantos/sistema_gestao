@@ -1,7 +1,11 @@
 import type { Page, Request } from "@playwright/test";
 import { expect, test } from "./support";
 
-// Encrypted sync: nothing financial reaches Drive in clear text, and it waits for the person's password.
+// Google sync. ENCRYPTED_SYNC (password + recovery key) is switched off in index.html: signing in goes straight
+// in and the Drive file is the plain one. The encrypted-sync tests run only if someone switches it back on.
+
+/** Whether index.html has the encrypted sync switched on. */
+const encryptedSyncOn = (page: Page) => page.evaluate("ENCRYPTED_SYNC") as Promise<boolean>;
 
 const DRIVE = "https://www.googleapis.com/**";
 const session = {
@@ -41,12 +45,29 @@ async function openSignedIn(page: Page, state: object) {
   }, { session, state });
 }
 
+test("with encrypted sync off, Google sign-in goes straight in and the Drive file is the plain one", async ({ page }) => {
+  const remote = stateWith("Mercado da Ana", 12345678);
+  const local = { ...remote, savedAt: remote.savedAt + 1000 }; // newer than the cloud: the next sync uploads it
+  const uploads = await fakeDrive(page, remote);
+  await openSignedIn(page, local);
+  await page.goto("/#/backup");
+  await page.reload();
+  test.skip(await encryptedSyncOn(page), "Encrypted sync is switched on.");
+
+  await expect(page.getByRole("dialog")).toHaveCount(0); // no password window, no recovery key window
+  await expect.poll(() => uploads.length).toBeGreaterThan(0);
+  expect(uploads.join("\n")).toContain('"format":"drive-1"');
+  await expect(page.getByRole("button", { name: "Trocar senha" })).toHaveCount(0);
+  await expect(page.getByText("Senha e chave de recuperação")).toHaveCount(0);
+});
+
 test("without a password nothing is uploaded, and creating one uploads only ciphertext", async ({ page }) => {
   const state = stateWith("Mercado da Ana", 12345678);
   const uploads = await fakeDrive(page, state);
   await openSignedIn(page, state);
   await page.goto("/#/backup");
   await page.reload();
+  test.skip(!(await encryptedSyncOn(page)), "Encrypted sync is switched off.");
 
   // The older plain file is read, but the first sync asks for the password instead of sending anything.
   await expect(page.getByRole("dialog", { name: "Proteger seus dados com uma senha" })).toBeVisible();
@@ -82,6 +103,7 @@ test("skipping the recovery key keeps the account working and the Backup page of
   await openSignedIn(page, state);
   await page.goto("/#/backup");
   await page.reload();
+  test.skip(!(await encryptedSyncOn(page)), "Encrypted sync is switched off.");
   const dialog = page.getByRole("dialog", { name: "Proteger seus dados com uma senha" });
   await dialog.getByLabel("Senha de criptografia").fill("uma frase bem longa");
   await dialog.getByLabel("Repita a senha").fill("uma frase bem longa");

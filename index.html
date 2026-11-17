@@ -1563,6 +1563,11 @@ const connectivityLabel = (online, hasSession) => (hasSession && !online ? OFFLI
 const SYNC_KEY = "minhas-financas:github";
 const LOCAL_KEY = "minhas-financas:local";
 const PHOTO_OWNER_KEY = "minhas-financas:photo-owner";
+// ENCRYPTED SYNC (password, recovery key, drive-2/drive-3 files, encrypted photos) is built and tested but
+// switched OFF: it is not going to be implemented for now. With the switch off, signing in with Google goes
+// straight in, with no password, and the Drive file is the plain "drive-1" one, as before. The code under
+// `if (ENCRYPTED_SYNC)` and the <drive-crypto> block stay for a later decision; changing this to true turns it all back on.
+const ENCRYPTED_SYNC = false;
 let sync = loadSync();
 const activeScope = () => scopeOf(sync);
 const DEFAULT_CATEGORIES = [
@@ -1815,14 +1820,18 @@ async function pushNow() {
   // Offline: the change is already saved on the device; the copy goes up when the connection is back (see the "online" event).
   if (!navigator.onLine) { setSyncStatus("ok"); return; }
   if (isGoogle()) {
-    // Nothing financial goes up without the person's password, and nothing overwrites a conflict they have not settled.
-    if (!sync.dkey) { setSyncStatus("key"); queueKeyPrompt(); return; }
+    // Nothing financial goes up without the person's password (encrypted sync only), and nothing overwrites a conflict they have not settled.
+    if (ENCRYPTED_SYNC && !sync.dkey) { setSyncStatus("key"); queueKeyPrompt(); return; }
     if (conflictPending) { setSyncStatus("conflict"); return; }
   }
   const scope = activeScope();
   pushing = true; setSyncStatus("saving");
   try {
-    if (isGoogle()) {
+    if (isGoogle() && !ENCRYPTED_SYNC) {
+      const fileId = await writeDriveFile(sync.fileId, DRIVE_FILE, driveDataFile(outgoing), "application/json");
+      const now = Date.now();
+      if (scope === activeScope()) storeSync({ ...sync, fileId, lastPush: now, lastSync: now, base: outgoing.savedAt || 0 });
+    } else if (isGoogle()) {
       // A session from before the recovery key holds the password-derived key: it becomes the password wrap of a new
       // random data key. The change is kept only once the upload worked.
       const upgrade = sync.dfmt === 3 ? null : await buildV3Upgrade();
@@ -1901,7 +1910,7 @@ async function fetchDriveCopy() {
 function markSynced(base) {
   storeSync({ ...sync, base, lastSync: Date.now() });
   setSyncStatus("ok");
-  if (isGoogle() && sync.dold) migratePhotos();
+  if (ENCRYPTED_SYNC && isGoogle() && sync.dold) migratePhotos();
 }
 /** Sessions from before the recovery key: a new random data key whose password wrap is opened by the key they already hold. */
 async function buildV3Upgrade() {
@@ -1945,7 +1954,7 @@ async function openPhotoBytes(buffer, id) {
 function applyRemote(remote) {
   replaceState(remote.data); persist(); markSynced(remote.savedAt); render();
   toast("Dados atualizados com o que foi salvo no Google Drive.");
-  if (remote.format === "drive-1") return pushNow();
+  if (ENCRYPTED_SYNC && remote.format === "drive-1") return pushNow();
 }
 /** Take the Drive copy if only it changed, send ours if only ours did, ask the person if both did. */
 async function pullFromDrive() {
@@ -1955,7 +1964,12 @@ async function pullFromDrive() {
     let remote;
     try { remote = await fetchDriveCopy(); }
     catch (e) {
-      if (e.needsKey) { if (scope === activeScope()) { setSyncStatus("key"); queueKeyPrompt(); } return; }
+      if (e.needsKey) {
+        if (scope !== activeScope()) return;
+        if (ENCRYPTED_SYNC) { setSyncStatus("key"); queueKeyPrompt(); return; }
+        setSyncStatus("error");
+        return toast("Os dados desta conta na nuvem estão criptografados por uma versão de teste e este aparelho não tem a chave.");
+      }
       throw e;
     }
     if (scope !== activeScope()) return; // signed out or switched account meanwhile: this copy is not ours to apply
@@ -1965,7 +1979,7 @@ async function pullFromDrive() {
     if (decision === "conflict") return askConflict(remote);
     conflictPending = false;
     markSynced(remote.savedAt);
-    if (remote.format === "drive-1") return pushNow(); // the older plain file becomes an encrypted one
+    if (ENCRYPTED_SYNC && remote.format === "drive-1") return pushNow(); // the older plain file becomes an encrypted one
   } catch (e) {
     if (scope !== activeScope()) return;
     if (e.badKey) { setSyncStatus("error"); return toast("A senha guardada neste aparelho não abre os dados da nuvem. Saia e entre de novo."); }
@@ -2260,7 +2274,11 @@ const googleMark = () => `<svg class="g-mark" viewBox="0 0 48 48" aria-hidden="t
 const googleButton = (label = "Continuar com o Google") => `<button type="button" class="btn-google" data-act="google-sign-in">${googleMark()}<span>${label}</span></button>`;
 
 // <google-drive> Self-contained (uses hasValidMoney): tests/google-drive.test.ts loads this block.
-/** Reads the older plain data file ("drive-1", from before the encryption password), refusing anything that is not our data with integer cents. */
+/** The data file kept in Drive: plain JSON, protected by the Google account (Drive's app folder). */
+function driveDataFile(data) {
+  return JSON.stringify({ app: "minhas-financas", format: "drive-1", savedAt: data.savedAt || 0, state: data });
+}
+/** Reads the plain data file ("drive-1"), refusing anything that is not our data with integer cents. */
 function readDriveDataFile(text) {
   const file = JSON.parse(text);
   const data = file && file.app === "minhas-financas" ? file.state : null;
@@ -2750,6 +2768,14 @@ async function getPhoto(id) {
   try { const rec = await photoDb.get(id); if (rec) return rec.blob; } catch {}
   if (isGoogle()) {
     try {
+      if (!ENCRYPTED_SYNC) {
+        const plainId = await findDriveFile(photoLegacyDriveName(id));
+        if (plainId) {
+          const blob = await drive(`/files/${plainId}?alt=media`, { as: "blob" });
+          photoDb.put({ id, blob, uploaded: true }).catch(() => {});
+          return blob;
+        }
+      }
       const encryptedId = await findDriveFile(photoDriveName(id));
       if (encryptedId) {
         if (!sync.dkey) return null;
@@ -2786,6 +2812,11 @@ function syncPhotos() {
       const pending = (await photoDb.all()).filter((r) => !r.uploaded);
       for (const rec of pending) {
         if (isGoogle()) {
+          if (!ENCRYPTED_SYNC) {
+            await writeDriveFile(null, photoLegacyDriveName(rec.id), rec.blob, "image/jpeg");
+            await photoDb.put({ id: rec.id, blob: rec.blob, uploaded: true });
+            continue;
+          }
           if (!sync.dkey) return false; // nothing leaves the device without the password
           const sealed = await sealBytes(await rec.blob.arrayBuffer(), await importDriveKey(sync.dkey), photoAad(sync.sub, rec.id));
           await writeDriveFile(null, photoDriveName(rec.id), new Blob([sealed]), "application/octet-stream");
@@ -3525,7 +3556,7 @@ function viewReview() {
 
 /** Password and recovery key of a Google account (what to do if the password is forgotten). */
 function securityCard() {
-  if (!sync || !isGoogle() || !sync.dkey) return "";
+  if (!ENCRYPTED_SYNC || !sync || !isGoogle() || !sync.dkey) return "";
   const rec = sync.dfmt === 3 && sync.drec;
   const when = rec && rec.at ? new Date(rec.at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "";
   return `<section class="card"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("lock")} Senha e chave de recuperação</h2>
@@ -3538,8 +3569,8 @@ function viewBackup() {
   const github = sync
     ? `<section class="card" style="grid-column:1/-1;border-color:color-mix(in srgb,var(--success) 35%,transparent)">
         <div class="card-head" style="margin-bottom:8px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${isGoogle() ? googleMark() : icon("github")} ${isGoogle() ? `Conta Google ${esc(sync.email)}` : `Conta @${esc(sync.login)}`}</h2><span class="badge ${syncNeedsAttention(syncStatus) ? "b-warning" : "b-success"}">${{ error: "Erro no último envio", saving: "Salvando…", key: "Falta a senha", conflict: "Conflito a resolver", reauth: "Toque para sincronizar" }[syncStatus] || `Salvo no ${providerName()}`}</span></div>
-        <p class="muted">${isGoogle() ? "Cada alteração é criptografada neste aparelho, com a sua senha, antes de ser salva na pasta do app no seu Google Drive (só este app a vê, e ela não aparece entre os seus arquivos)." : "Cada alteração é criptografada com a sua senha e salva automaticamente na sua conta do GitHub."} <b id="sync-last" aria-live="polite">${esc(syncLastText())}</b></p>
-        <p class="hint" style="margin-top:6px">Em outro aparelho, ${isGoogle() ? "entre com o Google, com a mesma conta, e digite a senha de criptografia" : "entre com seu usuário do GitHub e sua senha"}. Em computador compartilhado, use <b>Sair</b> ao terminar.</p>
+        <p class="muted">${isGoogle() ? "Cada alteração é salva automaticamente na pasta do app no seu Google Drive (só este app a vê, e ela não aparece entre os seus arquivos)." : "Cada alteração é criptografada com a sua senha e salva automaticamente na sua conta do GitHub."} <b id="sync-last" aria-live="polite">${esc(syncLastText())}</b></p>
+        <p class="hint" style="margin-top:6px">Em outro aparelho, ${isGoogle() ? (ENCRYPTED_SYNC ? "entre com o Google, com a mesma conta, e digite a senha de criptografia" : "entre com o Google, com a mesma conta") : "entre com seu usuário do GitHub e sua senha"}. Em computador compartilhado, use <b>Sair</b> ao terminar.</p>
         <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="sync-now">${icon("cloud")} Sincronizar agora</button><button class="btn btn-ghost btn-sm" data-act="logout">${icon("logout")} Sair</button></div>
       </section>`
     : `<section class="card welcome" style="grid-column:1/-1">
@@ -4699,8 +4730,6 @@ document.addEventListener("keydown", (e) => {
 // Same catalog as src/lib/notices-data.ts. `actionUrl` is reserved for the store links at launch and is
 // not rendered while the app is in testing. The read state is per account and stays on this device.
 const NOTICES = [
-  { id: "2026-11-17-recovery-key", title: "Chave de recuperação", body: "Agora você pode criar uma chave de recuperação para o caso de esquecer a senha de criptografia, e trocar a senha em Backup e dados. Guarde a chave fora do aparelho: quem a tiver abre os seus dados.", date: "2026-11-17" },
-  { id: "2026-11-17-encrypted-sync", title: "Dados criptografados na nuvem", body: "Ao entrar com o Google, você cria uma senha de criptografia. Seus dados e fotos são embaralhados neste aparelho antes de irem para o Google Drive, e só essa senha abre. Guarde-a: não há como recuperá-la.", date: "2026-11-17" },
   { id: "2026-11-15-google-login", title: "Entrar com o Google", body: "Agora você entra com a sua conta Google, sem criar token nem senha extra.", date: "2026-11-15" },
   { id: "2026-11-15-quick-assistant", title: "Atalhos rápidos", body: "O balão no canto da tela abre o chat de lançamentos (fale ou escreva) e uma calculadora que funciona sem internet.", date: "2026-11-15" },
   { id: "2026-11-14-voice-assistant", title: "Assistente de voz", body: "Fale o lançamento no formulário e o app preenche valor, categoria e data para você revisar.", date: "2026-11-14" },
