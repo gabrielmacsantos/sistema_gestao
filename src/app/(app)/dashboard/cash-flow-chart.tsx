@@ -84,9 +84,9 @@ export function CashFlowPanel({
             {weekView ? `Receitas contra despesas por semana de ${monthName}.` : "Receitas contra despesas nos últimos 6 meses."}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flow-actions flex flex-wrap items-center gap-3">
           <ChartLegend />
-          <SlidingTabs aria-label="Período do gráfico">
+          <SlidingTabs fill aria-label="Período do gráfico">
             {(["month", "week"] as const).map((v) => (
               <button
                 key={v}

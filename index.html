@@ -297,12 +297,13 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .t-tabs--fill { display: flex; width: 100%; }
 .t-tabs--fill .t-tab { flex: 1 1 0; }
 /* "Últimos lançamentos": the filter bar spans the card on the phone and sits to the right from tablet up. */
-.recent-actions { width: 100%; }
+.recent-actions, .flow-actions { width: 100%; }
 .recent-actions .t-tab { padding: 0 6px; }
+.flow-actions .t-tabs--fill { flex: 1 1 100%; }
 @media (min-width: 768px) {
-  .recent-actions { width: auto; justify-content: flex-end; }
-  .recent-actions .t-tabs--fill { display: inline-flex; width: auto; }
-  .recent-actions .t-tab { flex: none; padding: 0 12px; }
+  .recent-actions, .flow-actions { width: auto; justify-content: flex-end; }
+  .recent-actions .t-tabs--fill, .flow-actions .t-tabs--fill { display: inline-flex; width: auto; flex: none; }
+  .recent-actions .t-tab, .flow-actions .t-tab { flex: none; padding: 0 12px; }
 }
 .t-tab { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 44px; height: var(--tabs-h); padding: 0 12px; border: 0; border-radius: calc(var(--tabs-radius) - 2px); background: transparent; color: var(--tabs-text-muted); font: inherit; white-space: nowrap; text-decoration: none; cursor: pointer; transition: color var(--tabs-dur) var(--tabs-ease); }
 .t-tab:not(:is([aria-selected="true"], [aria-checked="true"], [aria-current])):hover { color: var(--on); }
@@ -3878,8 +3879,8 @@ function viewPainel(r) {
       <section class="card">
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--hairline)">
           <div><div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px"><h2 class="h-card">Fluxo de caixa</h2><span class="badge nodot b-success">${icon("swap", 'style="width:12px;height:12px"')} Entradas vs. saídas</span></div><p class="sub" id="flow-sub">${flowSubtitle(m)}</p></div>
-          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px"><div class="legend"><span><i style="background:var(--chart-in)"></i>Entradas</span><span><i style="background:var(--chart-out)"></i>Saídas</span></div>
-            ${tabsHtml({ kind: "tabs", key: "flow-view", label: "Período do gráfico", panel: "flow-chart", active: flowView, items: [["month", "Mensal"], ["week", "Semanal"]].map(([v, t]) => ({ value: v, label: t, attrs: `data-act="flow-view" data-view="${v}"` })) })}</div>
+          <div class="flow-actions" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px"><div class="legend"><span><i style="background:var(--chart-in)"></i>Entradas</span><span><i style="background:var(--chart-out)"></i>Saídas</span></div>
+            ${tabsHtml({ kind: "tabs", key: "flow-view", label: "Período do gráfico", panel: "flow-chart", active: flowView, fill: true, items: [["month", "Mensal"], ["week", "Semanal"]].map(([v, t]) => ({ value: v, label: t, attrs: `data-act="flow-view" data-view="${v}"` })) })}</div>
         </div>
         <div class="flow">
           <div><span class="chip" style="background:var(--card);color:var(--primary)">${icon("down")}</span><span style="min-width:0"><span class="metric-label">Total entradas</span><b class="t-income">${amountHtml(s.income, "flow-in", "+ ")}</b></span></div>

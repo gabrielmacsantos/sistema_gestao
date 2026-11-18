@@ -438,22 +438,30 @@
   flex: 1 1 0;
 }
 /* "Últimos lançamentos": the filter bar spans the card on the phone and sits to the right from tablet up. */
-.recent-actions {
+.recent-actions,
+.flow-actions {
   width: 100%;
 }
 .recent-actions .t-tab {
   padding: 0 6px;
 }
+.flow-actions .t-tabs--fill {
+  flex: 1 1 100%;
+}
 @media (min-width: 768px) {
-  .recent-actions {
+  .recent-actions,
+  .flow-actions {
     width: auto;
     justify-content: flex-end;
   }
-  .recent-actions .t-tabs--fill {
+  .recent-actions .t-tabs--fill,
+  .flow-actions .t-tabs--fill {
     display: inline-flex;
     width: auto;
+    flex: none;
   }
-  .recent-actions .t-tab {
+  .recent-actions .t-tab,
+  .flow-actions .t-tab {
     flex: none;
     padding: 0 12px;
   }
