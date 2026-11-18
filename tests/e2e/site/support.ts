@@ -4,8 +4,18 @@ import { expect, test as base, type Page } from "@playwright/test";
  * `page` for the static site: nothing leaves this machine (the Google script and fonts are blocked)
  * and a test fails if the page throws or logs a console error.
  */
-export const test = base.extend({
-  page: async ({ page }, runTest) => {
+export const test = base.extend<{ withTour: boolean }>({
+  // The first-access tour would sit over every other test; only tour.spec.ts turns it on (`test.use({ withTour: true })`).
+  withTour: [false, { option: true }],
+  page: async ({ page, withTour }, runTest) => {
+    if (!withTour) {
+      await page.addInitScript(() => {
+        const get = Storage.prototype.getItem;
+        Storage.prototype.getItem = function (key: string) {
+          return key.startsWith("mf-tour-done:") ? "1" : get.call(this, key);
+        };
+      });
+    }
     await page.route(
       (url) => url.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(url.hostname),
       (route) => route.abort(),

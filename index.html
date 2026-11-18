@@ -515,6 +515,22 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .toast .toast-close:hover { background: color-mix(in srgb, var(--toast-fg) 12%, transparent); }
 .toast .toast-close:focus-visible { outline: 2px solid var(--toast-fg); outline-offset: -4px; }
 @media (min-width: 768px) { #toast-region { justify-content: flex-end; padding: 0 24px; bottom: max(24px, env(safe-area-inset-bottom)); } }
+/* Product tour (first access): dark scrim with a cut-out over the target, a pulsing ring and a card. */
+:root { --tour-scrim: rgb(2 6 23 / .8); --tour-dur: 250ms; --tour-ease: cubic-bezier(.22,1,.36,1); --tour-ring-w: 3px; --tour-ring-glow: 14px; }
+.tour { position: fixed; inset: 0; z-index: 68; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+.tour-block { position: absolute; inset: 0; touch-action: none; }
+.tour-scrim { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; animation: tour-fade var(--tour-dur) var(--tour-ease); }
+.tour-scrim-fill { fill: var(--tour-scrim); }
+.tour-ring { position: absolute; pointer-events: none; border-radius: 12px; box-shadow: 0 0 0 var(--tour-ring-w) var(--primary); animation: tour-pulse 1.6s ease-out infinite; }
+@keyframes tour-pulse { 0% { box-shadow: 0 0 0 var(--tour-ring-w) var(--primary), 0 0 0 var(--tour-ring-w) color-mix(in srgb, var(--primary) 55%, transparent); } 100% { box-shadow: 0 0 0 var(--tour-ring-w) var(--primary), 0 0 0 var(--tour-ring-glow) color-mix(in srgb, var(--primary) 0%, transparent); } }
+@keyframes tour-fade { from { opacity: 0; } }
+.tour-card { position: absolute; width: min(360px, calc(100vw - 24px)); max-height: calc(100% - 24px); overflow-y: auto; padding: 16px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--card); color: var(--on); box-shadow: var(--shadow-3); outline: none; animation: tour-fade var(--tour-dur) var(--tour-ease); }
+.tour-card.center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.tour-card .insight { margin-top: 12px; padding: 12px; }
+.tour-actions { display: flex; gap: 8px; margin-top: 16px; }
+.tour-actions .btn { flex: 1; min-height: 44px; }
+.tour-skip { width: 100%; min-height: 44px; margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .tour-ring { animation: none; box-shadow: 0 0 0 var(--tour-ring-w) var(--primary), 0 0 0 8px color-mix(in srgb, var(--primary) 30%, transparent); } .tour-scrim, .tour-card { animation: none; } }
 .sync { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 12px; font-weight: 600; }
 .sync.ok { color: var(--success); } .sync.err { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
 .sync .txt { display: none; }
@@ -881,6 +897,42 @@ const trapFocusIndex = (count, index, shift) => (count <= 0 ? -1 : shift ? (inde
 /** Sync states that need the person: shown as a dot on the menu button, since the header badge is hidden on phones. */
 const syncNeedsAttention = (status) => status === "reauth" || status === "error" || status === "key" || status === "conflict";
 // </drawer-state>
+// <product-tour> Self-contained: tests/product-tour.test.ts loads this block from the file.
+// First-access tour. `target` is the value of data-tour-step on the element to light up; `also` are extra
+// selectors lit together with it. Nothing here touches money or the account data: the only state is a flag.
+const TOUR_KEY_PREFIX = "mf-tour-done";
+const tourKey = (scope) => `${TOUR_KEY_PREFIX}:${scope}`;
+const TOUR_STEPS = [
+  { id: "balance", target: "1", also: ['[data-act="toggle-values"]'], title: "Seu saldo e a privacidade", text: "Aqui você acompanha entradas, gastos e saldo do mês. Toque no ícone de olho no topo para esconder os valores quando estiver em um lugar público.", example: "Ex.: com o olho fechado, todos os valores aparecem como R$ •••••." },
+  { id: "new", target: "2", also: [], title: "Novo lançamento", text: "Registre seus ganhos e gastos em segundos, direto neste botão.", example: "Ex.: descrição “Mercado”, valor 145,50 e a categoria Alimentação." },
+  { id: "filters", target: "3", also: [], title: "Filtros rápidos do extrato", text: "Filtre o extrato com um toque para saber o que já foi pago e o que ainda está pendente no mês.", example: "Ex.: toque em “Pendentes” para ver só o que falta pagar." },
+  { id: "insights", target: "4", also: [], title: "Gráficos e alertas", text: "Acompanhe para onde vai o seu dinheiro, o fluxo do mês e os alertas de orçamento para bater suas metas.", example: "Ex.: troque entre “Mensal” e “Semanal” para comparar entradas e saídas." },
+  { id: "menu", target: "5", also: [], title: "Menu e uso offline", text: "Seus dados ficam salvos com segurança no seu aparelho, mesmo sem internet. No menu você acha tema, backup e perfil.", example: "Ex.: em Perfil você pode refazer este tutorial quando quiser." },
+];
+/** Opens by itself only on the first visit, on the Painel, and never over another dialog. */
+const shouldStartTour = ({ done, hasAccess, path, busy }) => !done && !!hasAccess && path === "painel" && !busy;
+/** First step at or after `from` whose target can be shown; -1 when none is left. */
+function resolveTourStep(total, from, isVisible) {
+  for (let i = Math.max(0, from); i < total; i++) if (isVisible(i)) return i;
+  return -1;
+}
+/** The cut-out: the target plus `pad`, kept inside the viewport. */
+function spotlightRect(r, pad, vp) {
+  const left = Math.max(0, r.left - pad), top = Math.max(0, r.top - pad);
+  const right = Math.min(vp.w, r.left + r.width + pad), bottom = Math.min(vp.h, r.top + r.height + pad);
+  return { left, top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+}
+/** Card position: below the cut-out, else above it, else docked at the bottom; never past the edges or safe areas. */
+function placePopover(rect, vp, pop, insets, gap = 14, margin = 12) {
+  const left = Math.round(Math.min(Math.max(rect.left + rect.width / 2 - pop.w / 2, margin), Math.max(margin, vp.w - pop.w - margin)));
+  const topMin = insets.top + margin, bottomMax = vp.h - insets.bottom - margin;
+  const below = rect.top + rect.height + gap;
+  if (below + pop.h <= bottomMax) return { side: "below", left, top: Math.round(below) };
+  const above = rect.top - gap - pop.h;
+  if (above >= topMin) return { side: "above", left, top: Math.round(above) };
+  return { side: "dock", left, top: Math.round(Math.max(topMin, bottomMax - pop.h)) };
+}
+// </product-tour>
 // <account-avatar> Self-contained: tests/account-avatar.test.ts loads this block from the file.
 /** The Google profile photo is shown only when it is an https image from Google's own photo host; anything else is dropped. */
 function safeAvatarUrl(raw) {
@@ -3596,7 +3648,7 @@ function shell(r, content) {
   const railLabel = railToggleLabel(isRailCollapsed());
   return `
   <button class="rail-toggle" data-act="rail-toggle" aria-label="${railLabel}" aria-expanded="${!isRailCollapsed()}" aria-controls="rail" title="${railLabel}"><span class="rail-disc">${icon("left")}</span></button>
-  <aside class="rail" id="rail" aria-label="Menu">
+  <aside class="rail" id="rail" aria-label="Menu" data-tour-step="5">
     <div>
       <a class="brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="brand-text"><span class="brand-name">Minhas Finanças</span><br><span class="brand-sub">Fluxo de caixa pessoal</span></span></a>
       <button class="btn btn-primary btn-new" data-act="new-tx" title="Novo gasto">${icon("plus")}<span class="lbl">Novo gasto</span></button>
@@ -3615,15 +3667,15 @@ function shell(r, content) {
         ${bellButton()}
         <button class="icon-btn" data-act="toggle-values" aria-label="Ocultar valores" aria-pressed="${hideValues}" title="${hideValues ? "Mostrar valores" : "Ocultar valores"}">${icon(hideValues ? "eyeOff" : "eye")}</button>
         <button class="icon-btn" data-act="theme" aria-label="Tema escuro" aria-pressed="${dark}" title="Alternar tema">${icon(dark ? "sun" : "moon")}</button>
-        <button class="icon-btn mob-only ${syncNeedsAttention(syncStatus) ? "has-alert" : ""}" data-act="menu" aria-label="${menuLabel()}" aria-haspopup="dialog" aria-expanded="${menuOpen}"><span class="t-icon-swap" data-state="${menuOpen ? "b" : "a"}"><span class="t-icon" data-icon="a">${icon("menu")}</span><span class="t-icon" data-icon="b">${icon("x")}</span></span></button>
-        <button class="btn btn-primary btn-sm desk-only" data-act="new-tx">${icon("plus")} Novo gasto</button>
+        <button class="icon-btn mob-only ${syncNeedsAttention(syncStatus) ? "has-alert" : ""}" data-act="menu" data-tour-step="5" aria-label="${menuLabel()}" aria-haspopup="dialog" aria-expanded="${menuOpen}"><span class="t-icon-swap" data-state="${menuOpen ? "b" : "a"}"><span class="t-icon" data-icon="a">${icon("menu")}</span><span class="t-icon" data-icon="b">${icon("x")}</span></span></button>
+        <button class="btn btn-primary btn-sm desk-only" data-act="new-tx" data-tour-step="2">${icon("plus")} Novo gasto</button>
       </div>
     </div></header>
     <main id="main">${updateBanner()}${wsBanner()}${content}</main>
   </div>
   <nav class="bottomnav" aria-label="Principal"><ul>
     ${bottom("painel", "Painel", "dashboard")}${bottom("lancamentos", "Lançamentos", "receipt")}
-    <li><a class="fab" href="javascript:void 0" data-act="new-tx" aria-label="Novo lançamento">${icon("plus")}</a></li>
+    <li><a class="fab" href="javascript:void 0" data-act="new-tx" data-tour-step="2" aria-label="Novo lançamento">${icon("plus")}</a></li>
     ${bottom("fixos", "Fixos", "calendar")}${bottom("orcamentos", "Orçamentos", "piggy")}
   </ul></nav>`;
 }
@@ -3906,7 +3958,7 @@ function viewPainel(r) {
       `${monthPicker("painel", m)}<span class="actions desk-only"><button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Nova entrada</button><button class="btn btn-secondary btn-sm" data-act="new-rec"><span class="t-primary" style="display:flex">${icon("calendar")}</span> Cadastrar fixo</button><button class="btn btn-primary btn-sm" data-act="new-tx">${icon("plusCircle")} Novo gasto</button></span>`)}
     ${welcome}
     ${inboxNotice()}
-    <section class="grid-kpi" aria-label="Resumo do mês">
+    <section class="grid-kpi" aria-label="Resumo do mês" data-tour-step="1">
       ${metric({ label: "Entradas no mês", ic: "down", chip: "background:var(--success-c);color:var(--success)", cents: s.income, valueCls: "t-income",
         pill: delta !== null ? pill("background:var(--success-c);color:var(--success)", delta >= 0 ? "trendUp" : "trendDown", `${delta >= 0 ? "+" : ""}${fmtPct(delta)} vs. anterior`) : s.incomePending ? pill("background:var(--c);color:var(--secondary)", "", `${amountHtml(s.incomePending, "a receber")} a receber`) : "",
         meter: { r: s.income > 0 ? 1 : 0, color: "var(--success)" } })}
@@ -3926,7 +3978,7 @@ function viewPainel(r) {
     ${tripNote(m)}
     ${alerts.length ? `<div class="alert"><span class="t-warning" style="display:flex;margin-top:1px">${icon("alert")}</span><div>${alerts.map((a) => `<p><b>${esc(a.name)}</b>: ${a.ratio > 1 ? `orçamento estourado em ${fmt(a.spent - a.amountCents)}` : `${Math.round(a.ratio * 100)}% do orçamento usado`}</p>`).join("")}</div></div>` : ""}
     <div class="grid-main">
-      <section class="card">
+      <section class="card" data-tour-step="4">
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--hairline)">
           <div><div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px"><h2 class="h-card">Fluxo de caixa</h2><span class="badge nodot b-success">${icon("swap", 'style="width:12px;height:12px"')} Entradas vs. saídas</span></div><p class="sub" id="flow-sub">${flowSubtitle(m)}</p></div>
           <div class="flow-actions" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px"><div class="legend"><span><i style="background:var(--chart-in)"></i>Entradas</span><span><i style="background:var(--chart-out)"></i>Saídas</span></div>
@@ -3956,7 +4008,7 @@ function viewPainel(r) {
     <section class="card card-flush">
       <div class="section-head">
         <div><h2 class="h-card">Últimos lançamentos</h2><p class="sub">Extrato recente de ${monthLabel(m).toLowerCase()}.</p></div>
-        <div class="actions recent-actions">${tabsHtml({ kind: "tabs", key: "recent-filter", label: "Filtrar extrato", panel: "recent-body", active: recentFilter, fill: true, items: Object.entries(RECENT_FILTERS).map(([f, x]) => ({ value: f, attrs: `data-act="recent-filter" data-f="${f}"`, label: `${x.icon ? icon(x.icon, 'style="width:14px;height:14px"') : ""}${x.label}${f === "pendentes" && pending ? ` (${pending})` : ""}` })) })}</div>
+        <div class="actions recent-actions" data-tour-step="3">${tabsHtml({ kind: "tabs", key: "recent-filter", label: "Filtrar extrato", panel: "recent-body", active: recentFilter, fill: true, items: Object.entries(RECENT_FILTERS).map(([f, x]) => ({ value: f, attrs: `data-act="recent-filter" data-f="${f}"`, label: `${x.icon ? icon(x.icon, 'style="width:14px;height:14px"') : ""}${x.label}${f === "pendentes" && pending ? ` (${pending})` : ""}` })) })}</div>
       </div>
       <div id="recent-body" role="tabpanel" aria-labelledby="recent-filter-tab-${recentFilter}">${recentBody(m)}</div>
     </section>
@@ -4105,6 +4157,7 @@ function viewPerfil() {
         <p class="muted" style="margin:6px 0 16px">Os dados estão só neste aparelho. Entre com o Google para guardá-los na sua conta. Para apagar o que está aqui, use <b>Backup › Apagar dados</b>.</p>
         ${googleReady() ? `<div style="max-width:320px">${googleButton("Continuar com o Google")}</div>` : ""}</section>
       <section class="card"><h2 class="h-card">Documentos</h2><p class="muted" style="margin:6px 0 16px">Como tratamos seus dados e as regras de uso do app.</p>${legal}</section>
+      ${tourCard()}
     </div>`;
   }
   const fullName = isGoogle() && sync.name && sync.name !== sync.email ? sync.name : "";
@@ -4117,6 +4170,7 @@ function viewPerfil() {
     </section>
     ${isGoogle() ? wsPanelsCard() : ""}
     <section class="card"><h2 class="h-card">Documentos</h2><p class="muted" style="margin:6px 0 16px">Como tratamos seus dados e as regras de uso do app.</p>${legal}</section>
+    ${tourCard()}
     <section class="card danger-zone" aria-labelledby="danger-title">
       <h2 class="h-card" id="danger-title" style="display:flex;align-items:center;gap:8px;color:var(--danger)">${icon("alert")} Zona de perigo</h2>
       <p class="muted" style="margin:6px 0 16px">Exclui para sempre a sua conta e todos os seus dados: no ${providerName()} e neste aparelho. <b>Não dá para desfazer.</b></p>
@@ -4242,6 +4296,7 @@ function viewConfiguracoes() {
       <p class="muted">Tema ${dark ? "escuro" : "claro"} neste aparelho.</p>
       <div class="actions" style="margin-top:12px"><button class="btn btn-secondary btn-sm" data-act="theme">${icon(dark ? "sun" : "moon")} Usar tema ${dark ? "claro" : "escuro"}</button></div>
     </section>
+    ${tourCard()}
     <section class="card">
       <h2 class="h-card">Privacidade</h2>
       <p class="muted" style="margin-top:8px">Seus dados ficam neste aparelho e na sua própria conta. Sem anúncios, sem rastreamento e sem servidor nosso.</p>
@@ -4460,6 +4515,7 @@ function renderPage() {
   if (AUTH_PAGES.includes(r.path) && sync) { history.replaceState(null, "", href("painel")); r = route(); }
   if (!AUTH_PAGES.includes(r.path) && !sync && !isLocalMode()) { history.replaceState(null, "", href("entrar")); r = route(); }
   if (AUTH_PAGES.includes(r.path)) {
+    if (tourState.el) endTour({ save: false });
     unmountAssistant();
     document.getElementById("app").innerHTML = viewAuth();
     document.title = "Entrar · Minhas Finanças";
@@ -4470,6 +4526,7 @@ function renderPage() {
   if (tabsPath !== r.path) { tabsMemory.clear(); tabsPath = r.path; } // another screen: its bars do not glide from the last one
   paintTabs(document.getElementById("app"));
   mountAssistant();
+  maybeStartTour(r);
   if (drawerEl) setPageInert(true); // the redraw made new, interactive copies of what sits behind the drawer
   if (hasIncoming()) flushIncoming();
   document.title = `${(ROUTES.find((x) => x.path === r.path) || extraRoute(r.path) || PROFILE_ROUTE).label} · Minhas Finanças`;
@@ -4478,6 +4535,7 @@ function renderPage() {
 // ---------- Modal & toast ----------
 let modalSubmit = null;
 function openModal({ title, sub = "", body, foot, wide = false, onSubmit }) {
+  if (tourState.el) endTour({ save: false }); // a dialog took the screen: the tour can come back later
   teardownDrawer();
   modalSubmit = onSubmit || null;
   document.getElementById("layer").innerHTML = `<div class="overlay" data-act="close-overlay"><form class="modal ${wide ? "wide" : ""}" role="dialog" aria-modal="true" aria-labelledby="mtitle" id="modal" novalidate>
@@ -6004,7 +6062,7 @@ document.addEventListener("click", (e) => {
       catch (e) { setSyncStatus("reauth"); toast(e.message); }
     },
     "new-tx": () => leaveDemoThen(() => txForm(null, el.dataset.type)),
-    "exit-demo": exitDemo,
+    "exit-demo": exitDemo, "replay-tour": replayTour,
     "edit-tx": () => txForm(state.transactions.find((t) => t.id === id)),
     "tx-type": () => { stopVoice(); txForm.setType(el.dataset.type); },
     "voice": voiceButton,
@@ -6152,6 +6210,137 @@ document.addEventListener("input", (e) => {
 document.addEventListener("dragover", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
 document.addEventListener("dragleave", (e) => { const d = e.target.closest?.("#drop"); if (d) d.classList.remove("over"); });
 document.addEventListener("drop", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.remove("over"); handleImportFile(e.dataTransfer.files[0]); } });
+// ---------- Product tour (first access) ----------
+const tourState = { el: null, i: -1, prevFocus: null, prevOverflow: "", startTimer: null, trackRaf: 0, layoutRaf: 0, onKey: null, onLayout: null };
+const tourReduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function tourDone() { try { return localStorage.getItem(tourKey(scopeOf(sync))) === "1"; } catch { return true; } } // no storage: never nag
+const firstVisible = (sel) => [...document.querySelectorAll(sel)].find((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }) || null;
+const tourTarget = (step) => firstVisible(`[data-tour-step="${step.target}"]`);
+const tourVisibleSteps = () => TOUR_STEPS.filter((s) => tourTarget(s));
+function tourCanStart(r) {
+  const busy = !!(document.querySelector(".overlay") || drawerEl || asst.view !== "closed" || hasIncoming());
+  return shouldStartTour({ done: tourDone(), hasAccess: !!sync || isLocalMode(), path: r.path, busy });
+}
+/** Called after every render: starts the tour once the Painel has settled, or keeps an open one in place. */
+function maybeStartTour(r) {
+  if (tourState.el) { if (r.path === "painel") scheduleTourLayout(); else endTour({ save: false }); return; }
+  if (!tourCanStart(r)) return;
+  clearTimeout(tourState.startTimer);
+  tourState.startTimer = setTimeout(() => { if (!tourState.el && tourCanStart(route())) startTour(); }, 600);
+}
+function startTour() {
+  if (tourState.el) return;
+  const el = document.createElement("div");
+  el.id = "tour"; el.className = "tour";
+  el.innerHTML = `<div class="tour-block"></div><svg class="tour-scrim" aria-hidden="true"><defs><mask id="tour-mask" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"/><g id="tour-holes"></g></mask></defs><rect class="tour-scrim-fill" width="100%" height="100%" mask="url(#tour-mask)"/></svg><div id="tour-rings"></div><div class="tour-card" id="tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-text" tabindex="-1"></div>`;
+  document.body.appendChild(el);
+  Object.assign(tourState, { el, i: -1, prevFocus: document.activeElement, prevOverflow: document.body.style.overflow });
+  document.body.style.overflow = "hidden";
+  document.querySelectorAll("#app, #asst").forEach((x) => { x.inert = true; }); // the cut-out is only to look at
+  el.addEventListener("click", (e) => {
+    const act = e.target.closest("[data-tour]")?.dataset.tour;
+    if (act === "start") showTourStep(0);
+    else if (act === "next" || act === "skip-step") showTourStep(tourState.i + 1);
+    else if (act === "skip-all") endTour({ save: true });
+  });
+  tourState.onKey = (e) => {
+    if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); endTour({ save: true }); return; }
+    if (e.key !== "Tab") return;
+    const items = [...el.querySelectorAll("button")];
+    const next = trapFocusIndex(items.length, items.indexOf(document.activeElement), e.shiftKey);
+    if (next >= 0) { e.preventDefault(); items[next].focus(); }
+  };
+  tourState.onLayout = scheduleTourLayout;
+  document.addEventListener("keydown", tourState.onKey, true);
+  window.addEventListener("resize", tourState.onLayout);
+  window.addEventListener("orientationchange", tourState.onLayout);
+  window.addEventListener("scroll", tourState.onLayout, { passive: true });
+  window.visualViewport?.addEventListener("resize", tourState.onLayout);
+  window.visualViewport?.addEventListener("scroll", tourState.onLayout);
+  const card = document.getElementById("tour-card");
+  card.className = "tour-card center";
+  card.innerHTML = `<h2 class="h-card" id="tour-title">Bem-vindo ao Minhas Finanças 👋</h2>
+    <p class="muted" id="tour-text" style="margin-top:8px">Vamos fazer um tour rápido de 1 minuto para você dominar suas finanças locais e inteligentes?</p>
+    <div class="tour-actions"><button type="button" class="btn btn-primary" data-tour="start">Começar tour</button></div>
+    <button type="button" class="btn btn-ghost tour-skip" data-tour="skip-all">Pular tutorial</button>`;
+  card.focus({ preventScroll: true });
+}
+function showTourStep(from) {
+  const card = document.getElementById("tour-card"); if (!card) return;
+  const idx = resolveTourStep(TOUR_STEPS.length, from, (n) => !!tourTarget(TOUR_STEPS[n]));
+  if (idx < 0) return endTour({ save: true });
+  const s = TOUR_STEPS[idx], visible = tourVisibleSteps();
+  const isLast = resolveTourStep(TOUR_STEPS.length, idx + 1, (n) => !!tourTarget(TOUR_STEPS[n])) < 0;
+  tourState.i = idx;
+  card.className = "tour-card";
+  card.style.cssText = "";
+  card.innerHTML = `<span class="metric-label">Passo ${visible.indexOf(s) + 1} de ${visible.length}</span>
+    <h2 class="h-card" id="tour-title" style="margin-top:4px">${esc(s.title)}</h2>
+    <p class="muted" id="tour-text" style="margin-top:8px">${esc(s.text)}</p>
+    <div class="insight"><span class="t-primary" style="display:flex">${icon("bulb")}</span><p>${esc(s.example)}</p></div>
+    <div class="tour-actions">${isLast ? "" : '<button type="button" class="btn btn-secondary" data-tour="skip-step">Pular etapa</button>'}<button type="button" class="btn btn-primary" data-tour="next">${isLast ? "Concluir" : "Próximo"}</button></div>
+    <button type="button" class="btn btn-ghost tour-skip" data-tour="skip-all">Pular tutorial</button>`;
+  tourTarget(s).scrollIntoView({ behavior: tourReduced() ? "auto" : "smooth", block: "center", inline: "nearest" });
+  trackTour();
+  card.focus({ preventScroll: true });
+}
+/** Lays out the cut-out, the rings and the card from the current position of the target. */
+function tourLayout() {
+  const el = tourState.el; if (!el || tourState.i < 0) return;
+  const s = TOUR_STEPS[tourState.i], t = tourTarget(s);
+  if (!t) return;
+  const vp = { w: window.innerWidth, h: window.visualViewport?.height ?? window.innerHeight };
+  const lit = [t, ...s.also.map(firstVisible)].filter(Boolean).map((x) => spotlightRect(x.getBoundingClientRect(), 8, vp));
+  document.getElementById("tour-holes").innerHTML = lit.map((b) => `<rect x="${b.left}" y="${b.top}" width="${b.width}" height="${b.height}" rx="12" fill="black"/>`).join("");
+  const rings = document.getElementById("tour-rings");
+  while (rings.children.length < lit.length) rings.insertAdjacentHTML("beforeend", '<div class="tour-ring"></div>');
+  while (rings.children.length > lit.length) rings.lastChild.remove();
+  lit.forEach((b, n) => Object.assign(rings.children[n].style, { left: `${b.left}px`, top: `${b.top}px`, width: `${b.width}px`, height: `${b.height}px` }));
+  const cs = getComputedStyle(el), card = document.getElementById("tour-card");
+  const pos = placePopover(lit[0], vp, { w: card.offsetWidth, h: card.offsetHeight }, { top: parseFloat(cs.paddingTop) || 0, bottom: parseFloat(cs.paddingBottom) || 0 });
+  card.style.left = `${pos.left}px`; card.style.top = `${pos.top}px`; card.dataset.side = pos.side;
+}
+function scheduleTourLayout() {
+  cancelAnimationFrame(tourState.layoutRaf);
+  tourState.layoutRaf = requestAnimationFrame(tourLayout);
+}
+/** Follows the target frame by frame while the smooth scroll runs, until it stops moving. */
+function trackTour() {
+  cancelAnimationFrame(tourState.trackRaf);
+  const t0 = performance.now(); let last = "", still = 0;
+  const tick = () => {
+    if (!tourState.el || tourState.i < 0) return;
+    tourLayout();
+    const t = tourTarget(TOUR_STEPS[tourState.i]), r = t?.getBoundingClientRect();
+    const key = r ? `${r.top}|${r.left}` : "";
+    still = key === last ? still + 1 : 0; last = key;
+    if (still < 5 && performance.now() - t0 < 1200) tourState.trackRaf = requestAnimationFrame(tick);
+  };
+  tick();
+}
+/** `save` marks the tour as done on this device; without it the tour may come back (a dialog took its place). */
+function endTour({ save }) {
+  const el = tourState.el; if (!el) return;
+  cancelAnimationFrame(tourState.trackRaf); cancelAnimationFrame(tourState.layoutRaf);
+  document.removeEventListener("keydown", tourState.onKey, true);
+  window.removeEventListener("resize", tourState.onLayout);
+  window.removeEventListener("orientationchange", tourState.onLayout);
+  window.removeEventListener("scroll", tourState.onLayout);
+  window.visualViewport?.removeEventListener("resize", tourState.onLayout);
+  window.visualViewport?.removeEventListener("scroll", tourState.onLayout);
+  el.remove(); tourState.el = null; tourState.i = -1;
+  document.body.style.overflow = tourState.prevOverflow;
+  document.querySelectorAll("#app, #asst").forEach((x) => { x.inert = false; });
+  if (save) { try { localStorage.setItem(tourKey(scopeOf(sync)), "1"); } catch {} document.getElementById("live").textContent = "Tutorial encerrado"; }
+  const f = tourState.prevFocus;
+  if (f && document.contains(f)) f.focus({ preventScroll: true });
+}
+function replayTour() {
+  try { localStorage.removeItem(tourKey(scopeOf(sync))); } catch {}
+  if (route().path === "painel") startTour(); else location.href = href("painel");
+}
+const tourCard = () => `<section class="card"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">${icon("sparkles")} Tutorial</h2><p class="muted" style="margin:6px 0 16px">Reveja o passo a passo das principais telas do app.</p><button class="btn btn-secondary" data-act="replay-tour">Refazer tutorial</button></section>`;
+
 // Changing only the month keeps the scroll and the focus on the month control, and the new month is announced.
 let lastRoute = route();
 const sameExceptMonth = (a, b) => { const strip = (r) => { const p = new URLSearchParams(r.params); p.delete("mes"); p.sort(); return `${r.path}?${p}`; }; return strip(a) === strip(b); };
