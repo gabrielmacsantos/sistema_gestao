@@ -14,7 +14,7 @@ test("switching to light uses the light tokens and the choice survives a reload"
     await page.locator('[data-act="menu"]').click();
     await page.getByRole("dialog", { name: "Menu" }).getByRole("button", { name: "Tema claro" }).click();
   } else {
-    await page.getByRole("button", { name: "Alternar tema claro/escuro" }).click();
+    await page.getByRole("button", { name: "Tema escuro" }).click();
   }
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect.poll(() => bg(page)).toBe("rgb(248, 250, 252)"); // #f8fafc, after the 200 ms fade

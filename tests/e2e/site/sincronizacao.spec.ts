@@ -43,6 +43,7 @@ async function openSignedIn(page: Page, state: object) {
     localStorage.setItem("minhas-financas:github", JSON.stringify(session));
     localStorage.setItem("minhas-financas:v1:g:111", JSON.stringify(state));
   }, { session, state });
+  await page.reload(); // the app must start with the session: a hash change in the page that loaded without one goes to the sign-in
 }
 
 test("with encrypted sync off, Google sign-in goes straight in and the Drive file is the plain one", async ({ page }) => {
@@ -129,5 +130,6 @@ test("'Sincronizar agora' shows its progress and result, and the last sync reads
   await page.goto("/#/backup");
   await page.reload();
   await expect(page.locator("#sync-last")).toContainText("Sincronizado hoje às");
-  await expect(page.getByRole("button", { name: /Sincronizar agora/ })).toBeVisible();
+  // While nothing is pending the button reads "Sincronizado"; it goes back to "Sincronizar agora" when something is.
+  await expect(page.locator("#sync-now-btn")).toContainText("Sincronizado");
 });

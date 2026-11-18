@@ -25,7 +25,7 @@ test("the month arrows change the month in the address and the page title keeps 
   await expect(page).toHaveURL(/#\/lancamentos\?mes=\d{4}-\d{2}/);
 });
 
-test("'Ocultar valores' masks the amounts and 'Tema escuro' switches the theme", async ({ page }) => {
+test("'Ocultar valores' masks the amounts and 'Tema escuro' switches the theme", async ({ page }, testInfo) => {
   await startLocal(page);
   await page.getByRole("button", { name: /Ver com dados de exemplo/ }).click();
   await expect(page.locator("main")).not.toContainText("R$ •••••");
@@ -39,7 +39,13 @@ test("'Ocultar valores' masks the amounts and 'Tema escuro' switches the theme",
 
   const html = page.locator("html");
   const before = await html.getAttribute("data-theme");
-  await page.getByRole("button", { name: "Tema escuro" }).click();
+  if (testInfo.project.name === "site-mobile") {
+    // Below 768px the theme control lives in the menu drawer, not in the header.
+    await page.locator('[data-act="menu"]').click();
+    await page.locator(".drawer-theme").click();
+  } else {
+    await page.getByRole("button", { name: "Tema escuro" }).click();
+  }
   await expect(html).not.toHaveAttribute("data-theme", before ?? "");
   expect(await fitsWidth(page)).toBe(true);
 });

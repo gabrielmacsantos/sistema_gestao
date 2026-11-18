@@ -26,6 +26,7 @@ async function seed(page: Page, sessions: { sub: string; email: string; state?: 
       token: { access: "test-token", expiresAt: Date.now() + 3600_000 },
     }));
   }, { sessions, active });
+  await page.reload(); // the app must start with the session: a hash change in the page that loaded without one goes to the sign-in
 }
 
 test("scenario 1: user B starts empty after user A recorded R$ 100,00", async ({ page }) => {

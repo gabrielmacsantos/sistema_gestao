@@ -49,15 +49,15 @@ async function openAsAna(page: Page) {
     localStorage.setItem("notices-read:111", "[]");
     localStorage.setItem("mf-theme", "dark");
   }, { session, state: stateWith("Mercado da Ana", 10000) });
+  await page.reload(); // start the app with the session; a hash change in the page that loaded without one goes back to the sign-in
   await page.goto("/#/perfil");
-  await page.reload();
 }
 
 test("the profile shows who is signed in, the documents and a clearly marked danger zone", async ({ page }) => {
   await fakeDrive(page);
   await openAsAna(page);
   await expect(page.getByRole("heading", { name: "Ana Souza" })).toBeVisible();
-  await expect(page.getByText("ana@example.com").first()).toBeVisible();
+  await expect(page.locator("main").getByText("ana@example.com")).toBeVisible(); // the menu copy of the e-mail is hidden on the phone
   await expect(page.getByRole("link", { name: "Política de Privacidade" })).toHaveAttribute("href", /privacidade\.html/);
   await expect(page.getByRole("link", { name: "Termos de Uso" })).toHaveAttribute("href", /termos\.html/);
   await expect(page.getByRole("heading", { name: "Zona de perigo" })).toBeVisible();

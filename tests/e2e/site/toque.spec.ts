@@ -43,7 +43,10 @@ test("o anel de foco por teclado continua visível", async ({ page }) => {
   await page.keyboard.press("Tab");
   const outline = await page.evaluate(() => {
     const el = document.activeElement as HTMLElement | null;
-    return el ? getComputedStyle(el).outlineStyle : "none";
+    if (!el) return "none";
+    // The rail toggle draws its ring on the inner disc, not on the button itself.
+    const ringed = [el, ...el.querySelectorAll<HTMLElement>("*")].find((x) => getComputedStyle(x).outlineStyle !== "none");
+    return ringed ? getComputedStyle(ringed).outlineStyle : "none";
   });
   expect(outline).not.toBe("none");
 });
