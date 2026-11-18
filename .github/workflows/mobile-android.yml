@@ -112,3 +112,17 @@ jobs:
           gh release delete app-latest --cleanup-tag --yes 2> /dev/null || true
           gh release create app-latest --prerelease --target "$GITHUB_SHA" --title "App Minhas Finanças $version (build $build)" \
             --notes-file "$RUNNER_TEMP/notes.md" out/minhas-financas.apk out/minhas-financas.aab
+
+      # Test build of the urban theme: a separate pre-release, so app-latest, releases/latest and the update notice stay as they are.
+      - name: Publicar o release de teste do tema
+        if: github.ref == 'refs/heads/feature/urban-theme' && env.ANDROID_KEYSTORE_FILE != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -n 's/.*versionName "\(.*\)".*/\1/p' mobile/android/app/build.gradle)
+          printf '%s\n\n%s\n' \
+            "TESTE do novo tema (escuro padrão, claro opcional). Não substitui a versão normal: instale por cima para testar e reinstale o app-latest para voltar." \
+            "- Tema urbano escuro e claro, barra de status acompanhando o tema." > "$RUNNER_TEMP/notes.md"
+          gh release delete app-teste-tema --cleanup-tag --yes 2> /dev/null || true
+          gh release create app-teste-tema --prerelease --target "$GITHUB_SHA" --title "TESTE tema urbano $version (build $GITHUB_RUN_NUMBER)" \
+            --notes-file "$RUNNER_TEMP/notes.md" out/minhas-financas.apk out/minhas-financas.aab

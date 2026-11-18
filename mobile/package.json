@@ -16,6 +16,7 @@
     "@capacitor/core": "8.5.3",
     "@capacitor/filesystem": "8.1.5",
     "@capacitor/share": "8.0.3",
+    "@capacitor/status-bar": "8.0.4",
     "@capgo/capacitor-social-login": "8.7.11"
   },
   "devDependencies": {

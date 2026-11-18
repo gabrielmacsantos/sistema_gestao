@@ -64,3 +64,7 @@ Os dados ficam no armazenamento do próprio app. Com conta, eles sincronizam pel
 
 - `versionName`: em `android/app/build.gradle`. Suba a versão ao lançar.
 - `versionCode`: o número da execução do GitHub Actions, sempre maior que o anterior, como a Play Store exige.
+
+## Tema e barra de status
+
+O `index.html` abre no tema escuro e a escolha fica em `localStorage` (`mf-theme`). No app, o plugin `@capacitor/status-bar` deixa a barra de status do Android com a cor e os ícones do tema (`syncChrome`). A branch `feature/urban-theme` publica o pré-release `app-teste-tema`, separado do `app-latest`.

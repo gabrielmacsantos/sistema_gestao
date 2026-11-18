@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Minhas Finanças</title>
 <meta name="description" content="Gestão de finanças pessoais: lançamentos, gastos fixos, orçamentos e metas. Roda no navegador, sem cadastro." />
-<meta name="theme-color" content="#00685f" />
+<meta name="theme-color" content="#090d16" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23008378'/%3E%3Cpath d='M9 12h14v10H9z' fill='none' stroke='white' stroke-width='2'/%3E%3Cpath d='M19 17h4' stroke='white' stroke-width='2'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,30 +13,38 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&family=Roboto:wght@500&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&family=Roboto:wght@500&display=swap" /></noscript>
 <script>
-  // Apply the saved theme before paint (falls back to the system preference).
+  // Apply the saved theme before paint. First visit, or nothing saved: the dark theme.
   try {
     var t = localStorage.getItem("mf-theme");
-    if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    if (t !== "light" && t !== "dark") t = "dark";
     document.documentElement.dataset.theme = t;
+    document.querySelector('meta[name="theme-color"]').content = t === "dark" ? "#090d16" : "#f8fafc";
   } catch (e) {
-    document.documentElement.dataset.theme = "light";
+    document.documentElement.dataset.theme = "dark";
   }
   // Same for a collapsed side menu, so the wide one never flashes on load.
   try { if (localStorage.getItem("mf-rail-collapsed") === "1") document.documentElement.dataset.rail = "collapsed"; } catch (e) {}
 </script>
 <style>
-/* ===== Sovereign Financial design tokens (Design-google/sovereign_financial/DESIGN.md) ===== */
+/* ===== Urban design tokens: dark (default) and light, the same in the site and in the app =====
+   The spec names (--bg-primary, --brand-primary...) are the source of truth; the short names below them are what the
+   rest of this file already reads, so they only point at the spec names. Hex colors live only in these two blocks. */
 :root {
-  --bg: #f8f9ff; --surface: #f8f9ff; --card: #ffffff;
-  --c-low: #eff4ff; --c: #e5eeff; --c-high: #dce9ff; --c-highest: #d3e4fe;
-  --on: #0b1c30; --on-var: #3d4947; --outline: #6d7a77; --outline-var: #bcc9c6;
+  --bg-primary: #f8fafc; --bg-card: #ffffff; --bg-elevated: #f1f5f9; --border-subtle: #e2e8f0;
+  --brand-primary: #059669; --brand-primary-alt: #0d9488; --brand-secondary: #4f46e5; --brand-accent: #0284c7;
+  --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
+  --semantic-income: #16a34a; --semantic-expense: #e11d48; --semantic-warning: #d97706;
+  --placeholder: #64748b; /* text-muted is for icons and inactive items; typed-text hints need 4.5:1 */
+  --bg: var(--bg-primary); --surface: #f4f7fb; --card: var(--bg-card);
+  --c-low: #f6f8fb; --c: var(--bg-elevated); --c-high: #e7ecf3; --c-highest: #dde4ee;
+  --on: var(--text-primary); --on-var: var(--text-secondary); --outline: var(--text-muted); --outline-var: var(--border-subtle);
   --hairline: rgb(226 232 240 / .8); --scrim: rgb(15 23 42 / .35);
-  --primary: #00685f; --on-primary: #fff; --primary-c: #008378; --on-primary-c: #f4fffc;
-  --primary-fixed: #89f5e7; --on-primary-fixed: #00201d;
-  --secondary: #565e74; --secondary-c: #dae2fd; --on-secondary-c: #5c647a;
-  --tertiary: #006947; --on-tertiary: #fff; --tertiary-c: #00855b; --tertiary-fixed: #6ffbbe; --on-tertiary-fixed: #002113;
-  --success: #059669; --success-c: #ecfdf5; --warning: #d97706; --warning-c: #fffbeb; --danger: #e11d48; --danger-c: #fff1f2; --on-danger: #fff;
-  --chart-in: #059669; --chart-out: #4460a2; --chart-grid: #e2e8f0;
+  --primary: var(--brand-primary); --on-primary: #fff; --primary-c: var(--brand-primary-alt); --on-primary-c: #f4fffc;
+  --primary-fixed: #a7f3d0; --on-primary-fixed: #022c22;
+  --secondary: var(--text-secondary); --secondary-c: #e2e8f0; --on-secondary-c: #475569;
+  --tertiary: var(--semantic-income); --on-tertiary: #fff; --tertiary-c: #15803d; --tertiary-fixed: #bbf7d0; --on-tertiary-fixed: #052e16;
+  --success: var(--semantic-income); --success-c: #f0fdf4; --warning: var(--semantic-warning); --warning-c: #fffbeb; --danger: var(--semantic-expense); --danger-c: #fff1f2; --on-danger: #fff;
+  --chart-in: var(--semantic-income); --chart-out: var(--brand-secondary); --chart-grid: var(--border-subtle);
   --shadow: 0 1px 2px rgb(15 23 42 / .05);
   --shadow-3: 0 20px 25px -5px rgb(15 23 42 / .06), 0 8px 10px -6px rgb(15 23 42 / .04);
   --font: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -45,17 +53,19 @@
   color-scheme: light;
 }
 :root[data-theme="dark"] {
-  --bg: #0b1220; --surface: #0e1626; --card: #111a2b;
-  --c-low: #152035; --c: #1a273d; --c-high: #203049; --c-highest: #273a56;
-  --on: #e6edf8; --on-var: #b4c2c0; --outline: #8a9896; --outline-var: #34455e;
-  --hairline: rgb(52 69 94 / .7); --scrim: rgb(2 6 23 / .6);
-  --primary: #6bd8cb; --on-primary: #00201d; --primary-c: #4fc3b6; --on-primary-c: #00201d;
-  --primary-fixed: #005049; --on-primary-fixed: #89f5e7;
-  --secondary: #a9b3cc; --secondary-c: #2a3550; --on-secondary-c: #c6cee6;
-  --tertiary: #4edea3; --on-tertiary: #002113; --tertiary-c: #3cc58e; --tertiary-fixed: #005236; --on-tertiary-fixed: #6ffbbe;
-  --success: #34d399; --success-c: rgb(16 185 129 / .14); --warning: #fbbf24; --warning-c: rgb(245 158 11 / .14);
-  --danger: #fb7185; --danger-c: rgb(225 29 72 / .16); --on-danger: #2a0510;
-  --chart-in: #23ac74; --chart-out: #5a78bc; --chart-grid: #233149;
+  --bg-primary: #090d16; --bg-card: #111827; --bg-elevated: #1e293b; --border-subtle: #1f2937;
+  --brand-primary: #10b981; --brand-primary-alt: #2dd4bf; --brand-secondary: #6366f1; --brand-accent: #38bdf8;
+  --text-primary: #f8fafc; --text-secondary: #94a3b8; --text-muted: #475569;
+  --semantic-income: #22c55e; --semantic-expense: #f43f5e; --semantic-warning: #f59e0b;
+  --placeholder: #7c8ba1;
+  --surface: #0d1320;
+  --c-low: #172033; --c-high: #263348; --c-highest: #2f3e56;
+  --hairline: rgb(31 41 55 / .9); --scrim: rgb(2 6 23 / .6);
+  --on-primary: #04201a; --on-primary-c: #04201a;
+  --primary-fixed: #064e3b; --on-primary-fixed: #6ee7b7;
+  --secondary-c: #1e293b; --on-secondary-c: #cbd5e1;
+  --on-tertiary: #052e16; --tertiary-c: #16a34a; --tertiary-fixed: #14532d; --on-tertiary-fixed: #86efac;
+  --success-c: rgb(34 197 94 / .14); --warning-c: rgb(245 158 11 / .14); --danger-c: rgb(244 63 94 / .16); --on-danger: #fff;
   color-scheme: dark;
 }
 
@@ -63,6 +73,9 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--on); font: 400 14px/20px var(--font); -webkit-font-smoothing: antialiased; min-height: 100dvh; }
+/* Switching theme fades the main surfaces instead of jumping. */
+body, .card, .topbar, .bottomnav { transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease; }
+@media (prefers-reduced-motion: reduce) { body, .card, .topbar, .bottomnav, .input { transition: none; } }
 h1, h2, h3 { font-family: var(--display); margin: 0; font-weight: 600; }
 p { margin: 0; }
 a { color: inherit; text-decoration: none; }
@@ -418,7 +431,8 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .input[aria-invalid="true"] { border-color: var(--danger); }
 /* Error state shake (transitions.dev): a field that fails shakes left and right. */
 :root { --shake-distance: 6px; --shake-overshoot: 4px; --shake-dur-a: 80ms; --shake-dur-b: 60ms; --shake-ease: cubic-bezier(0.22, 1, 0.36, 1); }
-.input { transition: border-color 150ms ease-out; }
+.input { transition: border-color 150ms ease-out, background-color 200ms ease, color 200ms ease; }
+.input::placeholder { color: var(--placeholder); opacity: 1; }
 .input.is-shaking { animation: t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear; }
 @keyframes t-input-shake {
   0%     { transform: translateX(0);                                 animation-timing-function: var(--shake-ease); }
@@ -430,7 +444,7 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 @media (prefers-reduced-motion: reduce) { .input.is-shaking { animation: none !important; transform: none !important; } }
 .input-sm { height: 36px; font-size: 14px; }
 .money { position: relative; }
-.money span { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-weight: 600; pointer-events: none; }
+.money span { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--placeholder); font-weight: 600; pointer-events: none; }
 .money .input { padding-left: 42px; font-variant-numeric: tabular-nums; }
 .err { font-size: 12px; color: var(--danger); }
 .hint { font-size: 12px; color: var(--secondary); }
@@ -484,8 +498,8 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 @keyframes fade { from { opacity: 0; } }
 @keyframes up { from { transform: translateY(16px); opacity: 0; } }
 /* Toast: Material inverse surface (contrast >= 4.5:1 in both themes) + the "Texts reveal" transition (transitions.dev). */
-:root { --toast-bg: #213145; --toast-fg: #eaf1ff; --toast-accent: #89f5e7; --stagger-dur: 500ms; --stagger-distance: 12px; --stagger-stagger: 40ms; --stagger-blur: 3px; --stagger-ease: cubic-bezier(0.22, 1, 0.36, 1); }
-:root[data-theme="dark"] { --toast-bg: #dce6f5; --toast-fg: #0b1c30; --toast-accent: #00685f; }
+:root { --toast-bg: #0f172a; --toast-fg: #f8fafc; --toast-accent: #6ee7b7; --stagger-dur: 500ms; --stagger-distance: 12px; --stagger-stagger: 40ms; --stagger-blur: 3px; --stagger-ease: cubic-bezier(0.22, 1, 0.36, 1); }
+:root[data-theme="dark"] { --toast-bg: #f8fafc; --toast-fg: #0f172a; --toast-accent: #059669; }
 .t-stagger-line { display: block; opacity: 0; transform: translateY(var(--stagger-distance)); filter: blur(var(--stagger-blur)); transition: opacity var(--stagger-dur) var(--stagger-ease), transform var(--stagger-dur) var(--stagger-ease), filter var(--stagger-dur) var(--stagger-ease); will-change: transform, opacity, filter; }
 .t-stagger.is-shown .t-stagger-line { opacity: 1; transform: translateY(0); filter: blur(0); }
 .t-stagger.is-hiding .t-stagger-line { opacity: 0; transform: translateY(0); filter: blur(0); transition: opacity 200ms ease, transform 0s linear, filter 0s linear; transition-delay: 0s; }
@@ -4653,12 +4667,32 @@ const NATIVE = !!window.Capacitor?.isNativePlatform?.();
 // Native plugins are reachable only through Capacitor.registerPlugin, which comes from capacitor.js; the app copy
 // loads it (mobile/scripts/copy-web.mjs). Only plugins the app actually ships (PluginHeaders) are registered.
 const NativePlugins = {};
+// <theme>
+// The saved choice is "dark" or "light"; nothing saved means dark. The head script applies it before paint.
+const THEME_KEY = "mf-theme";
+const THEME_COLORS = { dark: "#090d16", light: "#f8fafc" };
+const themeName = (v) => (v === "light" ? "light" : "dark");
+// </theme>
+function setTheme(t) {
+  t = themeName(t);
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem(THEME_KEY, t); } catch {}
+  syncChrome(t);
+}
+// Browser address bar and, in the app, the Android status bar follow the theme. The web has no StatusBar plugin: no-op there.
+function syncChrome(t) {
+  const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = THEME_COLORS[t];
+  const bar = NativePlugins.StatusBar; if (!bar) return;
+  // "Dark" style means light icons, for a dark bar.
+  bar.setStyle({ style: t === "dark" ? "DARK" : "LIGHT" }).catch(() => {});
+  bar.setBackgroundColor({ color: THEME_COLORS[t] }).catch(() => {});
+}
 if (NATIVE) {
   const cap = window.Capacitor, register = cap.registerPlugin || window.capacitorExports?.registerPlugin;
   const shipped = new Set((cap.PluginHeaders || []).map((h) => h.name));
   // BankNotifications is only registered with the flag on: without it BankNotif() is undefined, so nothing below
   // (status, queue, the "enable" prompt, the listener) ever reaches the native side or asks for access.
-  for (const name of ["App", ...(ENABLE_BANK_NOTIFICATIONS ? ["BankNotifications"] : []), "Browser", "Filesystem", "Share", "SocialLogin", "SpeechRecognition"]) {
+  for (const name of ["App", ...(ENABLE_BANK_NOTIFICATIONS ? ["BankNotifications"] : []), "Browser", "Filesystem", "Share", "SocialLogin", "SpeechRecognition", "StatusBar"]) {
     if (register && shipped.has(name)) NativePlugins[name] = register(name);
   }
 }
@@ -5940,7 +5974,7 @@ document.addEventListener("click", (e) => {
   if (act === "close-nav") { if (drawerEl) closeDrawer(false); else closeModal(); return; }
   const actions = {
     "theme": () => {
-      const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem("mf-theme", t); } catch {} render();
+      setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"); render();
       const row = document.querySelector(".drawer-theme"); if (row) { row.outerHTML = drawerThemeRow(); document.querySelector(".drawer-theme").focus({ preventScroll: true }); }
     },
     "menu": () => (drawerEl ? closeDrawer() : menuSheet()), "close": closeModal, "notices": noticesSheet, "drawer-close": () => closeDrawer(),
@@ -6155,7 +6189,7 @@ if (activeWs) wsKnown = wsSnapshot(state);
 render();
 pullIfNewer();
 checkAppUpdate(true);
-if (NATIVE) onAppForeground();
+if (NATIVE) { syncChrome(themeName(document.documentElement.dataset.theme)); onAppForeground(); }
 </script>
 </body>
 </html>
