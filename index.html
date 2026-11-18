@@ -515,6 +515,32 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .account { min-width: 0; overflow: hidden; }
 .account .lbl { flex: 1; min-width: 0; }
 .account .lbl > * { display: block; }
+/* Avatar group hover (transitions.dev): the hovered face lifts, its neighbours follow with a falloff, and all spring back. */
+:root { --avatar-lift: -4px; --avatar-dur: 320ms; --avatar-scale: 1.05; --avatar-falloff: 0.45; --avatar-ease-in: cubic-bezier(0.22, 1, 0.36, 1); --avatar-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1); }
+.t-avatar { transform-origin: center; transform: translateY(var(--shift, 0px)) scale(var(--scale-active, 1)); transition: transform var(--avatar-dur) var(--avatar-ease-in); will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .t-avatar { transition: none !important; transform: none !important; } }
+.t-avatar-group { display: inline-flex; align-items: center; flex: none; }
+.t-avatar-group .t-avatar + .t-avatar { margin-left: -10px; }
+.t-avatar-group .avatar { box-shadow: 0 0 0 2px var(--card); }
+.avatar.more { font-size: 11px; }
+.avatar.mini { width: 16px; height: 16px; font-size: 8px; }
+/* Shared panels */
+.ws-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 200px; min-height: 36px; padding: 0 10px; border: 1px solid var(--outline-var); border-radius: 999px; background: var(--card); color: var(--on); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.ws-chip svg { width: 16px; height: 16px; flex: none; }
+.ws-chip:hover { background: var(--c-low); }
+.ws-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; padding: 10px 14px; border: 1px solid var(--outline-var); border-radius: 14px; background: var(--c-low); }
+.ws-banner-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--c-high); color: var(--primary); flex: none; }
+.ws-banner-icon svg { width: 18px; height: 18px; }
+.ws-banner-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 140px; }
+.ws-banner-text small, .ws-row-text small { color: var(--secondary); font-size: 12px; }
+.ws-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ws-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--outline-var); }
+.ws-row:last-child { border-bottom: 0; }
+.ws-row-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.ws-row-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; background: var(--c-high); color: var(--primary); flex: none; }
+.ws-row-icon svg { width: 18px; height: 18px; }
+.ws-picks { display: flex; flex-direction: column; gap: 4px; }
+.by { display: inline-flex; align-items: center; gap: 4px; color: var(--secondary); }
 .avatar img { width: 100%; height: 100%; display: block; object-fit: cover; border-radius: 50%; }
 .avatar { overflow: hidden; width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 999px; background: var(--c-high); color: var(--primary); font-size: 12px; font-weight: 700; }
 @media (min-width: 1024px) { .account { display: flex; } }
@@ -775,6 +801,8 @@ const ICONS = {
   file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
   target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  chevronDown: '<path d="m6 9 6 6 6-6"/>',
   logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
   camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
   settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
@@ -1597,6 +1625,99 @@ function deletionBlocker({ online, hasSession }) {
 }
 // </account-delete>
 
+// <workspace-core> Self-contained (uses hasValidMoney): tests/workspace-core.test.ts loads this block.
+// A shared panel is one JSON file in the Drive of the person who created it (its owner, the only administrator), shared
+// with the invited people by Drive permission. There is no server to arbitrate, so two people editing at once is settled
+// by merging record by record: every record carries `updatedAt`, removals leave a tombstone in `deleted`, and the newest
+// side wins per record. Money stays integer cents inside the records, exactly as in a personal panel.
+const WS_FORMAT = "ws-1";
+const WS_COLLECTIONS = ["transactions", "categories", "recurrings", "budgets", "goals", "trips", "members"];
+const WS_NAME_MAX = 60;
+const wsScope = (base, id) => `${base}~ws:${id}`;
+const wsItemKey = (coll, id) => `${coll}:${id}`;
+const wsFingerprint = (item) => { const { updatedAt, ...rest } = item; return JSON.stringify(rest); };
+/** What each record looked like when this device last agreed with the file: { "transactions:<id>": "<json>" }. */
+function wsSnapshot(state) {
+  const out = {};
+  for (const coll of WS_COLLECTIONS) for (const item of state[coll] || []) out[wsItemKey(coll, item.id)] = wsFingerprint(item);
+  return out;
+}
+/** Run before every save: stamps the records that changed since `known`, tombstones the ones that went away, and signs new transactions. Returns the new snapshot. */
+function wsStampChanges(state, known, now, author) {
+  const next = {};
+  state.deleted = state.deleted || {};
+  for (const coll of WS_COLLECTIONS) for (const item of state[coll] || []) {
+    const key = wsItemKey(coll, item.id);
+    const isNew = !!known && !(key in known);
+    // A fixed-item occurrence is generated on every member's device with the same id: it must never count as newer than what
+    // someone already did to it (paid it, say), so it keeps version 0 until a person changes it.
+    const generated = isNew && coll === "transactions" && item.source === "RECURRING" && !!item.recurringId;
+    if (isNew && coll === "transactions" && author && !item.authorSub && !generated) { item.authorSub = author.sub; item.authorName = author.name; }
+    const fp = wsFingerprint(item);
+    if (known && known[key] !== fp && !generated) item.updatedAt = now;
+    next[key] = fp;
+  }
+  if (known) for (const key of Object.keys(known)) if (!(key in next)) state.deleted[key] = now;
+  return next;
+}
+const wsNewer = (a, b) => ((a.updatedAt || 0) !== (b.updatedAt || 0) ? (a.updatedAt || 0) > (b.updatedAt || 0) : wsFingerprint(a) >= wsFingerprint(b));
+/** The union of two copies of a panel. Same inputs in either order give the same records. */
+function wsMerge(local, remote) {
+  const out = { ...remote, ...local };
+  const deleted = {};
+  for (const src of [remote.deleted || {}, local.deleted || {}]) for (const [k, ts] of Object.entries(src)) deleted[k] = Math.max(deleted[k] || 0, ts || 0);
+  for (const coll of WS_COLLECTIONS) {
+    const byId = new Map();
+    for (const item of [...(remote[coll] || []), ...(local[coll] || [])]) {
+      const cur = byId.get(item.id);
+      if (!cur || wsNewer(item, cur)) byId.set(item.id, item);
+    }
+    out[coll] = [...byId.values()].filter((item) => {
+      const key = wsItemKey(coll, item.id);
+      if (deleted[key] === undefined) return true;
+      if ((item.updatedAt || 0) > deleted[key]) { delete deleted[key]; return true; } // changed after the removal: it is back
+      return false;
+    });
+  }
+  out.deleted = deleted;
+  out.savedAt = Math.max(local.savedAt || 0, remote.savedAt || 0);
+  return out;
+}
+/** Cheap equality for "is there anything the other side does not have": ids, versions and removals. */
+function wsContentKey(state) {
+  return JSON.stringify([WS_COLLECTIONS.map((c) => (state[c] || []).map((i) => [i.id, i.updatedAt || 0]).sort()), Object.entries(state.deleted || {}).sort()]);
+}
+/** What goes into the shared file: the records, never the things that belong to one person (notification inbox, sample data). */
+function wsSharedState(state) {
+  const { inbox, demo, demoDismissed, ...shared } = state;
+  return shared;
+}
+function wsFileText(ws, state) {
+  return JSON.stringify({ app: "minhas-financas", format: WS_FORMAT, name: ws.name, ownerSub: ws.ownerSub, savedAt: state.savedAt || 0, state: wsSharedState(state) });
+}
+/** Reads a shared file, refusing anything that is not ours, has a malformed member list or has money that is not integer cents. */
+function wsReadFile(text) {
+  const file = JSON.parse(text);
+  const state = file && file.app === "minhas-financas" && file.format === WS_FORMAT ? file.state : null;
+  if (!state || state.version !== 1 || typeof file.ownerSub !== "string" || !file.ownerSub) throw new Error("Este arquivo não é um painel compartilhado.");
+  for (const coll of WS_COLLECTIONS) if (!Array.isArray(state[coll])) throw new Error("Painel compartilhado inválido.");
+  if (!state.members.every((m) => m && typeof m.id === "string" && m.id === m.sub && typeof m.email === "string")) throw new Error("Painel compartilhado inválido.");
+  if (!hasValidMoney(state)) throw new Error("Painel compartilhado inválido.");
+  return { name: String(file.name || "Painel compartilhado").slice(0, WS_NAME_MAX), ownerSub: file.ownerSub, savedAt: file.savedAt || 0, state };
+}
+const wsIsOwner = (ws, sub) => !!ws && ws.ownerSub === sub;
+const wsRole = (ws, sub) => (wsIsOwner(ws, sub) ? "ADMIN" : "MEMBER");
+const wsMemberFor = (me, now) => ({ id: me.sub, sub: me.sub, email: me.email, name: me.name, picture: me.picture || "", joinedAt: now, updatedAt: now });
+/** The first name shown on a transaction ("Lançado por Maria"). */
+const wsFirstName = (name) => String(name || "").trim().split(/\s+/)[0] || "";
+/** A pasted code or link to the file id: the id itself, or `...id=<id>` / `.../d/<id>/...`. */
+function wsParseInvite(text) {
+  const t = String(text || "").trim();
+  const m = /[?&#]id=([\w-]{10,})/.exec(t) || /\/d\/([\w-]{10,})/.exec(t) || /^([\w-]{10,})$/.exec(t);
+  return m ? m[1] : null;
+}
+// </workspace-core>
+
 // ---------- Store ----------
 const SYNC_KEY = "minhas-financas:github";
 const LOCAL_KEY = "minhas-financas:local";
@@ -1607,7 +1728,22 @@ const PHOTO_OWNER_KEY = "minhas-financas:photo-owner";
 // `if (ENCRYPTED_SYNC)` and the <drive-crypto> block stay for a later decision; changing this to true turns it all back on.
 const ENCRYPTED_SYNC = false;
 let sync = loadSync();
-const activeScope = () => scopeOf(sync);
+// Shared panels (see <workspace-core>): the panel the person is looking at, or null for their personal one. Each panel is
+// its own storage scope on this device, so personal and shared records never mix. Function declarations only: this runs
+// before the rest of the script has been evaluated.
+let activeWs = readActiveWs();
+const activeScope = () => (activeWs ? wsScope(scopeOf(sync), activeWs.id) : scopeOf(sync));
+function readWsList() {
+  if (!sync || sync.provider !== "google") return [];
+  try { const v = JSON.parse(localStorage.getItem(`mf-workspaces:${sync.sub}`)); return Array.isArray(v) ? v.filter((w) => w && typeof w.id === "string") : []; } catch { return []; }
+}
+function writeWsList(list) { try { localStorage.setItem(`mf-workspaces:${sync.sub}`, JSON.stringify(list)); } catch { /* private mode: it is asked again next time */ } }
+function readActiveWs() {
+  if (!sync || sync.provider !== "google") return null;
+  let id = null;
+  try { id = localStorage.getItem(`mf-active-ws:${sync.sub}`); } catch { /* none */ }
+  return readWsList().find((w) => w.id === id) || null;
+}
 const DEFAULT_CATEGORIES = [
   ["EXPENSE", "Moradia", "#6366f1"], ["EXPENSE", "Alimentação", "#f59e0b"], ["EXPENSE", "Mercado", "#84cc16"],
   ["EXPENSE", "Transporte", "#06b6d4"], ["EXPENSE", "Saúde", "#ef4444"], ["EXPENSE", "Educação", "#8b5cf6"],
@@ -1642,7 +1778,7 @@ function load(scope = activeScope()) {
     const raw = localStorage.getItem(storageKey(scope));
     if (raw) { const s = JSON.parse(raw); if (s && s.version === 1) return { ...emptyState(), ...s }; }
   } catch (e) { /* first run or private mode */ }
-  return emptyState();
+  return activeWs && scope === activeScope() ? wsEmptyState() : emptyState();
 }
 /** Writes to this browser only, under the active scope. */
 function persist() {
@@ -1652,6 +1788,7 @@ function persist() {
 /** A user change: stamps it, saves locally and schedules the encrypted copy on GitHub. */
 function save() {
   state.savedAt = Date.now();
+  if (activeWs) wsStamp();
   persist();
   schedulePush();
 }
@@ -1694,7 +1831,8 @@ function ensureOccurrences() {
   for (const r of state.recurrings) {
     for (const m of activeMonths(r, r.startMonth, cur)) {
       if (existing.has(`${r.id}:${m}`)) continue;
-      state.transactions.push({ id: uid(), type: r.type, description: r.description, amountCents: r.amountCents, date: occurrenceDate(m, r.dayOfMonth), status: "PENDING", categoryId: r.categoryId, source: "RECURRING", recurringId: r.id, period: m, notes: "", createdAt: Date.now() });
+      // In a shared panel every member generates the occurrence on their own device: the id is the same everywhere, so it merges into one.
+      state.transactions.push({ id: activeWs ? `occ-${r.id}-${m}` : uid(), type: r.type, description: r.description, amountCents: r.amountCents, date: occurrenceDate(m, r.dayOfMonth), status: "PENDING", categoryId: r.categoryId, source: "RECURRING", recurringId: r.id, period: m, notes: "", createdAt: Date.now() });
       changed = true;
     }
   }
@@ -1721,7 +1859,7 @@ let pushTimer = null;
 let pushing = false;
 
 function loadSync() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null"); } catch { return null; } }
-function storeSync(value) { sync = value; try { value ? localStorage.setItem(SYNC_KEY, JSON.stringify(value)) : localStorage.removeItem(SYNC_KEY); } catch {} }
+function storeSync(value) { sync = value; activeWs = readActiveWs(); try { value ? localStorage.setItem(SYNC_KEY, JSON.stringify(value)) : localStorage.removeItem(SYNC_KEY); } catch {} }
 /** "Usar sem conta": data only in this browser. Older installs with data but no account count as local. */
 function isLocalMode() {
   try { if (localStorage.getItem(LOCAL_KEY) === "1") return true; } catch {}
@@ -1856,6 +1994,7 @@ function schedulePush() {
 }
 async function pushNow() {
   if (!sync) return;
+  if (activeWs) return syncWorkspace(); // a shared panel merges with the file instead of overwriting it
   clearTimeout(pushTimer); pushTimer = null;
   if (pushing) { pushTimer = setTimeout(pushNow, 800); return; }
   // Sample data never goes to the account; with nothing real to send, the account's copy stays as it is.
@@ -1907,6 +2046,7 @@ async function pushNow() {
 async function pullIfNewer() {
   if (!sync || pushTimer || pushing) return;
   if (!navigator.onLine) return setSyncStatus(syncStatus); // offline: keep working on the device copy
+  if (activeWs) return syncWorkspace();
   if (isGoogle()) return pullFromDrive();
   const scope = activeScope();
   try {
@@ -2297,7 +2437,14 @@ const PRIVACY_URL = "https://gabrielmacsantos.github.io/sistema_gestao/privacida
 const TERMS_URL = "https://gabrielmacsantos.github.io/sistema_gestao/termos.html";
 const DELETE_HELP_URL = `${PRIVACY_URL}#excluir-conta`;
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
-const GOOGLE_SCOPES = `openid email profile ${DRIVE_SCOPE}`;
+// Shared panels live in a normal Drive file made by this app (drive.file: only files the app made or was given), so the
+// owner can share it with the invited people. Everything else still lives in the hidden app folder (DRIVE_SCOPE).
+const DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const GOOGLE_SCOPES = `openid email profile ${DRIVE_SCOPE} ${DRIVE_FILE_SCOPE}`;
+// The Google Picker lets a guest hand the app a file shared with them (drive.file does not see it otherwise). The key is public;
+// restrict it to the Picker API and to this site in the Google Cloud console. Empty: the invite works only if Drive lets the app read it directly.
+const GOOGLE_API_KEY = "";
+const GOOGLE_PROJECT_NUMBER = "404240084515";
 const DRIVE_FILE = "minhas-financas.json";
 // Photos in Drive are encrypted (.bin). Older plain ones (.jpg) are still read and replaced by an encrypted copy.
 const photoDriveName = (id) => `photo-${id}.bin`;
@@ -2555,17 +2702,17 @@ function nativeGoogleError(e) {
 async function nativeGoogleToken() {
   await nativeSocialLogin();
   let res;
-  try { res = await NativePlugins.SocialLogin.login({ provider: "google", options: { scopes: [DRIVE_SCOPE] } }); }
+  try { res = await NativePlugins.SocialLogin.login({ provider: "google", options: { scopes: [DRIVE_SCOPE, DRIVE_FILE_SCOPE] } }); }
   catch (e) { throw nativeGoogleError(e); }
   const access = res && res.result && res.result.accessToken && res.result.accessToken.token;
   if (!access) throw new Error("Para guardar seus dados, permita o acesso ao Google Drive (só à pasta do app).");
-  return { access, expiresAt: Date.now() + NATIVE_TOKEN_MS };
+  return { access, expiresAt: Date.now() + NATIVE_TOKEN_MS, fileScope: true };
 }
 /** In the app only: a fresh access token without asking anything; throws "tap to reconnect" if Google needs the person. */
 async function renewNativeGoogle() {
   try {
     await nativeSocialLogin();
-    await NativePlugins.SocialLogin.refresh({ provider: "google", options: { scopes: [DRIVE_SCOPE] } });
+    await NativePlugins.SocialLogin.refresh({ provider: "google", options: { scopes: [DRIVE_SCOPE, DRIVE_FILE_SCOPE] } });
     const { accessToken } = await NativePlugins.SocialLogin.getAuthorizationCode({ provider: "google" });
     if (!accessToken) throw new Error("no access token");
     storeSync({ ...sync, token: { access: accessToken, expiresAt: Date.now() + NATIVE_TOKEN_MS } });
@@ -2584,7 +2731,8 @@ async function requestGoogleToken(prompt, hint) {
         if (r.error) return reject(googleError(r.error));
         // Google lets people untick permissions; without the app folder there is nowhere to save.
         if (!google.accounts.oauth2.hasGrantedAllScopes(r, DRIVE_SCOPE)) return reject(new Error("Para guardar seus dados, permita o acesso ao Google Drive (só à pasta do app)."));
-        resolve({ access: r.access_token, expiresAt: Date.now() + ((Number(r.expires_in) || 3600) - 60) * 1000 });
+        // Shared panels are optional: someone who unticks the file permission keeps everything else working.
+        resolve({ access: r.access_token, expiresAt: Date.now() + ((Number(r.expires_in) || 3600) - 60) * 1000, fileScope: google.accounts.oauth2.hasGrantedAllScopes(r, DRIVE_FILE_SCOPE) });
       },
       error_callback: (e) => reject(googleError(e && e.type)),
     }).requestAccessToken();
@@ -2617,6 +2765,12 @@ async function drive(path, { method = "GET", body, headers = {}, upload = false,
     throw reauthError();
   }
   if (res.status === 404) throw Object.assign(new Error("Não encontrado no Google Drive."), { notFound: true });
+  if (res.status === 403) {
+    // A busy API also says 403: only a real "no permission" means the access to a shared file is gone.
+    const reason = (await res.json().catch(() => null))?.error?.errors?.[0]?.reason || "";
+    if (/rate|quota/i.test(reason)) throw new Error("O Google Drive está ocupado. Tente de novo em instantes.");
+    throw Object.assign(new Error("Sem permissão no Google Drive."), { forbidden: true });
+  }
   if (!res.ok) throw new Error(`O Google Drive respondeu com erro (${res.status}). Tente de novo em instantes.`);
   if (method === "DELETE") return null;
   return as === "json" ? res.json() : as === "blob" ? res.blob() : res.text();
@@ -2636,20 +2790,326 @@ async function writeDriveFile(id, name, content, mime, access) {
   return (await drive("/files?uploadType=multipart&fields=id", { method: "POST", upload: true, body: new Blob(parts), headers: { "Content-Type": type } }, access)).id;
 }
 
+// ---------- Shared panels (Google Drive) ----------
+// One Drive file per panel, owned by whoever created it and shared with the invited people through Drive's own permissions
+// (see <workspace-core> for the file and the merge). The owner is the only administrator. There is no server, so "real time" is
+// a short poll while the app is open, plus a merge on every change; the panel on this device keeps working offline.
+let wsKnown = null, wsSyncing = false, wsAgain = false, wsLeaving = false, pickerLoading = null;
+const WS_POLL_MS = 20000;
+const wsMe = () => ({ sub: sync.sub, email: sync.email, name: sync.name || sync.email, picture: sync.picture || "" });
+function wsEmptyState() { return { ...emptyState(), categories: [], members: [], deleted: {}, demoDismissed: true }; }
+function wsStamp() { wsKnown = wsStampChanges(state, wsKnown, Date.now(), { sub: sync.sub, name: wsFirstName(sync.name) }); }
+const wsOwner = () => wsIsOwner(activeWs, sync?.sub);
+function wsSetActiveKey(id) { try { localStorage.setItem(`mf-active-ws:${sync.sub}`, id || ""); } catch { /* it opens on the personal panel next time */ } }
+function wsForcePersonal() { activeWs = null; if (sync?.sub) wsSetActiveKey(""); }
+/** Removes every copy of this account's panels from the device (the personal one and the shared ones share a key prefix). */
+function wsWipeCaches(forget = false) {
+  if (!sync || !isGoogle()) return;
+  const prefix = storageKey(scopeOf(sync));
+  try {
+    for (const key of Object.keys(localStorage)) if (key === prefix || key.startsWith(`${prefix}~ws:`)) localStorage.removeItem(key);
+    localStorage.removeItem(`mf-active-ws:${sync.sub}`);
+    if (forget) localStorage.removeItem(`mf-workspaces:${sync.sub}`);
+  } catch { /* private mode: nothing was kept */ }
+}
+async function ensureFileAccess() {
+  if (sync.fileScope) return;
+  await reconnectGoogle();
+  if (!sync.fileScope) throw new Error("Para usar painéis compartilhados, permita o acesso aos arquivos criados pelo app no Google Drive.");
+}
+async function readWorkspaceFile(id) { return wsReadFile(await drive(`/files/${encodeURIComponent(id)}?alt=media`, { as: "text" })); }
+async function writeWorkspaceFile(ws, data) {
+  await drive(`/files/${encodeURIComponent(ws.id)}?uploadType=media&fields=id`, { method: "PATCH", upload: true, body: wsFileText(ws, data), headers: { "Content-Type": "application/json" } });
+}
+/** Takes a merged copy as this device's panel. Redraws only when the screen is free (an open form is never pulled out from under someone). */
+function wsApply(merged) {
+  const seen = new Set(state.transactions.map((t) => t.id));
+  const arrivals = merged.transactions.filter((t) => !seen.has(t.id) && t.authorSub && t.authorSub !== sync.sub);
+  state = { ...wsEmptyState(), ...merged };
+  wsKnown = wsSnapshot(state);
+  needsOccurrences = true;
+  persist();
+  if (!document.getElementById("modal")) render();
+  if (arrivals.length) toast(arrivals.length === 1 ? `${arrivals[0].authorName || "Alguém"} lançou: ${arrivals[0].description}` : `${arrivals.length} lançamentos novos de outras pessoas.`);
+}
+/** Reads the shared file, merges it with this device's copy and sends back what it lacks; repeats if someone wrote in the meantime. */
+async function syncWorkspace() {
+  if (!sync || !activeWs) return;
+  if (!navigator.onLine) return setSyncStatus(syncStatus);
+  if (wsSyncing) { wsAgain = true; return; }
+  clearTimeout(pushTimer); pushTimer = null;
+  wsSyncing = true; setSyncStatus("saving");
+  const ws = activeWs, scope = activeScope();
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const remote = await readWorkspaceFile(ws.id);
+      if (scope !== activeScope()) return;
+      if (remote.ownerSub !== ws.ownerSub) throw new Error("Este painel mudou de dono e foi bloqueado por segurança.");
+      const merged = wsMerge(state, remote.state);
+      if (!merged.members.some((m) => m.id === sync.sub)) {
+        // Removed by the administrator (a newer removal beats everything): the access is gone. Otherwise this device just writes itself back in.
+        if (merged.deleted[wsItemKey("members", sync.sub)] === undefined) merged.members.push(wsMemberFor(wsMe(), Date.now()));
+        else if (!wsLeaving) throw Object.assign(new Error("revoked"), { revoked: true });
+      }
+      const mergedKey = wsContentKey(merged);
+      if (mergedKey !== wsContentKey(state)) wsApply(merged);
+      if (mergedKey === wsContentKey(remote.state)) break;
+      await writeWorkspaceFile(ws, merged);
+    }
+    if (scope !== activeScope()) return;
+    const now = Date.now();
+    storeSync({ ...sync, lastSync: now, lastPush: now });
+    setSyncStatus("ok");
+    if (wsLeaving) { wsLeaving = false; await wsRevoked(ws); }
+  } catch (e) {
+    if (scope !== activeScope()) return;
+    if (e.revoked || e.notFound || e.forbidden) { wsLeaving = false; return wsRevoked(ws); }
+    if (e.reauth) return setSyncStatus("reauth");
+    setSyncStatus("error"); toast(e.message);
+  } finally { wsSyncing = false; if (wsAgain) { wsAgain = false; setTimeout(syncWorkspace, 300); } }
+}
+/** The administrator took this person out (or deleted the panel): the panel's data leaves this device and the personal panel comes back. */
+async function wsRevoked(ws) {
+  writeWsList(readWsList().filter((w) => w.id !== ws.id));
+  try { localStorage.removeItem(storageKey(wsScope(scopeOf(sync), ws.id))); } catch { /* ignore */ }
+  if (activeWs && activeWs.id === ws.id) wsToPersonal();
+  toast(`Você não tem mais acesso ao painel “${ws.name}”.`);
+}
+function wsToPersonal() {
+  activeWs = null; wsKnown = null; wsSetActiveKey("");
+  replaceState(load()); monthIndex = null; conflictPending = false;
+  if (location.hash.startsWith("#/membros")) location.hash = href("perfil");
+  render(); pullIfNewer();
+}
+/** Opens a shared panel (a list entry) or, with null, the personal one. Pending changes of the one being left are sent first. */
+async function switchWorkspace(target) {
+  if ((target?.id || null) === (activeWs?.id || null)) return;
+  if (pushTimer) { try { await (activeWs ? syncWorkspace() : pushNow()); } catch { /* the change stays on the device */ } }
+  if (!target) return wsToPersonal();
+  activeWs = target; wsSetActiveKey(target.id);
+  replaceState(load()); monthIndex = null; conflictPending = false;
+  wsKnown = wsSnapshot(state);
+  render(); syncWorkspace();
+}
+const wsSave = (ws, data) => { try { localStorage.setItem(storageKey(wsScope(scopeOf(sync), ws.id)), JSON.stringify(data)); } catch { throw new Error("Não foi possível salvar neste aparelho."); } };
+async function wsCreate(name) {
+  const title = String(name).trim().slice(0, WS_NAME_MAX);
+  if (!title) throw new Error("Dê um nome ao painel.");
+  const me = wsMe(), now = Date.now();
+  const initial = { ...wsEmptyState(), categories: load(scopeOf(sync)).categories.map((c) => ({ ...c, updatedAt: now })), members: [wsMemberFor(me, now)], savedAt: now };
+  const entry = { id: "", name: title, ownerSub: me.sub, ownerEmail: me.email };
+  const { type, parts } = driveMultipart({ name: `Minhas Finanças - ${title}.json`, mimeType: "application/json" }, wsFileText(entry, initial), "application/json", `mf${uid().replace(/-/g, "")}`);
+  entry.id = (await drive("/files?uploadType=multipart&fields=id", { method: "POST", upload: true, body: new Blob(parts), headers: { "Content-Type": type } })).id;
+  writeWsList([...readWsList(), entry]); wsSave(entry, initial);
+  await switchWorkspace(entry);
+}
+function loadPicker() {
+  return (pickerLoading ||= new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://apis.google.com/js/api.js"; script.async = true;
+    script.onload = () => window.gapi.load("picker", { callback: () => resolve(), onerror: () => { pickerLoading = null; reject(new Error("Não foi possível abrir o seletor do Google.")); } });
+    script.onerror = () => { pickerLoading = null; script.remove(); reject(new Error("Sem conexão com o Google. Verifique a internet.")); };
+    document.head.appendChild(script);
+  }));
+}
+/** Lets the person hand the app the shared file (Drive's file permission only reaches files the app made or was given). Null: cancelled or not configured. */
+async function wsPickFile() {
+  if (!GOOGLE_API_KEY) return null;
+  await loadPicker();
+  const access = await googleAccess();
+  return new Promise((resolve) => {
+    const view = new window.google.picker.DocsView().setMimeTypes("application/json").setIncludeFolders(false);
+    new window.google.picker.PickerBuilder().addView(view).setOAuthToken(access).setDeveloperKey(GOOGLE_API_KEY).setAppId(GOOGLE_PROJECT_NUMBER)
+      .setCallback((d) => {
+        if (d.action === window.google.picker.Action.PICKED) resolve(d.docs[0].id);
+        else if (d.action === window.google.picker.Action.CANCEL) resolve(null);
+      }).build().setVisible(true);
+  });
+}
+/** `code` is what the administrator sent (the file id or a link); empty opens the Drive picker straight away. */
+async function wsJoin(code) {
+  let id = wsParseInvite(code), remote = null;
+  if (id) {
+    try { remote = await readWorkspaceFile(id); } catch (e) { if (!(e.notFound || e.forbidden)) throw e; }
+  } else if (String(code).trim()) throw new Error("Esse código não parece válido. Cole o código ou o link que você recebeu.");
+  if (!remote) {
+    id = await wsPickFile();
+    if (!id) throw new Error("Não foi possível abrir o painel. Confira se o convite foi enviado para este e-mail Google e tente de novo.");
+    remote = await readWorkspaceFile(id);
+  }
+  if (readWsList().some((w) => w.id === id)) throw new Error("Você já está neste painel.");
+  const me = wsMe(), now = Date.now();
+  const entry = { id, name: remote.name, ownerSub: remote.ownerSub, ownerEmail: remote.state.members.find((m) => m.id === remote.ownerSub)?.email || "" };
+  writeWsList([...readWsList(), entry]);
+  // This person's own member record is newer than any earlier removal, so coming back after being removed works.
+  wsSave(entry, { ...wsEmptyState(), members: [wsMemberFor(me, now)], savedAt: now });
+  await switchWorkspace(entry);
+}
+async function wsInvite(email) {
+  const mail = String(email).trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) throw new Error("Digite um e-mail válido.");
+  if (state.members.some((m) => m.email.toLowerCase() === mail)) throw new Error("Essa pessoa já está no painel.");
+  const note = `Convite para o painel compartilhado "${activeWs.name}" do app Minhas Finanças. Código: ${activeWs.id} . No app, abra Perfil > Painéis compartilhados > Entrar com código.`;
+  await drive(`/files/${encodeURIComponent(activeWs.id)}/permissions?sendNotificationEmail=true&emailMessage=${encodeURIComponent(note)}&fields=id`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "user", role: "writer", emailAddress: mail }),
+  });
+}
+/** Permissions on the Drive file that are not (yet) members: invites waiting for the person to open the panel. */
+async function wsPendingInvites() {
+  const res = await drive(`/files/${encodeURIComponent(activeWs.id)}/permissions?fields=permissions(id,role,emailAddress)`);
+  const joined = new Set(state.members.map((m) => m.email.toLowerCase()));
+  return (res.permissions || []).filter((p) => p.role !== "owner" && p.emailAddress && !joined.has(p.emailAddress.toLowerCase()));
+}
+async function wsRevokePermission(email) {
+  const res = await drive(`/files/${encodeURIComponent(activeWs.id)}/permissions?fields=permissions(id,emailAddress)`);
+  const hit = (res.permissions || []).find((p) => p.emailAddress && p.emailAddress.toLowerCase() === String(email).toLowerCase());
+  if (hit) await drive(`/files/${encodeURIComponent(activeWs.id)}/permissions/${encodeURIComponent(hit.id)}`, { method: "DELETE" });
+}
+async function wsRemoveMember(sub) {
+  const member = state.members.find((m) => m.id === sub);
+  if (!member || !wsOwner() || sub === sync.sub) return;
+  await wsRevokePermission(member.email); // first the access, so removing the name can never leave the door open
+  state.members = state.members.filter((m) => m.id !== sub);
+  save(); await syncWorkspace();
+}
+async function wsLeave() {
+  const ws = activeWs;
+  if (!navigator.onLine) throw new Error("Sem internet. Conecte-se para sair do painel.");
+  wsLeaving = true; // the sync sends the removal first and only then takes the panel off this device
+  state.members = state.members.filter((m) => m.id !== sync.sub);
+  save(); await syncWorkspace();
+  if (activeWs && activeWs.id === ws.id) { wsLeaving = false; throw new Error("Não foi possível avisar o painel. Verifique a internet e tente de novo."); }
+  toast(`Você saiu do painel “${ws.name}”.`);
+}
+async function wsDelete() {
+  const ws = activeWs;
+  try { await drive(`/files/${encodeURIComponent(ws.id)}`, { method: "DELETE" }); } catch (e) { if (!e.notFound) throw e; }
+  await wsRevoked(ws); toast(`O painel “${ws.name}” foi excluído.`);
+}
+const personAvatar = (name, email, picture, cls = "") => {
+  const url = safeAvatarUrl(picture || ""), ini = esc((name || email || "?").split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase());
+  return `<span class="avatar ${cls}" title="${esc(name || email)}">${url ? `<img src="${esc(url)}" alt="" referrerpolicy="no-referrer" data-initials="${ini}">` : ini}</span>`;
+};
+const wsMembersSorted = () => (state.members || []).slice().sort((a, b) => (wsIsOwner(activeWs, b.sub) ? 1 : 0) - (wsIsOwner(activeWs, a.sub) ? 1 : 0) || (a.joinedAt || 0) - (b.joinedAt || 0));
+/** Overlapping faces; the "Avatar group hover" transition (transitions.dev) is wired by `avatarGroupShift`. */
+const wsAvatarGroup = () => `<span class="t-avatar-group" role="img" aria-label="${esc(wsMembersSorted().map((m) => m.name || m.email).join(", "))}">${wsMembersSorted().slice(0, 5).map((m) => `<span class="t-avatar">${personAvatar(m.name, m.email, m.picture)}</span>`).join("")}${state.members.length > 5 ? `<span class="t-avatar"><span class="avatar more">+${state.members.length - 5}</span></span>` : ""}</span>`;
+/** "Lançado por Maria" with a small face: only inside shared panels. */
+function wsAuthorTag(t) {
+  if (!activeWs || !t.authorSub) return "";
+  const m = (state.members || []).find((x) => x.id === t.authorSub), name = wsFirstName(m?.name) || t.authorName || "";
+  if (!name) return "";
+  return `<span class="by">${personAvatar(m?.name || name, m?.email || "", m?.picture || "", "mini")}Lançado por ${esc(name)}</span>`;
+}
+const wsChip = () => (sync && isGoogle() ? `<button type="button" class="ws-chip desk-only" data-act="ws-switch" aria-haspopup="dialog" title="Trocar de painel">${icon("users")}<span class="truncate">${esc(activeWs ? activeWs.name : "Meu painel pessoal")}</span>${icon("chevronDown")}</button>` : "");
+const wsBanner = () => (activeWs
+  ? `<div class="ws-banner" role="region" aria-label="Painel compartilhado"><span class="ws-banner-icon">${icon("users")}</span><span class="ws-banner-text"><b class="truncate">${esc(activeWs.name)}</b><small>Painel compartilhado · ${state.members.length} ${state.members.length === 1 ? "pessoa" : "pessoas"}</small></span>${wsAvatarGroup()}<a class="btn btn-secondary btn-sm" href="${href("membros")}">Membros</a><button type="button" class="btn btn-ghost btn-sm" data-act="ws-open" data-id="">Meu painel</button></div>`
+  : "");
+/** The panels of this account: where to switch, create or join. Shown in the profile and, outside a shared panel, on the members page. */
+function wsPanelsCard() {
+  const list = readWsList();
+  const row = (id, name, sub, active) => `<li class="ws-row"><span class="ws-row-icon">${icon(id ? "users" : "user")}</span><span class="ws-row-text"><b class="truncate">${esc(name)}</b><small class="truncate">${esc(sub)}</small></span>${active ? `<span class="badge b-success nodot">Aberto</span>` : `<button type="button" class="btn btn-secondary btn-sm" data-act="ws-open" data-id="${esc(id)}">Abrir</button>`}</li>`;
+  return `<section class="card" style="grid-column:1/-1"><h2 class="h-card">Painéis compartilhados</h2>
+    <p class="muted" style="margin:6px 0 12px">Divida o painel com quem mora com você: todo mundo vê e lança no mesmo lugar. O seu painel pessoal continua só seu.</p>
+    <ul class="ws-list">${row("", "Meu painel pessoal", "Só você vê", !activeWs)}${list.map((w) => row(w.id, w.name, wsIsOwner(w, sync.sub) ? "Você é o administrador" : `Administrador: ${w.ownerEmail || "—"}`, activeWs?.id === w.id)).join("")}</ul>
+    <div class="actions" style="margin-top:12px"><button class="btn btn-primary btn-sm" data-act="ws-new">${icon("plus")} Criar painel compartilhado</button><button class="btn btn-secondary btn-sm" data-act="ws-join">${icon("users")} Entrar com código</button></div></section>`;
+}
+function viewMembros() {
+  if (!sync || !isGoogle()) return `${pageHead("Painéis compartilhados", "Entre com o Google para dividir um painel com outras pessoas.")}`;
+  if (!activeWs) return `${pageHead("Painéis compartilhados", "Escolha um painel ou crie um novo.")}<div class="grid-2">${wsPanelsCard()}</div>`;
+  const owner = wsOwner(), members = wsMembersSorted();
+  const memberRow = (m) => {
+    const isMe = m.sub === sync.sub, admin = wsIsOwner(activeWs, m.sub);
+    const action = isMe ? (admin ? "" : `<button class="btn btn-secondary btn-sm" data-act="ws-leave">Sair do painel</button>`) : owner ? `<button class="btn btn-secondary btn-sm" data-act="ws-remove" data-id="${esc(m.sub)}" aria-label="Remover ${esc(m.name || m.email)}">Remover</button>` : "";
+    return `<li class="ws-row">${personAvatar(m.name, m.email, m.picture)}<span class="ws-row-text"><b class="truncate">${esc(m.name || m.email)}${isMe ? " (você)" : ""}</b><small class="truncate">${esc(m.email)}</small></span><span class="badge nodot ${admin ? "b-success" : ""}">${admin ? "Administrador" : "Membro"}</span>${action}</li>`;
+  };
+  setTimeout(wsPaintPending, 0);
+  return `${pageHead(esc(activeWs.name), `Painel compartilhado · ${members.length} ${members.length === 1 ? "pessoa" : "pessoas"}`, `<button class="btn btn-secondary btn-sm" data-act="ws-open" data-id="">Voltar ao meu painel</button>`)}
+  <div class="grid-2">
+    <section class="card" style="grid-column:1/-1"><h2 class="h-card">Participantes</h2><ul class="ws-list" style="margin-top:8px">${members.map(memberRow).join("")}</ul><div id="ws-pending"></div></section>
+    ${owner ? `<section class="card"><h2 class="h-card">Convidar pessoa</h2>
+      <p class="muted" style="margin:6px 0 12px">Digite o e-mail da conta Google da pessoa. O Google envia o convite e ela entra pelo app com o código abaixo.</p>
+      <div class="field"><label for="ws-invite-email">E-mail Google</label><input class="input" id="ws-invite-email" type="email" inputmode="email" autocomplete="off" placeholder="nome@gmail.com"></div>
+      <div class="actions" style="margin-top:12px"><button class="btn btn-primary btn-sm" data-act="ws-invite">Enviar convite</button><button class="btn btn-secondary btn-sm" data-act="ws-copy-code">${icon("copy")} Copiar código</button></div>
+      <p class="hint" style="margin-top:8px">O código só abre o painel para quem foi convidado pelo e-mail.</p></section>
+    <section class="card danger-zone"><h2 class="h-card" style="color:var(--danger)">Excluir painel</h2><p class="muted" style="margin:6px 0 12px">Apaga o painel para todos. Cada pessoa continua com o seu painel pessoal.</p><button class="btn btn-danger btn-sm" data-act="ws-delete">${icon("trash")} Excluir painel</button></section>` : `<section class="card"><h2 class="h-card">Sobre este painel</h2><p class="muted" style="margin-top:6px">Quem administra é ${esc(activeWs.ownerEmail || "o dono do painel")}. Você pode lançar e ver tudo; só o administrador convida e remove pessoas.</p></section>`}
+  </div>`;
+}
+async function wsPaintPending() {
+  const box = document.getElementById("ws-pending");
+  if (!box || !activeWs || !wsOwner() || !navigator.onLine) return;
+  const id = activeWs.id;
+  try {
+    const pending = await wsPendingInvites();
+    if (!box.isConnected || !activeWs || activeWs.id !== id || !pending.length) return;
+    box.innerHTML = `<h3 class="drawer-label" style="margin-top:16px">Convites pendentes</h3><ul class="ws-list">${pending.map((p) => `<li class="ws-row"><span class="ws-row-icon">${icon("send")}</span><span class="ws-row-text"><b class="truncate">${esc(p.emailAddress)}</b><small>Aguardando a pessoa abrir o painel</small></span><button class="btn btn-secondary btn-sm" data-act="ws-revoke-invite" data-id="${esc(p.emailAddress)}">Cancelar</button></li>`).join("")}</ul>`;
+  } catch { /* the list is only a convenience */ }
+}
+function wsSwitchSheet() {
+  const list = readWsList();
+  const item = (id, name, sub, active) => `<button type="button" class="drawer-row ws-pick" data-act="ws-open" data-id="${esc(id)}" ${active ? 'aria-current="true"' : ""}>${icon(id ? "users" : "user")}<span><b>${esc(name)}</b><br><small class="hint">${esc(sub)}</small></span>${active ? icon("check") : ""}</button>`;
+  openModal({ title: "Trocar de painel", body: `<div class="ws-picks">${item("", "Meu painel pessoal", "Só você vê", !activeWs)}${list.map((w) => item(w.id, w.name, "Painel compartilhado", activeWs?.id === w.id)).join("")}</div>`,
+    foot: `<a class="btn btn-secondary btn-sm" href="${href("membros")}" data-act="close-nav">Gerenciar painéis</a>` });
+}
+function wsNameDialog() {
+  openModal({ title: "Criar painel compartilhado", body: `<p class="muted">Você será o administrador. Depois é só convidar as pessoas pelo e-mail Google delas.</p>${field("Nome do painel", "wsname", input("wsname", "", `maxlength="${WS_NAME_MAX}" placeholder="Ex.: Casa" autocomplete="off" autofocus`))}`,
+    foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="ws-go">Criar painel</button>`,
+    onSubmit: async () => {
+      const name = document.querySelector('#modal [name="wsname"]').value, btn = document.getElementById("ws-go");
+      if (!name.trim()) return showErrors({ wsname: "Dê um nome ao painel." });
+      btn.disabled = true; btn.textContent = "Criando…";
+      try { await wsCreate(name); closeModal(); location.hash = href("membros"); toast(`Painel “${name.trim()}” criado. Convide as pessoas.`); }
+      catch (e) { btn.disabled = false; btn.textContent = "Criar painel"; toast(e.message); }
+    } });
+}
+function wsJoinDialog() {
+  openModal({ title: "Entrar em um painel", body: `<p class="muted">Cole o código (ou o link) que a pessoa administradora enviou. Use a mesma conta Google que ela convidou.</p>${field("Código do painel", "wscode", input("wscode", "", `autocomplete="off" spellcheck="false" autofocus`))}${GOOGLE_API_KEY ? `<p class="hint">Sem o código? <a href="javascript:void 0" data-act="ws-pick">Escolher o painel no Google Drive</a>.</p>` : ""}`,
+    foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="ws-go">Entrar</button>`,
+    onSubmit: () => wsJoinRun(document.querySelector('#modal [name="wscode"]').value) });
+}
+async function wsJoinRun(code) {
+  const btn = document.getElementById("ws-go");
+  if (btn) { btn.disabled = true; btn.textContent = "Entrando…"; }
+  try { await wsJoin(code); closeModal(); location.hash = href("painel"); toast(`Você entrou no painel “${activeWs.name}”.`); }
+  catch (e) { if (btn?.isConnected) { btn.disabled = false; btn.textContent = "Entrar"; } toast(e.message); }
+}
+/** The rings of faces lift and spring back (transitions.dev "Avatar group hover"): ease-in on the way up, a bouncy ease-out on the return. */
+function avatarGroupShift(root, activeIdx, phase) {
+  const cs = getComputedStyle(document.documentElement);
+  const num = (name, fallback) => { const v = parseFloat(cs.getPropertyValue(name)); return Number.isFinite(v) ? v : fallback; };
+  const lift = num("--avatar-lift", -4), falloff = num("--avatar-falloff", 0.45), scale = num("--avatar-scale", 1.05);
+  const ease = (cs.getPropertyValue(phase === "out" ? "--avatar-ease-out" : "--avatar-ease-in") || "").trim();
+  root.querySelectorAll(".t-avatar").forEach((el, i) => {
+    if (ease) el.style.transitionTimingFunction = ease;
+    if (activeIdx == null) { el.style.setProperty("--shift", "0px"); el.style.setProperty("--scale-active", "1"); return; }
+    el.style.setProperty("--shift", `${(lift * Math.pow(falloff, Math.abs(i - activeIdx))).toFixed(3)}px`);
+    el.style.setProperty("--scale-active", i === activeIdx ? String(scale) : "1");
+  });
+}
+document.addEventListener("mouseover", (e) => {
+  const item = e.target.closest?.(".t-avatar"), root = item?.closest(".t-avatar-group");
+  if (root) avatarGroupShift(root, [...root.querySelectorAll(".t-avatar")].indexOf(item), "in");
+});
+document.addEventListener("mouseout", (e) => {
+  const root = e.target.closest?.(".t-avatar-group");
+  if (root && !root.contains(e.relatedTarget)) avatarGroupShift(root, null, "out");
+});
+// "Real time": while a shared panel is open and visible, look for other people's changes every few seconds.
+setInterval(() => { if (activeWs && sync && document.visibilityState === "visible" && !pushTimer) syncWorkspace(); }, WS_POLL_MS);
+
 /** Sign-in and sign-up are the same tap: Google says who it is, the app folder says if data exists. */
 async function googleSignIn() {
   const token = await requestGoogleToken("select_account");
   const me = await googleProfile(token.access);
   const fileId = await findDriveFile(DRIVE_FILE, token.access);
   const remoteText = fileId ? await drive(`/files/${fileId}?alt=media`, { as: "text" }, token.access) : null;
-  return { settings: { provider: "google", sub: me.sub, email: me.email, name: me.name, picture: me.picture, fileId, token }, remoteText };
+  return { settings: { provider: "google", sub: me.sub, email: me.email, name: me.name, picture: me.picture, fileId, token, fileScope: !!token.fileScope }, remoteText };
 }
 /** After the access ran out: one tap renews it, for the same Google account only. */
 async function reconnectGoogle() {
   const token = await requestGoogleToken("", sync.email);
   const me = await googleProfile(token.access);
   if (me.sub !== sync.sub) throw new Error(`Escolha a conta ${sync.email}, a desta sessão.`);
-  storeSync({ ...sync, token, picture: me.picture || sync.picture });
+  storeSync({ ...sync, token, picture: me.picture || sync.picture, fileScope: !!token.fileScope || !!sync.fileScope });
 }
 async function startGoogleSignIn(btn) {
   const label = btn.innerHTML;
@@ -2683,7 +3143,7 @@ async function startGoogleSignIn(btn) {
   const finish = async (useRemote, link) => {
     const from = activeScope(); // "local": where the data made without an account lives
     const carried = link ? withoutDemo(state) : null;
-    storeSync(settings); setLocalMode(false); syncStatus = "ok";
+    storeSync(settings); wsForcePersonal(); setLocalMode(false); syncStatus = "ok";
     if (useRemote) { await clearPhotos(); replaceState(data); persist(); if (repack) await pushNow(); }
     else {
       replaceState(carried || load());
@@ -3048,10 +3508,13 @@ const ROUTES = [
 const AUTH_PAGES = ["entrar", "cadastro"];
 // The profile is reached from the account block, not from the section menus, so it is not in ROUTES.
 const PROFILE_ROUTE = { path: "perfil", label: "Perfil", icon: "user" };
+// Same for the shared-panel members page (reached from the profile and from the panel banner).
+const MEMBERS_ROUTE = { path: "membros", label: "Membros", icon: "users" };
+const extraRoute = (path) => [PROFILE_ROUTE, MEMBERS_ROUTE].find((x) => x.path === path);
 function route() {
   const [p, q] = location.hash.replace(/^#\/?/, "").split("?");
   const params = new URLSearchParams(q || "");
-  const path = ROUTES.some((r) => r.path === p) || p === PROFILE_ROUTE.path || AUTH_PAGES.includes(p) ? p : "painel";
+  const path = ROUTES.some((r) => r.path === p) || extraRoute(p) || AUTH_PAGES.includes(p) ? p : "painel";
   const mes = params.get("mes");
   return { path, params, month: isMonth(mes) ? mes : currentMonth() };
 }
@@ -3070,7 +3533,7 @@ function shell(r, content) {
   const navLink = (x) => `<a href="${navHref(x.path)}" class="${r.path === x.path ? "active" : ""}" title="${x.label}" ${r.path === x.path ? 'aria-current="page"' : ""}>${icon(x.icon)}<span class="lbl">${x.label}</span></a>`;
   const bottom = (path, label, ic) => `<li><a href="${navHref(path)}" class="${r.path === path ? "active" : ""}" ${r.path === path ? 'aria-current="page"' : ""}>${icon(ic)}${label}</a></li>`;
   const dark = document.documentElement.dataset.theme === "dark";
-  const current = ROUTES.find((x) => x.path === r.path) || PROFILE_ROUTE;
+  const current = ROUTES.find((x) => x.path === r.path) || extraRoute(r.path) || PROFILE_ROUTE;
   const railLabel = railToggleLabel(isRailCollapsed());
   return `
   <button class="rail-toggle" data-act="rail-toggle" aria-label="${railLabel}" aria-expanded="${!isRailCollapsed()}" aria-controls="rail" title="${railLabel}"><span class="rail-disc">${icon("left")}</span></button>
@@ -3081,7 +3544,7 @@ function shell(r, content) {
       <nav class="nav" aria-label="Principal">${ROUTES.filter((x) => x.path !== "backup").map(navLink).join("")}</nav>
     </div>
     <div class="rail-foot nav">${navLink(ROUTES.find((x) => x.path === "backup"))}${sync
-      ? `${navLink(PROFILE_ROUTE)}<a href="javascript:void 0" data-act="logout" title="Sair">${icon("logout")}<span class="lbl">Sair</span></a><div class="account" title="${esc(accountLabel())}">${accountAvatar()}<span class="lbl"><b class="truncate">${esc(accountLabel())}</b><span class="hint truncate">Dados salvos no ${providerName()}</span></span></div>`
+      ? `${isGoogle() ? navLink(MEMBERS_ROUTE) : ""}${navLink(PROFILE_ROUTE)}<a href="javascript:void 0" data-act="logout" title="Sair">${icon("logout")}<span class="lbl">Sair</span></a><div class="account" title="${esc(accountLabel())}">${accountAvatar()}<span class="lbl"><b class="truncate">${esc(accountLabel())}</b><span class="hint truncate">Dados salvos no ${providerName()}</span></span></div>`
       : `<a href="${href("entrar")}" title="Entrar">${icon("lock")}<span class="lbl">Entrar com o Google</span></a>`}</div>
   </aside>
   <div class="page">
@@ -3089,7 +3552,7 @@ function shell(r, content) {
       <a class="mob-brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="brand-name">Minhas Finanças</span></a>
       <div class="trail"><span>Visão geral</span>${icon("right", 'style="width:14px;height:14px;color:var(--outline-var)"')}<b>${current.label}</b></div>
       <div class="top-actions">
-        ${syncBadge()}
+        ${wsChip()}${syncBadge()}
         ${bellButton()}
         <button class="icon-btn" data-act="toggle-values" aria-label="Ocultar valores" aria-pressed="${hideValues}" title="${hideValues ? "Mostrar valores" : "Ocultar valores"}">${icon(hideValues ? "eyeOff" : "eye")}</button>
         <button class="icon-btn" data-act="theme" aria-label="Tema escuro" aria-pressed="${dark}" title="Alternar tema">${icon(dark ? "sun" : "moon")}</button>
@@ -3097,7 +3560,7 @@ function shell(r, content) {
         <button class="btn btn-primary btn-sm desk-only" data-act="new-tx">${icon("plus")} Novo gasto</button>
       </div>
     </div></header>
-    <main id="main">${updateBanner()}${content}</main>
+    <main id="main">${updateBanner()}${wsBanner()}${content}</main>
   </div>
   <nav class="bottomnav" aria-label="Principal"><ul>
     ${bottom("painel", "Painel", "dashboard")}${bottom("lancamentos", "Lançamentos", "receipt")}
@@ -3187,7 +3650,7 @@ function ledgerRow(t, { toggle = false, inTrip = false } = {}) {
       ${toggle ? "" : `<span class="row-icon" style="color:${esc(color)}">${icon(ic)}</span>`}
       <span style="flex:1;min-width:0">
         <span class="row-title truncate" style="display:block">${t.attachmentId ? `<span class="clip" title="Tem comprovante">${icon("paperclip")}<span class="sr-only">Com comprovante: </span></span>` : ""}${esc(t.description)}</span>
-        <span class="row-meta"><span>${sub}</span><span class="m-mob">· ${dayMonth(t.date)}</span>${t.status === "PENDING" ? `<span class="m-mob">${statusBadge(t)}</span>` : ""}</span>
+        <span class="row-meta"><span>${sub}</span>${wsAuthorTag(t)}<span class="m-mob">· ${dayMonth(t.date)}</span>${t.status === "PENDING" ? `<span class="m-mob">${statusBadge(t)}</span>` : ""}</span>
       </span>
       <span class="row-cat">${catChip(c)}</span>
       <span class="row-date">${dayMonth(t.date)}</span>
@@ -3585,6 +4048,7 @@ function viewPerfil() {
       <div class="actions" style="margin-top:16px"><button class="btn btn-secondary" data-act="logout">${icon("logout")} Sair da conta</button></div>
       <p class="hint" style="margin-top:8px">Sair tira os dados da conta deste aparelho. Eles continuam salvos no ${providerName()} e voltam quando você entrar de novo.</p>
     </section>
+    ${isGoogle() ? wsPanelsCard() : ""}
     <section class="card"><h2 class="h-card">Documentos</h2><p class="muted" style="margin:6px 0 16px">Como tratamos seus dados e as regras de uso do app.</p>${legal}</section>
     <section class="card danger-zone" aria-labelledby="danger-title">
       <h2 class="h-card" id="danger-title" style="display:flex;align-items:center;gap:8px;color:var(--danger)">${icon("alert")} Zona de perigo</h2>
@@ -3602,7 +4066,7 @@ function startDeleteAccount() {
   openModal({
     title: "Excluir sua conta?", sub: esc(accountLabel()),
     body: `<p class="muted">Isto apaga <b>para sempre</b>:</p>
-      <ul class="delete-list"><li>todos os lançamentos, gastos fixos, orçamentos, metas, viagens e categorias da conta;</li><li>as fotos de comprovante;</li><li>a cópia salva no seu ${providerName()};</li><li>os dados desta conta neste aparelho.</li></ul>
+      <ul class="delete-list"><li>todos os lançamentos, gastos fixos, orçamentos, metas, viagens e categorias da conta;</li><li>as fotos de comprovante;</li><li>a cópia salva no seu ${providerName()};</li>${isGoogle() && readWsList().some((w) => wsIsOwner(w, sync.sub)) ? "<li>os painéis compartilhados que você criou, <b>para todas as pessoas que participam</b>;</li>" : ""}<li>os dados desta conta neste aparelho.</li></ul>
       <p class="muted">O que você criou <b>sem conta</b> neste aparelho e as preferências do aparelho (tema, por exemplo) não são apagados. Não dá para desfazer.</p>
       <p class="hint">Quer guardar uma cópia? <a href="javascript:void 0" data-act="export">Baixar backup</a> antes de continuar.</p>`,
     foot: `<button type="button" class="btn btn-secondary" data-act="close">Cancelar</button><button type="submit" class="btn btn-danger">Continuar</button>`,
@@ -3670,6 +4134,7 @@ async function wipeAccountFromDevice(plan) {
   if (plan.clearPhotoOwner) { try { localStorage.removeItem(PHOTO_OWNER_KEY); } catch { /* ignore */ } }
   try { sessionStorage.removeItem(INCOMING_KEY); } catch { /* ignore */ }
   if (NATIVE && BankNotif()) await BankNotif().takeQueue().catch(() => {}); // bank notifications still waiting in the reader
+  wsWipeCaches(true);
   storeSync(null); syncStatus = "off"; setLocalMode(false);
   replaceState(load());
 }
@@ -3685,6 +4150,12 @@ async function runDeleteAccount() {
     // Right after the tap, so the browser lets Google's window open if the access ran out.
     if (isGoogle() && !NATIVE && !(sync.token && sync.token.expiresAt > Date.now())) await reconnectGoogle();
   } catch (e) { return back(e.message); }
+  // Shared panels this person created go with the account (their Drive file); the panels they only joined stay for the others.
+  try {
+    for (const w of readWsList().filter((x) => wsIsOwner(x, sync.sub))) {
+      try { await drive(`/files/${encodeURIComponent(w.id)}`, { method: "DELETE" }); } catch (e) { if (!e.notFound) throw e; }
+    }
+  } catch { return back("Não foi possível excluir os painéis compartilhados que você criou. Nada foi apagado deste aparelho. Verifique a internet e tente de novo."); }
   try { await deleteCloudData(); }
   catch (e) { return back(e.reauth ? "O acesso ao Google venceu. Toque em Excluir de novo para entrar com o Google e continuar." : "Não foi possível excluir os dados na nuvem. Nada foi apagado deste aparelho. Verifique a internet e tente de novo."); }
   await revokeGoogleAccess();
@@ -3897,7 +4368,7 @@ function deleteTripDialog(trip) {
   document.getElementById("trip-keep")?.addEventListener("click", () => finish(true));
 }
 
-const VIEWS = { painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, orcamentos: viewOrcamentos, viagens: viewViagens, categorias: viewCategorias, importar: viewImportar, configuracoes: viewConfiguracoes, backup: viewBackup, perfil: viewPerfil };
+const VIEWS = { membros: viewMembros, painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, orcamentos: viewOrcamentos, viagens: viewViagens, categorias: viewCategorias, importar: viewImportar, configuracoes: viewConfiguracoes, backup: viewBackup, perfil: viewPerfil };
 // A failed render must never leave a blank screen: show a way out instead (nothing is erased).
 function render() {
   try { renderPage(); } catch (err) {
@@ -3934,7 +4405,7 @@ function renderPage() {
   mountAssistant();
   if (drawerEl) setPageInert(true); // the redraw made new, interactive copies of what sits behind the drawer
   if (hasIncoming()) flushIncoming();
-  document.title = `${(ROUTES.find((x) => x.path === r.path) || PROFILE_ROUTE).label} · Minhas Finanças`;
+  document.title = `${(ROUTES.find((x) => x.path === r.path) || extraRoute(r.path) || PROFILE_ROUTE).label} · Minhas Finanças`;
 }
 
 // ---------- Modal & toast ----------
@@ -4865,6 +5336,7 @@ function drawerHtml() {
     <aside class="drawer" id="drawer" role="dialog" aria-label="Menu">
       <div class="drawer-body">
         <nav class="sheet-nav" aria-label="Seções">${ROUTES.map((x) => `<a href="${navHref(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}</nav>
+        ${sync && isGoogle() ? `<h4 class="drawer-label">Painel</h4><button type="button" class="drawer-row" data-act="ws-switch">${icon("users")}<span>${esc(activeWs ? activeWs.name : "Meu painel pessoal")}<br><small class="hint">Trocar de painel ou convidar pessoas</small></span></button>` : ""}
         <h4 class="drawer-label">Aparência</h4>${drawerThemeRow()}
         ${sync ? `<h4 class="drawer-label">Sincronização</h4>${drawerSyncRow()}` : `<h4 class="drawer-label">Dados</h4><p class="hint" style="margin:4px 0 8px">Sem conta: seus dados ficam só neste aparelho.</p>`}
       </div>
@@ -4914,6 +5386,7 @@ document.addEventListener("keydown", (e) => {
 // Same catalog as src/lib/notices-data.ts. `actionUrl` is reserved for the store links at launch and is
 // not rendered while the app is in testing. The read state is per account and stays on this device.
 const NOTICES = [
+  { id: "2026-11-18-shared-panel", title: "Painel compartilhado", body: "Crie um painel e convide quem mora com você pelo e-mail Google: todos veem e lançam no mesmo lugar, e cada lançamento mostra quem o fez. Abra em Perfil › Painéis compartilhados.", date: "2026-11-18" },
   { id: "2026-11-15-google-login", title: "Entrar com o Google", body: "Agora você entra com a sua conta Google, sem criar token nem senha extra.", date: "2026-11-15" },
   { id: "2026-11-15-quick-assistant", title: "Atalhos rápidos", body: "O balão no canto da tela abre o chat de lançamentos (fale ou escreva) e uma calculadora que funciona sem internet.", date: "2026-11-15" },
   { id: "2026-11-14-voice-assistant", title: "Assistente de voz", body: "Fale o lançamento no formulário e o app preenche valor, categoria e data para você revisar.", date: "2026-11-14" },
@@ -5030,7 +5503,7 @@ function logoutForm() {
       // The account's copy leaves this device (photos and records, under its own scope); what was made
       // without an account, if anything, is a separate scope and stays.
       await clearPhotos();
-      try { localStorage.removeItem(storageKey(activeScope())); } catch { /* the scope still keeps it apart */ }
+      wsWipeCaches(); // the personal copy and every shared panel's copy of this account leave the device together
       storeSync(null); syncStatus = "off"; setLocalMode(false);
       replaceState(load());
       closeModal(); location.hash = href("entrar"); render();
@@ -5515,7 +5988,23 @@ document.addEventListener("click", (e) => {
     },
     // Only for a first-time, empty account (canOfferDemo): it never replaces real data.
     "demo": () => { if (canOfferDemo(state)) loadDemo(); },
-    "wipe": () => confirmDialog("Apagar todos os dados?", `Todos os lançamentos, fixos, orçamentos e metas serão removidos.${sync ? ` Os dados salvos na sua conta do ${providerName()} também serão apagados.` : ""} Essa ação não pode ser desfeita.`, "Apagar tudo", () => {
+    "ws-switch": wsSwitchSheet,
+    "ws-open": async () => { const target = id ? readWsList().find((w) => w.id === id) : null; closeModal(); await switchWorkspace(target || null); },
+    "ws-new": async () => { try { await ensureFileAccess(); wsNameDialog(); } catch (e) { toast(e.message); } },
+    "ws-join": async () => { try { await ensureFileAccess(); wsJoinDialog(); } catch (e) { toast(e.message); } },
+    "ws-pick": () => wsJoinRun(""),
+    "ws-invite": async () => {
+      const box = document.getElementById("ws-invite-email"); if (!box) return;
+      el.disabled = true;
+      try { await ensureFileAccess(); await wsInvite(box.value); box.value = ""; toast("Convite enviado. A pessoa receberá um e-mail do Google."); wsPaintPending(); }
+      catch (e) { toast(e.message); } finally { el.disabled = false; }
+    },
+    "ws-copy-code": () => navigator.clipboard?.writeText(activeWs.id).then(() => toast("Código copiado. Só funciona para quem você convidou pelo e-mail."), () => toast("Não foi possível copiar. Selecione e copie o código manualmente.")),
+    "ws-remove": () => { const m = state.members.find((x) => x.id === id); if (m) confirmDialog("Remover pessoa?", `${esc(m.name || m.email)} perde o acesso a este painel agora. Os lançamentos que ela fez continuam no painel. O painel pessoal dela não muda.`, "Remover", () => { wsRemoveMember(id).then(() => toast("Pessoa removida do painel."), (e) => toast(e.message)); }); },
+    "ws-leave": () => confirmDialog("Sair do painel?", "Você deixa de ver este painel. Os lançamentos que você fez continuam nele para as outras pessoas, e o seu painel pessoal não muda.", "Sair do painel", () => { wsLeave().catch((e) => toast(e.message)); }),
+    "ws-delete": () => confirmDialog("Excluir o painel?", `“${esc(activeWs.name)}” será apagado para todos que participam. Não dá para desfazer.`, "Excluir painel", () => { wsDelete().catch((e) => toast(e.message)); }),
+    "ws-revoke-invite": () => wsRevokePermission(id).then(() => { const box = document.getElementById("ws-pending"); if (box) box.innerHTML = ""; wsPaintPending(); toast("Convite cancelado."); }, (e) => toast(e.message)),
+    "wipe": () => activeWs ? toast("Dentro de um painel compartilhado não dá para apagar tudo de uma vez. Volte ao seu painel pessoal para isso.") : confirmDialog("Apagar todos os dados?", `Todos os lançamentos, fixos, orçamentos e metas serão removidos.${sync ? ` Os dados salvos na sua conta do ${providerName()} também serão apagados.` : ""} Essa ação não pode ser desfeita.`, "Apagar tudo", () => {
       if (isGoogle()) findDriveFiles("name contains 'photo-'").then((files) => Promise.all(files.map((f) => drive(`/files/${f.id}`, { method: "DELETE" })))).catch(() => {});
       else if (sync && state.photosGistId) gh(`/gists/${state.photosGistId}`, sync.token, { method: "DELETE" }).catch(() => {});
       clearPhotos(); replaceState({ ...emptyState(), demoDismissed: true }); save(); location.hash = href("painel"); toast("Dados apagados."); }),
@@ -5548,6 +6037,7 @@ document.addEventListener("change", (e) => {
   }
   else if (t.id === "restore") {
     const file = t.files[0]; if (!file) return;
+    if (activeWs) { t.value = ""; return toast("Dentro de um painel compartilhado não dá para restaurar um backup. Volte ao seu painel pessoal."); }
     file.text().then((text) => {
       const data = JSON.parse(text);
       if (!data || data.version !== 1 || !Array.isArray(data.transactions) || !Array.isArray(data.categories) || !hasValidMoney(data)) throw new Error();
@@ -5604,6 +6094,7 @@ window.addEventListener("online", () => { if (sync) { setSyncStatus(syncStatus);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pullIfNewer(); else if (pushTimer) pushNow(); });
 window.addEventListener("beforeunload", (e) => { if (pushTimer || pushing) { pushNow(); e.preventDefault(); e.returnValue = ""; } });
 
+if (activeWs) wsKnown = wsSnapshot(state);
 render();
 pullIfNewer();
 checkAppUpdate(true);

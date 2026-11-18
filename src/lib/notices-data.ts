@@ -4,6 +4,12 @@ import type { AppNotice } from "./notifications";
 // Keep `actionUrl` empty until the store listings exist.
 export const NOTICES: AppNotice[] = [
   {
+    id: "2026-11-18-shared-panel",
+    title: "Painel compartilhado",
+    body: "Crie um painel e convide quem mora com você pelo e-mail Google: todos veem e lançam no mesmo lugar, e cada lançamento mostra quem o fez. Abra em Perfil › Painéis compartilhados.",
+    date: "2026-11-18",
+  },
+  {
     id: "2026-11-15-quick-assistant",
     title: "Atalhos rápidos",
     body: "O balão no canto da tela abre o chat de lançamentos (fale ou escreva) e uma calculadora que funciona sem internet.",
