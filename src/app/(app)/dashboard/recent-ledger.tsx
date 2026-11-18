@@ -65,8 +65,8 @@ export function RecentLedger({ views, month, monthName }: { views: RecentViews; 
           <h2 className="text-headline-sm text-on-surface">Últimos lançamentos</h2>
           <p className="mt-0.5 text-body-sm text-secondary">Extrato recente de {monthName}.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <SlidingTabs aria-label="Filtrar extrato">
+        <div className="recent-actions flex flex-wrap items-center gap-2">
+          <SlidingTabs fill aria-label="Filtrar extrato">
             {FILTERS.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}

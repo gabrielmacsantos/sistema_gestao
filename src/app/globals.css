@@ -437,6 +437,27 @@
 .t-tabs--fill .t-tab {
   flex: 1 1 0;
 }
+/* "Últimos lançamentos": the filter bar spans the card on the phone and sits to the right from tablet up. */
+.recent-actions {
+  width: 100%;
+}
+.recent-actions .t-tab {
+  padding: 0 6px;
+}
+@media (min-width: 768px) {
+  .recent-actions {
+    width: auto;
+    justify-content: flex-end;
+  }
+  .recent-actions .t-tabs--fill {
+    display: inline-flex;
+    width: auto;
+  }
+  .recent-actions .t-tab {
+    flex: none;
+    padding: 0 12px;
+  }
+}
 .t-tab {
   position: relative;
   z-index: 1;

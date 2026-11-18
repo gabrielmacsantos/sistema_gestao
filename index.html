@@ -296,6 +296,14 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .t-tabs::-webkit-scrollbar { display: none; }
 .t-tabs--fill { display: flex; width: 100%; }
 .t-tabs--fill .t-tab { flex: 1 1 0; }
+/* "Últimos lançamentos": the filter bar spans the card on the phone and sits to the right from tablet up. */
+.recent-actions { width: 100%; }
+.recent-actions .t-tab { padding: 0 6px; }
+@media (min-width: 768px) {
+  .recent-actions { width: auto; justify-content: flex-end; }
+  .recent-actions .t-tabs--fill { display: inline-flex; width: auto; }
+  .recent-actions .t-tab { flex: none; padding: 0 12px; }
+}
 .t-tab { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 44px; height: var(--tabs-h); padding: 0 12px; border: 0; border-radius: calc(var(--tabs-radius) - 2px); background: transparent; color: var(--tabs-text-muted); font: inherit; white-space: nowrap; text-decoration: none; cursor: pointer; transition: color var(--tabs-dur) var(--tabs-ease); }
 .t-tab:not(:is([aria-selected="true"], [aria-checked="true"], [aria-current])):hover { color: var(--on); }
 .t-tab:is([aria-selected="true"], [aria-checked="true"], [aria-current]) { color: var(--tabs-text-active); font-weight: 600; }
@@ -3897,7 +3905,7 @@ function viewPainel(r) {
     <section class="card card-flush">
       <div class="section-head">
         <div><h2 class="h-card">Últimos lançamentos</h2><p class="sub">Extrato recente de ${monthLabel(m).toLowerCase()}.</p></div>
-        <div class="actions" style="width:100%;justify-content:flex-end">${tabsHtml({ kind: "tabs", key: "recent-filter", label: "Filtrar extrato", panel: "recent-body", active: recentFilter, items: Object.entries(RECENT_FILTERS).map(([f, x]) => ({ value: f, attrs: `data-act="recent-filter" data-f="${f}"`, label: `${x.icon ? icon(x.icon, 'style="width:14px;height:14px"') : ""}${x.label}${f === "pendentes" && pending ? ` (${pending})` : ""}` })) })}</div>
+        <div class="actions recent-actions">${tabsHtml({ kind: "tabs", key: "recent-filter", label: "Filtrar extrato", panel: "recent-body", active: recentFilter, fill: true, items: Object.entries(RECENT_FILTERS).map(([f, x]) => ({ value: f, attrs: `data-act="recent-filter" data-f="${f}"`, label: `${x.icon ? icon(x.icon, 'style="width:14px;height:14px"') : ""}${x.label}${f === "pendentes" && pending ? ` (${pending})` : ""}` })) })}</div>
       </div>
       <div id="recent-body" role="tabpanel" aria-labelledby="recent-filter-tab-${recentFilter}">${recentBody(m)}</div>
     </section>
