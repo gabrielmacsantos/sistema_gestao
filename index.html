@@ -5473,6 +5473,7 @@ function viewAuth() {
   const hasLocal = state.transactions.length || state.recurrings.length;
   return `<main class="auth">
     <div class="auth-box">
+      ${updateBanner()}
       <div class="auth-brand"><span class="brand-logo">${icon("wallet")}</span><div><h1 class="brand-name" style="font-size:22px;line-height:28px">Minhas Finanças</h1><p class="muted">Controle financeiro pessoal</p></div></div>
       <div class="card auth-card">
         <h2 class="h-card" style="text-align:center">Entre para guardar seus dados</h2>
