@@ -68,6 +68,17 @@ p { margin: 0; }
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
+/* Toque: sem o quadrado azul do WebView; o feedback é o :active (escala e opacidade). O foco por teclado segue em :focus-visible. */
+:root { --tap-scale: .96; --tap-scale-wide: .97; --tap-scale-icon: .92; --tap-opacity: .85; --tap-dur: 150ms; --tap-ease: cubic-bezier(.22,1,.36,1); }
+a, button, [role="button"], [role="tab"], [role="radio"], label, summary, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+a, button, [role="button"], [role="tab"], [role="radio"], summary { touch-action: manipulation; }
+button, .icon-btn, .nav a, .month a, .t-tab, .sync, .asst-trigger { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.btn:active, .t-tab:active, .month a:active, .month button:active, .sync:active, .nav a:active { transform: scale(var(--tap-scale)); opacity: var(--tap-opacity); }
+.btn-google:active, .auth-google .btn:active { transform: scale(var(--tap-scale-wide)); opacity: var(--tap-opacity); }
+.icon-btn:active, .rail-toggle:active .rail-disc, .asst[data-state="closed"] .asst-trigger:active { transform: scale(var(--tap-scale-icon)); opacity: var(--tap-opacity); }
+.month a, .month button, .sync { transition: transform var(--tap-dur) var(--tap-ease), opacity var(--tap-dur) var(--tap-ease), background .15s, color .15s; }
+.btn[disabled]:active, .btn:disabled:active { transform: none; opacity: .6; }
+@media (prefers-reduced-motion: reduce) { .btn:active, .t-tab:active, .month a:active, .month button:active, .sync:active, .nav a:active, .btn-google:active, .auth-google .btn:active, .icon-btn:active, .rail-toggle:active .rail-disc, .asst[data-state="closed"] .asst-trigger:active { transform: none; } }
 ::selection { background: var(--primary-fixed); color: var(--on-primary-fixed); }
 .num { font-variant-numeric: tabular-nums; }
 .muted { color: var(--secondary); }
@@ -84,7 +95,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .brand-name { font: 700 18px/24px var(--display); letter-spacing: -.01em; color: var(--primary); }
 .brand-sub { font-size: 10px; line-height: 14px; font-weight: 600; letter-spacing: .04em; color: var(--secondary); }
 .nav { display: flex; flex-direction: column; gap: 4px; margin-top: 24px; }
-.nav a { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px; border-radius: 8px; color: var(--secondary); font-weight: 600; transition: background .15s, color .15s; }
+.nav a { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px; border-radius: 8px; color: var(--secondary); font-weight: 600; transition: background .15s, color .15s, transform var(--tap-dur) var(--tap-ease), opacity var(--tap-dur) var(--tap-ease); }
 .nav a:hover { background: var(--c-low); color: var(--on); }
 .nav a.active { background: var(--c-high); color: var(--primary); }
 .nav .lbl { display: none; }
@@ -99,7 +110,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 :root { --rail-dur: 300ms; --rail-ease: cubic-bezier(.22,1,.36,1); --rail-w: var(--rail); }
 :root[data-rail="collapsed"] { --rail-w: 80px; }
 .rail-toggle { display: none; position: fixed; top: 18px; left: calc(var(--rail-w) - 22px); z-index: 31; width: 44px; height: 44px; padding: 0; border: 0; background: none; place-items: center; color: var(--secondary); transition: left var(--rail-dur) var(--rail-ease); }
-.rail-toggle .rail-disc { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--hairline); background: var(--card); box-shadow: var(--shadow); transition: color .15s; }
+.rail-toggle .rail-disc { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--hairline); background: var(--card); box-shadow: var(--shadow); transition: color .15s, transform var(--tap-dur) var(--tap-ease), opacity var(--tap-dur) var(--tap-ease); }
 .rail-toggle:hover { color: var(--on); }
 .rail-toggle:focus-visible { outline: none; }
 .rail-toggle:focus-visible .rail-disc { outline: 2px solid var(--primary); outline-offset: 2px; }
@@ -127,7 +138,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 /* Small phones: a slightly smaller name that may take two lines instead of being cut. */
 @media (max-width: 359px) { .mob-brand .brand-name { font-size: 16px; line-height: 18px; white-space: normal; } }
 .top-actions { display: flex; align-items: center; gap: 8px; flex: none; }
-.icon-btn { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); transition: background .15s, color .15s; }
+.icon-btn { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); transition: background .15s, color .15s, transform var(--tap-dur) var(--tap-ease), opacity var(--tap-dur) var(--tap-ease); }
 .icon-btn:hover { background: var(--c-low); color: var(--on); }
 /* Small header controls keep their look but get a 44px touch area (Apple HIG / Material); inset counts from inside the border. */
 .icon-btn, .sync, .month a, .month button { position: relative; }
@@ -198,8 +209,7 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 @media (max-width: 767px) { .desk-only { display: none !important; } }
 
 /* ===== Components ===== */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid transparent; font-weight: 600; font-size: 14px; letter-spacing: .01em; white-space: nowrap; transition: background .15s, transform .15s, color .15s; }
-.btn:active { transform: scale(.99); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid transparent; font-weight: 600; font-size: 14px; letter-spacing: .01em; white-space: nowrap; transition: background .15s, transform var(--tap-dur) var(--tap-ease), opacity var(--tap-dur) var(--tap-ease), color .15s; }
 .btn:focus-visible, .icon-btn:focus-visible, .nav a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .btn-sm { height: 36px; padding: 0 12px; font-size: 12px; }
 .btn-primary { background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow); }
@@ -305,7 +315,7 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
   .recent-actions .t-tabs--fill, .flow-actions .t-tabs--fill { display: inline-flex; width: auto; flex: none; }
   .recent-actions .t-tab, .flow-actions .t-tab { flex: none; padding: 0 12px; }
 }
-.t-tab { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 44px; height: var(--tabs-h); padding: 0 12px; border: 0; border-radius: calc(var(--tabs-radius) - 2px); background: transparent; color: var(--tabs-text-muted); font: inherit; white-space: nowrap; text-decoration: none; cursor: pointer; transition: color var(--tabs-dur) var(--tabs-ease); }
+.t-tab { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 44px; height: var(--tabs-h); padding: 0 12px; border: 0; border-radius: calc(var(--tabs-radius) - 2px); background: transparent; color: var(--tabs-text-muted); font: inherit; white-space: nowrap; text-decoration: none; cursor: pointer; transition: color var(--tabs-dur) var(--tabs-ease), transform var(--tap-dur) var(--tap-ease), opacity var(--tap-dur) var(--tap-ease); }
 .t-tab:not(:is([aria-selected="true"], [aria-checked="true"], [aria-current])):hover { color: var(--on); }
 .t-tab:is([aria-selected="true"], [aria-checked="true"], [aria-current]) { color: var(--tabs-text-active); font-weight: 600; }
 .t-tab[data-tone="exp"]:is([aria-selected="true"], [aria-checked="true"]) { color: var(--danger); }
@@ -507,7 +517,7 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 .auth-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
 .auth-note { margin-top: 12px; font-size: 12px; color: var(--secondary); text-align: center; }
 /* "Continuar com o Google": colors, "G" and Roboto Medium follow Google's branding, so no tokens. */
-.btn-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 44px; padding: 0 16px; border: 1px solid #747775; border-radius: 999px; background: #fff; color: #1f1f1f; font: 500 14px/20px Roboto, var(--font); cursor: pointer; transition: background .15s; }
+.btn-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 44px; padding: 0 16px; border: 1px solid #747775; border-radius: 999px; background: #fff; color: #1f1f1f; font: 500 14px/20px Roboto, var(--font); cursor: pointer; transition: background .15s, transform var(--tap-dur) var(--tap-ease), opacity var(--tap-dur) var(--tap-ease); }
 .auth-google .btn-google { height: 52px; font-size: 16px; }
 .btn-google:hover { background: #f8f9fa; }
 .btn-google:disabled { cursor: wait; opacity: .8; }

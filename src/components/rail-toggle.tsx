@@ -41,7 +41,7 @@ export function RailToggle() {
       // 44x44px touch target straddling the rail's right border; the visible disc is 28px.
       className="group rail-toggle fixed top-[18px] z-40 hidden size-11 items-center justify-center lg:flex"
     >
-      <span className="flex size-7 items-center justify-center rounded-full border border-hairline bg-surface-container-lowest text-secondary shadow-sm transition-colors group-hover:text-on-surface group-focus-visible:ring-2 group-focus-visible:ring-primary">
+      <span className="flex size-7 items-center justify-center rounded-full border border-hairline bg-surface-container-lowest text-secondary shadow-sm transition-[color,transform,opacity] duration-150 ease-out select-none group-hover:text-on-surface group-active:scale-[0.92] group-active:opacity-85 motion-reduce:group-active:scale-100 group-focus-visible:ring-2 group-focus-visible:ring-primary">
         <ChevronLeft className="rail-chevron size-4" aria-hidden />
       </span>
     </button>

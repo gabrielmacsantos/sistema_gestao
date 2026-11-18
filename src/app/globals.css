@@ -259,6 +259,17 @@
   --press-dur: 150ms;
   --ease-smooth-out: cubic-bezier(.22,1,.36,1);
 }
+
+/* Touch: no WebView blue square; feedback is :active (scale + opacity), same as index.html. Keyboard focus stays on :focus-visible. */
+:root { --tap-scale: .96; --tap-scale-wide: .97; --tap-scale-icon: .92; --tap-opacity: .85; --tap-dur: 150ms; --tap-ease: cubic-bezier(.22,1,.36,1); }
+a, button, [role="button"], [role="tab"], [role="radio"], label, summary, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+a, button, [role="button"], [role="tab"], [role="radio"], summary { touch-action: manipulation; }
+.t-press, .t-press-icon, .t-press-wide { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: transform var(--tap-dur) var(--tap-ease), opacity var(--tap-dur) var(--tap-ease), background-color .15s, color .15s; }
+.t-press:active { transform: scale(var(--tap-scale)); opacity: var(--tap-opacity); }
+.t-press-wide:active { transform: scale(var(--tap-scale-wide)); opacity: var(--tap-opacity); }
+.t-press-icon:active { transform: scale(var(--tap-scale-icon)); opacity: var(--tap-opacity); }
+.t-press:disabled:active, .t-press-wide:disabled:active { transform: none; opacity: .6; }
+@media (prefers-reduced-motion: reduce) { .t-press:active, .t-press-wide:active, .t-press-icon:active { transform: none; } }
 .va-card { --bubble: color-mix(in srgb, var(--color-on-surface) 6%, var(--color-surface-container-lowest)); position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 268px; border-radius: 24px; background: var(--color-surface-container-lowest); color: var(--color-on-surface); border: 1px solid var(--color-hairline); box-shadow: 0 8px 32px -4px rgb(0 0 0 / .06); }
 :root[data-theme="dark"] .va-card { --bubble: color-mix(in srgb, var(--color-on-surface) 9%, var(--color-surface-container-lowest)); }
 .va-glow { position: absolute; inset: auto 0 0 0; height: 70%; z-index: 0; pointer-events: none; opacity: 0; transform: translateY(30%); transition: opacity 500ms var(--ease-smooth-out), transform 500ms var(--ease-smooth-out);
@@ -485,7 +496,18 @@
   white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
-  transition: color var(--tabs-dur) var(--tabs-ease);
+  transition: color var(--tabs-dur) var(--tabs-ease), transform var(--tap-dur) var(--tap-ease), opacity var(--tap-dur) var(--tap-ease);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.t-tab:active {
+  transform: scale(var(--tap-scale));
+  opacity: var(--tap-opacity);
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-tab:active {
+    transform: none;
+  }
 }
 .t-tab:not([data-active="true"]):hover {
   color: var(--color-on-surface);

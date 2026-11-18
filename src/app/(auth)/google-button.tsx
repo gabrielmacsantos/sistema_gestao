@@ -76,7 +76,7 @@ export function GoogleButton({ error }: { error?: string }) {
         aria-busy={loading}
         className={cn(
           roboto.className,
-          "flex h-11 w-full items-center justify-center gap-3 rounded-full border px-4 text-[14px] leading-5 transition-colors",
+          "t-press-wide flex h-11 w-full items-center justify-center gap-3 rounded-full border px-4 text-[14px] leading-5",
           "border-[#747775] bg-white text-[#1f1f1f] hover:bg-[#f8f9fa] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
           "dark:border-[#8e918f] dark:bg-[#131314] dark:text-[#e3e3e3] dark:hover:bg-[#1f1f20]",
           "aria-disabled:cursor-wait aria-disabled:opacity-80",

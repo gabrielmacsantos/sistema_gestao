@@ -59,7 +59,7 @@ export function SideNav() {
             title={label}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "rail-row rail-link flex items-center justify-center gap-3 rounded-lg py-2.5 text-label-lg transition-colors lg:justify-start lg:px-3",
+              "t-press rail-row rail-link flex items-center justify-center gap-3 rounded-lg py-2.5 text-label-lg lg:justify-start lg:px-3",
               active
                 ? "bg-surface-container-high text-primary"
                 : "text-secondary hover:bg-surface-container-low hover:text-on-surface",
@@ -99,7 +99,7 @@ export function BottomNav() {
           href={navHref(href)}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "flex flex-col items-center gap-0.5 py-2 text-label-sm",
+            "t-press flex flex-col items-center gap-0.5 py-2 text-label-sm",
             active ? "text-primary" : "text-secondary",
           )}
         >
@@ -121,7 +121,7 @@ export function BottomNav() {
           <Link
             href="/lancamentos/novo"
             aria-label="Novo lançamento"
-            className="-mt-5 mb-1 flex size-12 items-center justify-center rounded-full bg-primary text-on-primary shadow-md ring-4 ring-surface-container-lowest transition-transform active:scale-95"
+            className="-mt-5 mb-1 flex size-12 items-center justify-center rounded-full bg-primary text-on-primary shadow-md ring-4 ring-surface-container-lowest t-press-icon"
           >
             <Plus className="size-6" aria-hidden />
           </Link>
@@ -134,7 +134,7 @@ export function BottomNav() {
 
 /** 36px icon button with a 46px touch area, like .icon-btn in index.html. */
 export const iconButton =
-  "relative flex size-9 items-center justify-center rounded-lg border border-hairline text-secondary transition-colors after:absolute after:-inset-[5px] hover:bg-surface-container-low hover:text-on-surface";
+  "t-press-icon relative flex size-9 items-center justify-center rounded-lg border border-hairline text-secondary after:absolute after:-inset-[5px] hover:bg-surface-container-low hover:text-on-surface";
 
 /** "Mais opções" on phones: a sheet with every page and Sair, as the menu sheet in index.html. */
 export function MenuSheet({ account }: { account: string }) {
