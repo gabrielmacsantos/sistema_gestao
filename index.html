@@ -6211,7 +6211,7 @@ document.addEventListener("dragover", (e) => { const d = e.target.closest?.("#dr
 document.addEventListener("dragleave", (e) => { const d = e.target.closest?.("#drop"); if (d) d.classList.remove("over"); });
 document.addEventListener("drop", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.remove("over"); handleImportFile(e.dataTransfer.files[0]); } });
 // ---------- Product tour (first access) ----------
-const tourState = { el: null, i: -1, prevFocus: null, prevOverflow: "", startTimer: null, trackRaf: 0, layoutRaf: 0, onKey: null, onLayout: null };
+const tourState = { el: null, i: -1, prevFocus: null, prevOverflow: "", startTimer: null, trackRaf: 0, layoutRaf: 0, onKey: null, onLayout: null, adjusted: false };
 const tourReduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function tourDone() { try { return localStorage.getItem(tourKey(scopeOf(sync))) === "1"; } catch { return true; } } // no storage: never nag
 const firstVisible = (sel) => [...document.querySelectorAll(sel)].find((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }) || null;
@@ -6271,7 +6271,7 @@ function showTourStep(from) {
   if (idx < 0) return endTour({ save: true });
   const s = TOUR_STEPS[idx], visible = tourVisibleSteps();
   const isLast = resolveTourStep(TOUR_STEPS.length, idx + 1, (n) => !!tourTarget(TOUR_STEPS[n])) < 0;
-  tourState.i = idx;
+  tourState.i = idx; tourState.adjusted = false;
   card.className = "tour-card";
   card.style.cssText = "";
   card.innerHTML = `<span class="metric-label">Passo ${visible.indexOf(s) + 1} de ${visible.length}</span>
@@ -6291,14 +6291,22 @@ function tourLayout() {
   if (!t) return;
   const vp = { w: window.innerWidth, h: window.visualViewport?.height ?? window.innerHeight };
   const lit = [t, ...s.also.map(firstVisible)].filter(Boolean).map((x) => spotlightRect(x.getBoundingClientRect(), 8, vp));
+  paintTourLit(lit);
+  const cs = getComputedStyle(el), card = document.getElementById("tour-card");
+  const pos = placePopover(lit[0], vp, { w: card.offsetWidth, h: card.offsetHeight }, { top: parseFloat(cs.paddingTop) || 0, bottom: parseFloat(cs.paddingBottom) || 0 });
+  card.style.left = `${pos.left}px`; card.style.top = `${pos.top}px`; card.dataset.side = pos.side;
+  if (pos.side === "dock") { // no room beside the target: light only what the card leaves visible, never what it covers
+    const bottom = Math.max(lit[0].top, pos.top - 8);
+    lit[0].height = Math.max(0, Math.min(lit[0].top + lit[0].height, bottom) - lit[0].top);
+    paintTourLit(lit);
+  }
+}
+function paintTourLit(lit) {
   document.getElementById("tour-holes").innerHTML = lit.map((b) => `<rect x="${b.left}" y="${b.top}" width="${b.width}" height="${b.height}" rx="12" fill="black"/>`).join("");
   const rings = document.getElementById("tour-rings");
   while (rings.children.length < lit.length) rings.insertAdjacentHTML("beforeend", '<div class="tour-ring"></div>');
   while (rings.children.length > lit.length) rings.lastChild.remove();
   lit.forEach((b, n) => Object.assign(rings.children[n].style, { left: `${b.left}px`, top: `${b.top}px`, width: `${b.width}px`, height: `${b.height}px` }));
-  const cs = getComputedStyle(el), card = document.getElementById("tour-card");
-  const pos = placePopover(lit[0], vp, { w: card.offsetWidth, h: card.offsetHeight }, { top: parseFloat(cs.paddingTop) || 0, bottom: parseFloat(cs.paddingBottom) || 0 });
-  card.style.left = `${pos.left}px`; card.style.top = `${pos.top}px`; card.dataset.side = pos.side;
 }
 function scheduleTourLayout() {
   cancelAnimationFrame(tourState.layoutRaf);
@@ -6314,7 +6322,13 @@ function trackTour() {
     const t = tourTarget(TOUR_STEPS[tourState.i]), r = t?.getBoundingClientRect();
     const key = r ? `${r.top}|${r.left}` : "";
     still = key === last ? still + 1 : 0; last = key;
-    if (still < 5 && performance.now() - t0 < 1200) tourState.trackRaf = requestAnimationFrame(tick);
+    if (still >= 5 && !tourState.adjusted && document.getElementById("tour-card").dataset.side === "dock" && r) {
+      tourState.adjusted = true;
+      const header = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 0;
+      const delta = r.top - (header + 12 + 8);
+      if (Math.abs(delta) > 2) { window.scrollBy({ top: delta, behavior: tourReduced() ? "auto" : "smooth" }); still = 0; }
+    }
+    if (still < 5 && performance.now() - t0 < 2000) tourState.trackRaf = requestAnimationFrame(tick);
   };
   tick();
 }

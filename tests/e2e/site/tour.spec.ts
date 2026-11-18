@@ -92,3 +92,26 @@ test("percorre todos os passos até Concluir, com o anel sobre o alvo e o card n
   await page.waitForTimeout(1000);
   await expect(page.locator("#tour")).toHaveCount(0);
 });
+
+test("em 360×640 o card nunca cobre o que está destacado", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await openFresh(page);
+  const card = page.locator("#tour-card");
+  await card.getByRole("button", { name: "Começar tour" }).click();
+  for (let n = 0; n < 5; n++) {
+    await expect(card).toContainText(`Passo ${n + 1} de 5`);
+    // The target may be docked and scrolled under the header: wait until the ring and the card stop moving.
+    let last = "";
+    await expect.poll(async () => {
+      const [r, c] = await Promise.all([page.locator(".tour-ring").first().boundingBox(), card.boundingBox()]);
+      const now = JSON.stringify([r, c]);
+      const still = now === last; last = now;
+      return still;
+    }, { timeout: 6000, intervals: [300] }).toBe(true);
+    const [ring, box] = await Promise.all([page.locator(".tour-ring").first().boundingBox(), card.boundingBox()]);
+    if (!ring || !box) throw new Error("no layout");
+    const overlap = Math.min(ring.y + ring.height, box.y + box.height) - Math.max(ring.y, box.y);
+    expect(overlap, `step ${n + 1}: the card covers the highlighted area`).toBeLessThanOrEqual(1);
+    if (n < 4) await card.getByRole("button", { name: "Próximo" }).click();
+  }
+});
