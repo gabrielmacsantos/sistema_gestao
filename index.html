@@ -2718,20 +2718,23 @@ function nativeGoogleError(e) {
   if (/no credential|no account/i.test(text)) return new Error("Adicione uma conta Google ao celular (Configurações › Contas) e tente de novo.");
   return googleError("other");
 }
+// The app asks for the file scope only when shared panels need it: adding it to the first login broke reading the account.
+let wantFileScope = false;
 async function nativeGoogleToken() {
   await nativeSocialLogin();
   let res;
-  try { res = await NativePlugins.SocialLogin.login({ provider: "google", options: { scopes: [DRIVE_SCOPE, DRIVE_FILE_SCOPE] } }); }
+  const withFiles = wantFileScope;
+  try { res = await NativePlugins.SocialLogin.login({ provider: "google", options: { scopes: withFiles ? [DRIVE_SCOPE, DRIVE_FILE_SCOPE] : [DRIVE_SCOPE] } }); }
   catch (e) { throw nativeGoogleError(e); }
   const access = res && res.result && res.result.accessToken && res.result.accessToken.token;
   if (!access) throw new Error("Para guardar seus dados, permita o acesso ao Google Drive (só à pasta do app).");
-  return { access, expiresAt: Date.now() + NATIVE_TOKEN_MS, fileScope: true };
+  return { access, expiresAt: Date.now() + NATIVE_TOKEN_MS, fileScope: withFiles };
 }
 /** In the app only: a fresh access token without asking anything; throws "tap to reconnect" if Google needs the person. */
 async function renewNativeGoogle() {
   try {
     await nativeSocialLogin();
-    await NativePlugins.SocialLogin.refresh({ provider: "google", options: { scopes: [DRIVE_SCOPE, DRIVE_FILE_SCOPE] } });
+    await NativePlugins.SocialLogin.refresh({ provider: "google", options: { scopes: sync.fileScope ? [DRIVE_SCOPE, DRIVE_FILE_SCOPE] : [DRIVE_SCOPE] } });
     const { accessToken } = await NativePlugins.SocialLogin.getAuthorizationCode({ provider: "google" });
     if (!accessToken) throw new Error("no access token");
     storeSync({ ...sync, token: { access: accessToken, expiresAt: Date.now() + NATIVE_TOKEN_MS } });
@@ -2833,7 +2836,8 @@ function wsWipeCaches(forget = false) {
 }
 async function ensureFileAccess() {
   if (sync.fileScope) return;
-  await reconnectGoogle();
+  wantFileScope = true;
+  try { await reconnectGoogle(); } finally { wantFileScope = false; }
   if (!sync.fileScope) throw new Error("Para usar painéis compartilhados, permita o acesso aos arquivos criados pelo app no Google Drive.");
 }
 async function readWorkspaceFile(id) { return wsReadFile(await drive(`/files/${encodeURIComponent(id)}?alt=media`, { as: "text" })); }
