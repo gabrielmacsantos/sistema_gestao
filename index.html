@@ -2730,7 +2730,15 @@ async function nativeGoogleToken() {
   if (!access) throw new Error("Para guardar seus dados, permita o acesso ao Google Drive (só à pasta do app).");
   // The plugin already read who signed in (from the ID token): the app uses it if the userinfo call fails.
   const p = (res.result && res.result.profile) || {};
-  const profile = p.id && p.email ? { sub: String(p.id), email: String(p.email), name: p.name || p.email, picture: p.imageUrl } : null;
+  let profile = p.id && p.email ? { sub: String(p.id), email: String(p.email), name: p.name || p.email, picture: p.imageUrl } : null;
+  // Still nothing: the ID token itself (a JWT that Google signed for this app) carries sub, email, name and picture.
+  if (!profile) {
+    try {
+      const part = String((res.result && res.result.idToken) || "").split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      const c = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(part), (ch) => ch.charCodeAt(0))));
+      if (c.sub && c.email) profile = { sub: String(c.sub), email: String(c.email), name: c.name || c.email, picture: c.picture };
+    } catch { /* no usable ID token */ }
+  }
   return { access, expiresAt: Date.now() + NATIVE_TOKEN_MS, fileScope: withFiles, profile };
 }
 /** In the app only: a fresh access token without asking anything; throws "tap to reconnect" if Google needs the person. */
@@ -2768,7 +2776,7 @@ async function googleProfile(access, fallback) {
   try { const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: { Authorization: `Bearer ${access}` } }); status = res.status; me = res.ok ? await res.json() : null; }
   catch { if (!fallback) throw new Error("Sem conexão com o Google. Verifique a internet."); }
   if ((!me || !me.sub || !me.email) && fallback) me = fallback;
-  if (!me || !me.sub || !me.email) throw new Error(`Não foi possível ler sua conta Google (código ${status || "rede"}). Tente de novo.`);
+  if (!me || !me.sub || !me.email) throw new Error(`Não foi possível ler sua conta Google (código ${status || "rede"}${fallback ? "" : ", sem perfil do app"}). Tente de novo.`);
   return { sub: me.sub, email: me.email.toLowerCase(), name: me.name || me.email, picture: safeAvatarUrl(me.picture) };
 }
 const reauthError = () => Object.assign(new Error("Toque para continuar sincronizando com o Google."), { reauth: true });
