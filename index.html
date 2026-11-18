@@ -2728,7 +2728,10 @@ async function nativeGoogleToken() {
   catch (e) { throw nativeGoogleError(e); }
   const access = res && res.result && res.result.accessToken && res.result.accessToken.token;
   if (!access) throw new Error("Para guardar seus dados, permita o acesso ao Google Drive (só à pasta do app).");
-  return { access, expiresAt: Date.now() + NATIVE_TOKEN_MS, fileScope: withFiles };
+  // The plugin already read who signed in (from the ID token): the app uses it if the userinfo call fails.
+  const p = (res.result && res.result.profile) || {};
+  const profile = p.id && p.email ? { sub: String(p.id), email: String(p.email), name: p.name || p.email, picture: p.imageUrl } : null;
+  return { access, expiresAt: Date.now() + NATIVE_TOKEN_MS, fileScope: withFiles, profile };
 }
 /** In the app only: a fresh access token without asking anything; throws "tap to reconnect" if Google needs the person. */
 async function renewNativeGoogle() {
@@ -2760,11 +2763,12 @@ async function requestGoogleToken(prompt, hint) {
     }).requestAccessToken();
   });
 }
-async function googleProfile(access) {
-  let me;
-  try { const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: { Authorization: `Bearer ${access}` } }); me = res.ok ? await res.json() : null; }
-  catch { throw new Error("Sem conexão com o Google. Verifique a internet."); }
-  if (!me || !me.sub || !me.email) throw new Error("Não foi possível ler sua conta Google. Tente de novo.");
+async function googleProfile(access, fallback) {
+  let me, status = 0;
+  try { const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: { Authorization: `Bearer ${access}` } }); status = res.status; me = res.ok ? await res.json() : null; }
+  catch { if (!fallback) throw new Error("Sem conexão com o Google. Verifique a internet."); }
+  if ((!me || !me.sub || !me.email) && fallback) me = fallback;
+  if (!me || !me.sub || !me.email) throw new Error(`Não foi possível ler sua conta Google (código ${status || "rede"}). Tente de novo.`);
   return { sub: me.sub, email: me.email.toLowerCase(), name: me.name || me.email, picture: safeAvatarUrl(me.picture) };
 }
 const reauthError = () => Object.assign(new Error("Toque para continuar sincronizando com o Google."), { reauth: true });
@@ -3121,16 +3125,16 @@ setInterval(() => { if (activeWs && sync && document.visibilityState === "visibl
 
 /** Sign-in and sign-up are the same tap: Google says who it is, the app folder says if data exists. */
 async function googleSignIn() {
-  const token = await requestGoogleToken("select_account");
-  const me = await googleProfile(token.access);
+  const { profile, ...token } = await requestGoogleToken("select_account");
+  const me = await googleProfile(token.access, profile);
   const fileId = await findDriveFile(DRIVE_FILE, token.access);
   const remoteText = fileId ? await drive(`/files/${fileId}?alt=media`, { as: "text" }, token.access) : null;
   return { settings: { provider: "google", sub: me.sub, email: me.email, name: me.name, picture: me.picture, fileId, token, fileScope: !!token.fileScope }, remoteText };
 }
 /** After the access ran out: one tap renews it, for the same Google account only. */
 async function reconnectGoogle() {
-  const token = await requestGoogleToken("", sync.email);
-  const me = await googleProfile(token.access);
+  const { profile, ...token } = await requestGoogleToken("", sync.email);
+  const me = await googleProfile(token.access, profile);
   if (me.sub !== sync.sub) throw new Error(`Escolha a conta ${sync.email}, a desta sessão.`);
   storeSync({ ...sync, token, picture: me.picture || sync.picture, fileScope: !!token.fileScope || !!sync.fileScope });
 }
