@@ -1746,6 +1746,16 @@ const PHOTO_OWNER_KEY = "minhas-financas:photo-owner";
 // straight in, with no password, and the Drive file is the plain "drive-1" one, as before. The code under
 // `if (ENCRYPTED_SYNC)` and the <drive-crypto> block stay for a later decision; changing this to true turns it all back on.
 const ENCRYPTED_SYNC = false;
+// <feature-flags>
+// Unfinished features stay in the file but hidden. For the test build, "Importar" (paste/OFX/CSV review) and the
+// native bank-notification reading are OFF: nothing links to them, and the app never asks for notification access.
+// Turning a flag to true brings the whole flow back.
+const ENABLE_IMPORT_FEATURE = false;
+const ENABLE_BANK_NOTIFICATIONS = false;
+const FEATURE_FLAGS = { importar: ENABLE_IMPORT_FEATURE };
+// Routes that may appear in menus: a route whose flag is false is left out (the route itself still resolves).
+const visibleRoutes = (routes, flags) => routes.filter((x) => flags[x.path] !== false);
+// </feature-flags>
 let sync = loadSync();
 // Shared panels (see <workspace-core>): the panel the person is looking at, or null for their personal one. Each panel is
 // its own storage scope on this device, so personal and shared records never mix. Function declarations only: this runs
@@ -3576,7 +3586,7 @@ function shell(r, content) {
     <div>
       <a class="brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="brand-text"><span class="brand-name">Minhas Finanças</span><br><span class="brand-sub">Fluxo de caixa pessoal</span></span></a>
       <button class="btn btn-primary btn-new" data-act="new-tx" title="Novo gasto">${icon("plus")}<span class="lbl">Novo gasto</span></button>
-      <nav class="nav" aria-label="Principal">${ROUTES.filter((x) => x.path !== "backup").map(navLink).join("")}</nav>
+      <nav class="nav" aria-label="Principal">${visibleRoutes(ROUTES, FEATURE_FLAGS).filter((x) => x.path !== "backup").map(navLink).join("")}</nav>
     </div>
     <div class="rail-foot nav">${navLink(ROUTES.find((x) => x.path === "backup"))}${sync
       ? `${isGoogle() ? navLink(MEMBERS_ROUTE) : ""}${navLink(PROFILE_ROUTE)}<a href="javascript:void 0" data-act="logout" title="Sair">${icon("logout")}<span class="lbl">Sair</span></a><div class="account" title="${esc(accountLabel())}">${accountAvatar()}<span class="lbl"><b class="truncate">${esc(accountLabel())}</b><span class="hint truncate">Dados salvos no ${providerName()}</span></span></div>`
@@ -4010,11 +4020,19 @@ let importInboxIds = null; // inbox entries under review; they leave the inbox w
 const NOTIF_GUIDE = "https://github.com/gabrielmacsantos/sistema_gestao#-receber-as-notificações-do-banco";
 const READER_APK = "https://github.com/gabrielmacsantos/sistema_gestao/releases/latest/download/minhas-financas-leitor.apk";
 const notifLink = () => `${location.origin}${location.pathname}#/notificacao?t=`;
+// Shown instead of a screen whose feature flag is off (also reached by typing the address by hand).
+function viewComingSoon(title) {
+  return `${pageHead(title, "Funcionalidade em desenvolvimento — disponível nas próximas atualizações.")}
+  <section class="card" style="max-width:520px"><p class="muted">Ainda estamos terminando esta parte. O restante do app continua funcionando normalmente.</p>
+    <div class="actions" style="margin-top:16px"><a class="btn btn-primary" href="${href("painel")}">Voltar ao início</a></div></section>`;
+}
 function inboxNotice() {
+  if (!ENABLE_IMPORT_FEATURE) return "";
   const n = state.inbox.length; if (!n) return "";
   return `<div class="notice"><span class="t-primary" style="display:flex">${icon("bell")}</span><p><b>${n} ${n === 1 ? "notificação do banco" : "notificações do banco"}</b> para revisar.</p><button class="btn btn-primary btn-sm" data-act="review-inbox">Revisar</button></div>`;
 }
 function viewImportar() {
+  if (!ENABLE_IMPORT_FEATURE) return viewComingSoon("Importar");
   if (importDrafts) return viewReview();
   return `${pageHead("Importar", "Traga as transações do seu banco por notificação ou extrato (OFX ou CSV). Você revisa tudo antes de salvar.")}
   <div style="display:flex;flex-direction:column;gap:16px;max-width:720px">
@@ -4201,8 +4219,8 @@ async function runDeleteAccount() {
 
 function viewConfiguracoes() {
   const dark = document.documentElement.dataset.theme === "dark";
-  const notif = BankNotif() ? notifAppCard() : NATIVE ? `<section class="card"><h2 class="h-card">Notificações do banco</h2><p class="muted" style="margin-top:8px">Este aparelho não deixa um app ler as notificações de outros apps. Cole as notificações em <a class="t-primary" href="${href("importar")}">Importar</a>.</p></section>` : readerCard();
-  return `${pageHead("Configurações", "Preferências deste aparelho: notificações do banco, aparência e versão.")}
+  const notif = !ENABLE_BANK_NOTIFICATIONS ? "" : BankNotif() ? notifAppCard() : NATIVE ? `<section class="card"><h2 class="h-card">Notificações do banco</h2><p class="muted" style="margin-top:8px">Este aparelho não deixa um app ler as notificações de outros apps. Cole as notificações em <a class="t-primary" href="${href("importar")}">Importar</a>.</p></section>` : readerCard();
+  return `${pageHead("Configurações", ENABLE_BANK_NOTIFICATIONS ? "Preferências deste aparelho: notificações do banco, aparência e versão." : "Preferências deste aparelho: aparência e versão.")}
   <div style="display:flex;flex-direction:column;gap:16px;max-width:720px">
     ${notif}
     <section class="card">
@@ -4638,7 +4656,9 @@ const NativePlugins = {};
 if (NATIVE) {
   const cap = window.Capacitor, register = cap.registerPlugin || window.capacitorExports?.registerPlugin;
   const shipped = new Set((cap.PluginHeaders || []).map((h) => h.name));
-  for (const name of ["App", "BankNotifications", "Browser", "Filesystem", "Share", "SocialLogin", "SpeechRecognition"]) {
+  // BankNotifications is only registered with the flag on: without it BankNotif() is undefined, so nothing below
+  // (status, queue, the "enable" prompt, the listener) ever reaches the native side or asks for access.
+  for (const name of ["App", ...(ENABLE_BANK_NOTIFICATIONS ? ["BankNotifications"] : []), "Browser", "Filesystem", "Share", "SocialLogin", "SpeechRecognition"]) {
     if (register && shipped.has(name)) NativePlugins[name] = register(name);
   }
 }
@@ -5370,7 +5390,7 @@ function drawerHtml() {
   return `<div class="drawer-root" id="drawer-root" data-state="closed"><div class="drawer-backdrop" data-act="drawer-close"></div>
     <aside class="drawer" id="drawer" role="dialog" aria-label="Menu">
       <div class="drawer-body">
-        <nav class="sheet-nav" aria-label="Seções">${ROUTES.map((x) => `<a href="${navHref(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}</nav>
+        <nav class="sheet-nav" aria-label="Seções">${visibleRoutes(ROUTES, FEATURE_FLAGS).map((x) => `<a href="${navHref(x.path)}" data-act="close-nav">${icon(x.icon)} ${x.label}</a>`).join("")}</nav>
         ${sync && isGoogle() ? `<h4 class="drawer-label">Painel</h4><button type="button" class="drawer-row" data-act="ws-switch">${icon("users")}<span>${esc(activeWs ? activeWs.name : "Meu painel pessoal")}<br><small class="hint">Trocar de painel ou convidar pessoas</small></span></button>` : ""}
         <h4 class="drawer-label">Aparência</h4>${drawerThemeRow()}
         ${sync ? `<h4 class="drawer-label">Sincronização</h4>${drawerSyncRow()}` : `<h4 class="drawer-label">Dados</h4><p class="hint" style="margin:4px 0 8px">Sem conta: seus dados ficam só neste aparelho.</p>`}
@@ -5676,7 +5696,7 @@ function readPastedNotifications() {
   importInboxIds = null; importDrafts = drafts; render(); window.scrollTo(0, 0);
 }
 function reviewInbox() {
-  if (!state.inbox.length) return;
+  if (!ENABLE_IMPORT_FEATURE || !state.inbox.length) return;
   importInboxIds = state.inbox.map((x) => x.id);
   importDrafts = notificationDrafts(state.inbox);
   if (route().path !== "importar") location.hash = href("importar");
@@ -5687,6 +5707,7 @@ function reviewInbox() {
 function captureIncoming() {
   const h = location.hash;
   if (!/^#\/?notificacao\b/.test(h)) return;
+  if (!ENABLE_IMPORT_FEATURE || !ENABLE_BANK_NOTIFICATIONS) { history.replaceState(null, "", href("painel")); return; }
   const i = h.indexOf("?t="), raw = i < 0 ? "" : h.slice(i + 3);
   let text = raw;
   try { text = decodeURIComponent(raw.replace(/\+/g, " ")); } catch { /* sent without encoding */ }

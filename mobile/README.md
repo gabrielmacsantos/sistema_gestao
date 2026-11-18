@@ -54,6 +54,8 @@ A parte nativa fica em `android/app/src/main/java/io/github/gabrielmacsantos/min
 - `NotificationQueue`: a fila, o liga/desliga e os apps marcados, em `SharedPreferences`. Ela também mostra a notificação "N movimentações do banco", que abre o app.
 - `BankNotificationsPlugin`: `status`, `setWatching`, `openAccessSettings`, `openAppDetails`, `listApps`, `setApps`, `takeQueue` e o evento `queued`.
 
+> **Beta:** a leitura de notificações está desligada por `ENABLE_BANK_NOTIFICATIONS = false` no `index.html` (e Importar por `ENABLE_IMPORT_FEATURE`). O plugin não é registrado no WebView, então o app nunca pede o acesso. Para reativar, troque as duas constantes para `true`.
+
 O `index.html` pergunta antes de ligar (uma vez ao abrir, depois só na aba Configurações), pega a fila ao abrir ou voltar para o app e usa a mesma revisão do site. Instalado fora da Play Store, o Android 13 ou mais novo exige **Permitir configurações restritas** antes de liberar o acesso às notificações.
 
 Os dados ficam no armazenamento do próprio app. Com conta, eles sincronizam pelo Gist como no site. O backup automático do Android está **desligado** (`allowBackup="false"`), porque copiaria para o Google Drive o token do GitHub guardado no aparelho.

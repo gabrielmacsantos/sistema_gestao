@@ -28,6 +28,23 @@ test("an unknown address falls back to the Painel", async ({ page }) => {
   await expect(page).toHaveTitle(/Painel · Minhas Finanças/);
 });
 
+test("Importar is hidden from the menus and its address shows the coming-soon screen", async ({ page }, testInfo) => {
+  await startLocal(page);
+  if (testInfo.project.name === "site-desktop") {
+    await expect(page.locator("#rail").getByRole("link", { name: "Importar" })).toHaveCount(0);
+  } else {
+    await page.locator('[data-act="menu"]').click();
+    await expect(page.getByRole("dialog", { name: "Menu" }).getByRole("link", { name: "Importar" })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+  }
+  await page.goto("/#/importar");
+  await expect(page.getByText("Funcionalidade em desenvolvimento")).toBeVisible();
+  await page.getByRole("link", { name: "Voltar ao início" }).click();
+  await expect(page).toHaveTitle(/Painel · Minhas Finanças/);
+  await page.goto("/#/configuracoes");
+  await expect(page.getByText("Notificações do banco")).toHaveCount(0);
+});
+
 test("desktop: the side menu lists the sections and collapses to icons", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "site-desktop", "The side menu is a desktop control.");
   await startLocal(page);
