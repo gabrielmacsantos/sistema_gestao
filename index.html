@@ -535,6 +535,22 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 @media (min-width: 640px) { .input { font-size: 14px; } }
 
 /* Modal + toast */
+/* Beta notice: fixed at the top of every screen (sign-in included). --beta-h is its measured height; the fixed/sticky parts start below it. */
+:root { --beta-h: 0px; }
+.beta-banner { position: fixed; inset: 0 0 auto 0; z-index: 50; display: flex; align-items: center; justify-content: center; gap: 8px; padding: env(safe-area-inset-top) 12px 0; min-height: calc(env(safe-area-inset-top) + 36px); background: var(--warning-c); color: var(--on); border-bottom: 1px solid color-mix(in srgb, var(--warning) 45%, transparent); font-size: 12px; line-height: 16px; font-weight: 500; text-align: center; }
+.beta-banner[hidden] { display: none; }
+.beta-banner > span { padding: 6px 0; }
+.beta-pill { flex: none; padding: 1px 8px; border-radius: 999px; background: var(--warning); color: var(--bg); font-size: 10px; line-height: 16px; font-weight: 700; letter-spacing: .06em; }
+@media (min-width: 1024px) { body:has(.rail) .beta-banner { padding-left: var(--rail-w); transition: padding-left var(--rail-dur) var(--rail-ease); } }
+:root[data-beta] body { padding-top: var(--beta-h); }
+:root[data-beta] .topbar { top: var(--beta-h); padding-top: 0; }
+:root[data-beta] .rail { top: var(--beta-h); }
+:root[data-beta] .rail-toggle { top: calc(18px + var(--beta-h)); }
+:root[data-beta] { --drawer-top: calc(var(--beta-h) + 65px); }
+:root[data-beta] main.auth { min-height: calc(100dvh - var(--beta-h)); padding-top: 32px; }
+.expired .auth-card { max-width: 460px; text-align: center; }
+.expired .auth-card .logo-full { margin: 0 auto 16px; height: 64px; }
+.expired h1 { margin: 0 0 8px; }
 .overlay.swap { animation: none; } /* one dialog replacing another: the backdrop must not fade out and in again (it blinked) */
 .overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: var(--scrim); backdrop-filter: blur(2px); animation: fade .15s; padding-top: env(safe-area-inset-top); }
 @media (min-width: 640px) { .overlay { align-items: center; padding: 16px; } }
@@ -880,6 +896,7 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 </head>
 <body>
 <!-- Static placeholder: the first paint is never blank, and a hint shows up if the script never replaces it. -->
+<div id="beta-banner" class="beta-banner" role="status" hidden></div>
 <div id="app"><div class="boot" aria-busy="true" aria-label="Carregando"><div></div><div></div><div></div><p>Demorando mais que o normal? <a href="">Recarregar</a></p></div></div>
 <div id="layer"></div>
 <div id="live" class="sr-only" aria-live="polite"></div>
@@ -982,6 +999,25 @@ const trapFocusIndex = (count, index, shift) => (count <= 0 ? -1 : shift ? (inde
 /** Sync states that need the person: shown as a dot on the menu button, since the header badge is hidden on phones. */
 const syncNeedsAttention = (status) => status === "reauth" || status === "error" || status === "key" || status === "conflict";
 // </drawer-state>
+// <beta-window> Self-contained: tests/beta-window.test.ts loads this block from the file.
+// The test version: a notice with the days left, and after the last day only a "test ended" screen.
+// This runs on the device (a static site has no server to ask), so it follows the device clock.
+const BETA_ENABLED = true; // false for the store builds: no notice, no end date
+const BETA_END_DATE = "2027-01-31"; // last day, open until 23:59 in São Paulo
+const spDay = (ms) => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(ms);
+/** off | running (days = whole days left after today) | last (today is the last day) | expired (from 00:00 of the next day). */
+function betaStatus(nowMs, enabled = BETA_ENABLED, end = BETA_END_DATE) {
+  if (!enabled) return { phase: "off", days: 0 };
+  const today = spDay(nowMs);
+  if (today > end) return { phase: "expired", days: 0 };
+  const days = Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000);
+  return { phase: days === 0 ? "last" : "running", days };
+}
+function betaText(st) {
+  if (st.phase === "last") return "O app está na versão BETA. Hoje é o último dia da versão de teste (até 23h59).";
+  return `O app está na versão BETA. ${st.days === 1 ? "Falta 1 dia" : `Faltam ${st.days} dias`} para a versão de teste acabar.`;
+}
+// </beta-window>
 // <product-tour> Self-contained: tests/product-tour.test.ts loads this block from the file.
 // First-access tour. `target` is the value of data-tour-step on the element to light up; `also` are extra
 // selectors lit together with it. Nothing here touches money or the account data: the only state is a flag.
@@ -2659,6 +2695,7 @@ const GOOGLE_CLIENT_ID = "404240084515-tgo3q5ptt6tvfujkkkl6psu2gh208u37.apps.goo
 // Absolute: the app ships index.html only, so the policy always comes from the site.
 const PRIVACY_URL = "https://gabrielmacsantos.github.io/sistema_gestao/privacidade.html";
 const TERMS_URL = "https://gabrielmacsantos.github.io/sistema_gestao/termos.html";
+const SUPPORT_EMAIL = "gabrielmac.dossantos@gmail.com"; // questions, bugs and suggestions from the testers
 const DELETE_HELP_URL = `${PRIVACY_URL}#excluir-conta`;
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 // Shared panels live in a normal Drive file made by this app (drive.file: only files the app made or was given), so the
@@ -4386,7 +4423,7 @@ function readerCard() {
 // ---------- Configurações ----------
 /** Profile: who is signed in, sign out, the documents and the danger zone (permanent deletion of the account and its data). */
 function viewPerfil() {
-  const legal = `<div class="legal-links"><a class="btn btn-secondary" href="${PRIVACY_URL}" target="_blank" rel="noopener">Política de Privacidade</a><a class="btn btn-secondary" href="${TERMS_URL}" target="_blank" rel="noopener">Termos de Uso</a></div>`;
+  const legal = `<div class="legal-links"><a class="btn btn-secondary" href="${PRIVACY_URL}" target="_blank" rel="noopener">Política de Privacidade</a><a class="btn btn-secondary" href="${TERMS_URL}" target="_blank" rel="noopener">Termos de Uso</a></div><p class="hint" style="margin-top:12px">Dúvidas, bugs ou sugestões: <a class="t-primary" href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>`;
   if (!sync) {
     return `${pageHead("Perfil", "Você está usando o app sem conta.")}
     <div class="grid-2">
@@ -4739,6 +4776,7 @@ function render() {
   }
 }
 function renderPage() {
+  if (paintBeta() === "expired") return showBetaExpired(); // after the last day nothing else runs
   // Fixed items only need materializing after a change to them, a data swap or a new month.
   if (needsOccurrences || occurrencesMonth !== currentMonth()) {
     ensureOccurrences();
@@ -6494,6 +6532,38 @@ document.addEventListener("input", (e) => {
 document.addEventListener("dragover", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
 document.addEventListener("dragleave", (e) => { const d = e.target.closest?.("#drop"); if (d) d.classList.remove("over"); });
 document.addEventListener("drop", (e) => { const d = e.target.closest?.("#drop"); if (d) { e.preventDefault(); d.classList.remove("over"); handleImportFile(e.dataTransfer.files[0]); } });
+// ---------- Test version (beta): notice and end screen ----------
+let betaShown = "";
+function paintBeta() {
+  const el = document.getElementById("beta-banner"), root = document.documentElement; if (!el) return "off";
+  const st = betaStatus(Date.now());
+  if (st.phase === "running" || st.phase === "last") {
+    const html = `<b class="beta-pill">BETA</b><span>${esc(betaText(st))}</span>`;
+    if (html !== betaShown) { betaShown = html; el.innerHTML = html; }
+    el.hidden = false; root.dataset.beta = "on"; root.style.setProperty("--beta-h", `${el.offsetHeight}px`);
+  } else { betaShown = ""; el.hidden = true; delete root.dataset.beta; root.style.removeProperty("--beta-h"); }
+  return st.phase;
+}
+function showBetaExpired() {
+  if (tourState.el) endTour({ save: false });
+  unmountAssistant(); teardownDrawer();
+  document.getElementById("layer").innerHTML = "";
+  document.getElementById("app").innerHTML = `<main class="auth expired"><section class="card auth-card" aria-labelledby="expired-title">
+    <span class="logo-full" role="img" aria-label="Nexus Financy IA"></span>
+    <h1 class="h-card" id="expired-title">A versão de teste expirou</h1>
+    <p style="margin:8px 0">Logo mais o app estará nas lojas <b>Google Play Store</b> e <b>Apple Store</b>!</p>
+    <p class="muted">Obrigado por nos ajudar nesse novo ciclo.</p>
+    <p class="hint" style="margin-top:16px"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Política de privacidade</a></p></section></main>`;
+  document.title = "Versão de teste encerrada · Nexus Financy IA";
+}
+{ // keeps the count right while the app stays open, and ends the test on time
+  const root = document.documentElement, el = document.getElementById("beta-banner");
+  if (el && typeof ResizeObserver !== "undefined") new ResizeObserver(() => { if (!el.hidden) root.style.setProperty("--beta-h", `${el.offsetHeight}px`); }).observe(el);
+  let phase = betaStatus(Date.now()).phase;
+  const tick = () => { const now = betaStatus(Date.now()).phase; if (now !== phase) { phase = now; render(); } else paintBeta(); };
+  setInterval(tick, 60000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") tick(); });
+}
 // ---------- Product tour (first access) ----------
 const tourState = { el: null, list: TOUR_STEPS, nav: null, retry: null, i: -1, prevFocus: null, prevOverflow: "", startTimer: null, trackRaf: 0, layoutRaf: 0, onKey: null, onLayout: null, adjusted: false };
 const tourReduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;

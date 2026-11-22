@@ -106,7 +106,8 @@ test("se uma janela estiver na frente, o tour espera e abre quando ela fecha", a
   await page.getByRole("button", { name: /Usar sem conta/ }).click();
   await expect(page).toHaveURL(/#\/painel/);
   // Whatever happened first (the tour or not), a dialog now takes the screen.
-  await page.locator('.bottomnav .fab:visible, .topbar [data-act="new-tx"]:visible').first().click();
+  // Programmatic click: depending on the engine's speed the tour may already be open (and the page inert) when this runs.
+  await page.evaluate(() => (document.querySelector('.bottomnav .fab, .topbar [data-act="new-tx"]') as HTMLElement).click());
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.waitForTimeout(1500);
   await expect(page.locator("#tour")).toHaveCount(0);
