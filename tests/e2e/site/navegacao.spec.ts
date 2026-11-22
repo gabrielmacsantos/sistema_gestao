@@ -16,7 +16,7 @@ test("every screen opens with its title, no errors and no sideways scroll", asyn
   await startLocal(page);
   for (const [path, label] of ROUTES) {
     await page.goto(`/#/${path}`);
-    await expect(page).toHaveTitle(`${label} · Minhas Finanças`);
+    await expect(page).toHaveTitle(`${label} · Nexus Financy IA`);
     await expect(page.locator("main h1").first()).toBeVisible();
     expect(await fitsWidth(page), `${label} overflows`).toBe(true);
   }
@@ -25,7 +25,7 @@ test("every screen opens with its title, no errors and no sideways scroll", asyn
 test("an unknown address falls back to the Painel", async ({ page }) => {
   await startLocal(page);
   await page.goto("/#/nao-existe");
-  await expect(page).toHaveTitle(/Painel · Minhas Finanças/);
+  await expect(page).toHaveTitle(/Painel · Nexus Financy IA/);
 });
 
 test("Importar is hidden from the menus and its address shows the coming-soon screen", async ({ page }, testInfo) => {
@@ -40,7 +40,7 @@ test("Importar is hidden from the menus and its address shows the coming-soon sc
   await page.goto("/#/importar");
   await expect(page.getByText("Funcionalidade em desenvolvimento")).toBeVisible();
   await page.getByRole("link", { name: "Voltar ao início" }).click();
-  await expect(page).toHaveTitle(/Painel · Minhas Finanças/);
+  await expect(page).toHaveTitle(/Painel · Nexus Financy IA/);
   await page.goto("/#/configuracoes");
   await expect(page.getByText("Notificações do banco")).toHaveCount(0);
 });

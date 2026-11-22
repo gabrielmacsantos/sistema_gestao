@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Minhas Finanças</title>
+<title>Nexus Financy IA</title>
 <meta name="description" content="Gestão de finanças pessoais: lançamentos, gastos fixos, orçamentos e metas. Roda no navegador, sem cadastro." />
 <meta name="theme-color" content="#090d16" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23008378'/%3E%3Cpath d='M9 12h14v10H9z' fill='none' stroke='white' stroke-width='2'/%3E%3Cpath d='M19 17h4' stroke='white' stroke-width='2'/%3E%3C/svg%3E" />
@@ -31,9 +31,9 @@
    rest of this file already reads, so they only point at the spec names. Hex colors live only in these two blocks. */
 :root {
   --bg-primary: #f8fafc; --bg-card: #ffffff; --bg-elevated: #f1f5f9; --border-subtle: #e2e8f0;
-  --brand-primary: #059669; --brand-primary-alt: #0d9488; --brand-secondary: #4f46e5; --brand-accent: #0284c7;
+  --brand-primary: #0f766e; --brand-primary-alt: #0d9488; --brand-secondary: #4f46e5; --brand-accent: #0284c7;
   --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
-  --semantic-income: #16a34a; --semantic-expense: #e11d48; --semantic-warning: #d97706;
+  --semantic-income: #059669; --semantic-expense: #e11d48; --semantic-warning: #d97706;
   --placeholder: #64748b; /* text-muted is for icons and inactive items; typed-text hints need 4.5:1 */
   --bg: var(--bg-primary); --surface: #f4f7fb; --card: var(--bg-card);
   --c-low: #f6f8fb; --c: var(--bg-elevated); --c-high: #e7ecf3; --c-highest: #dde4ee;
@@ -53,14 +53,14 @@
   color-scheme: light;
 }
 :root[data-theme="dark"] {
-  --bg-primary: #090d16; --bg-card: #111827; --bg-elevated: #1e293b; --border-subtle: #1f2937;
-  --brand-primary: #10b981; --brand-primary-alt: #2dd4bf; --brand-secondary: #6366f1; --brand-accent: #38bdf8;
+  --bg-primary: #0b111e; --bg-card: #111a2e; --bg-elevated: #17233b; --border-subtle: #1c2842;
+  --brand-primary: #14b8a6; --brand-primary-alt: #4fdbc8; --brand-secondary: #6366f1; --brand-accent: #38bdf8;
   --text-primary: #f8fafc; --text-secondary: #94a3b8; --text-muted: #475569;
-  --semantic-income: #22c55e; --semantic-expense: #f43f5e; --semantic-warning: #f59e0b;
+  --semantic-income: #34d399; --semantic-expense: #f43f5e; --semantic-warning: #fbbf24;
   --placeholder: #7c8ba1;
-  --surface: #0d1320;
-  --c-low: #172033; --c-high: #263348; --c-highest: #2f3e56;
-  --hairline: rgb(31 41 55 / .9); --scrim: rgb(2 6 23 / .6);
+  --surface: #0d1526;
+  --c-low: #131e35; --c-high: #1c2a46; --c-highest: #263756;
+  --hairline: rgb(255 255 255 / .08); --scrim: rgb(2 6 23 / .6);
   --on-primary: #04201a; --on-primary-c: #04201a;
   --primary-fixed: #064e3b; --on-primary-fixed: #6ee7b7;
   --secondary-c: #1e293b; --on-secondary-c: #cbd5e1;
@@ -285,6 +285,7 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .b-success { background: var(--success-c); color: var(--success); }
 .b-warning { background: var(--warning-c); color: var(--warning); }
 .b-neutral { background: var(--c); color: var(--secondary); }
+.b-review { background: color-mix(in srgb, var(--brand-accent) 14%, transparent); color: var(--brand-accent); }
 .cat { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 2px 8px; border-radius: 999px; background: var(--c); color: var(--secondary); font-size: 10px; line-height: 14px; font-weight: 600; letter-spacing: .04em; }
 .dot { width: 8px; height: 8px; border-radius: 99px; flex: none; }
 .empty { border: 1px dashed var(--outline-var); border-radius: 12px; padding: 24px; text-align: center; color: var(--secondary); }
@@ -415,6 +416,41 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .dist-name { display: flex; align-items: flex-start; gap: 8px; min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
 .dist-name .dot { flex: none; margin-top: 6px; }
 .bar > div { height: 100%; border-radius: 999px; }
+/* ===== Layout "Sovereign Financial": greeting card, audit card, review status, brand accent ===== */
+.brand-ia { color: var(--primary-c); }
+.greeting { display: flex; flex-direction: column; gap: 14px; }
+.greeting-top { display: flex; align-items: center; gap: 12px; }
+.greeting-top .account-avatar, .greeting-top .avatar { width: 44px; height: 44px; flex: none; }
+.greeting-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.greeting-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.greeting-search .input { width: 100%; }
+@media (min-width: 768px) { .greeting { flex-direction: row; align-items: center; justify-content: space-between; } .greeting-top { flex: 0 1 320px; } .greeting-search { flex: 1 1 auto; max-width: 520px; } }
+.audit { display: flex; flex-direction: column; gap: 16px; }
+.audit .card-head { margin-bottom: 0; }
+.audit-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px; border-radius: 999px; background: color-mix(in srgb, currentColor 18%, transparent); font-size: 10px; line-height: 14px; font-weight: 700; }
+.audit-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: center; }
+.ring { --p: 0; width: 104px; height: 104px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--primary) calc(var(--p) * 1%), var(--c-high) 0); }
+.ring > div { width: 80px; height: 80px; border-radius: 50%; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring b { font: 700 20px/24px var(--display); letter-spacing: -.02em; }
+.ring span { font-size: 10px; line-height: 14px; font-weight: 600; letter-spacing: .04em; color: var(--secondary); }
+.audit-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.audit-line { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--secondary); }
+.audit-dist { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.audit-dist li { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; color: var(--secondary); min-width: 0; max-width: 100%; }
+.audit-dist b { color: var(--on); }
+.week { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.week button { width: 100%; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 12px; border: 1px solid var(--hairline); background: var(--c-low); color: var(--secondary); transition: background .15s, color .15s, transform var(--tap-dur) var(--tap-ease); }
+.week button span { font-size: 10px; line-height: 14px; font-weight: 600; letter-spacing: .04em; }
+.week button b { font: 700 14px/20px var(--display); color: var(--on); }
+.week button:hover { background: var(--c); }
+.week button.on { background: var(--primary-c); border-color: transparent; color: var(--on-primary-c); }
+.week button.on b { color: inherit; }
+.week button:active { transform: scale(var(--tap-scale)); }
+.week button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .week button, .week button:active { transition: none; transform: none; } }
+@media (min-width: 1024px) { .audit-body { gap: 28px; } .ring { width: 124px; height: 124px; } .ring > div { width: 96px; height: 96px; } }
+.fab { width: 56px; height: 56px; }
+
 .hscroll { display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scroll-snap-type: x mandatory; list-style: none; }
 .hscroll > li { flex: none; width: 168px; scroll-snap-align: start; }
 @media (min-width: 768px) { .hscroll { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; overflow: visible; } .hscroll > li { width: auto; } }
@@ -805,7 +841,7 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 <script>
 "use strict";
 /* ============================================================================
-   Minhas Finanças — versão para o navegador (GitHub Pages).
+   Nexus Financy IA — versão para o navegador (GitHub Pages).
    Tudo roda neste arquivo; os dados ficam no localStorage de quem usa.
    Dinheiro sempre em centavos inteiros; datas como "AAAA-MM-DD".
    ========================================================================== */
@@ -856,6 +892,7 @@ const ICONS = {
   camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
   settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
   search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  filter: '<path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/>',
   bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/>',
@@ -2477,7 +2514,7 @@ function offerRecoveryKey() {
   document.getElementById("rk-copy").addEventListener("click", () => navigator.clipboard?.writeText(text).then(() => toast("Chave copiada."), () => toast("Não foi possível copiar. Selecione e copie o texto.")));
   document.getElementById("rk-save").addEventListener("click", () => {
     const name = "minhas-financas-chave-de-recuperacao.txt";
-    const content = `Minhas Finanças - chave de recuperação\nConta: ${sync.email}\n\n${text}\n\nGuarde este arquivo fora do aparelho (papel ou gerenciador de senhas). Quem tiver esta chave abre seus dados.\n`;
+    const content = `Nexus Financy IA - chave de recuperação\nConta: ${sync.email}\n\n${text}\n\nGuarde este arquivo fora do aparelho (papel ou gerenciador de senhas). Quem tiver esta chave abre seus dados.\n`;
     if (NATIVE) return shareFile(name, content).catch(() => toast("Não foi possível salvar o arquivo."));
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([content], { type: "text/plain" })); a.download = name; a.click(); URL.revokeObjectURL(a.href);
   });
@@ -3009,7 +3046,7 @@ async function wsCreate(name) {
   const me = wsMe(), now = Date.now();
   const initial = { ...wsEmptyState(), categories: load(scopeOf(sync)).categories.map((c) => ({ ...c, updatedAt: now })), members: [wsMemberFor(me, now)], savedAt: now };
   const entry = { id: "", name: title, ownerSub: me.sub, ownerEmail: me.email };
-  const { type, parts } = driveMultipart({ name: `Minhas Finanças - ${title}.json`, mimeType: "application/json" }, wsFileText(entry, initial), "application/json", `mf${uid().replace(/-/g, "")}`);
+  const { type, parts } = driveMultipart({ name: `Nexus Financy IA - ${title}.json`, mimeType: "application/json" }, wsFileText(entry, initial), "application/json", `mf${uid().replace(/-/g, "")}`);
   entry.id = (await drive("/files?uploadType=multipart&fields=id", { method: "POST", upload: true, body: new Blob(parts), headers: { "Content-Type": type } })).id;
   writeWsList([...readWsList(), entry]); wsSave(entry, initial);
   await switchWorkspace(entry);
@@ -3060,7 +3097,7 @@ async function wsInvite(email) {
   const mail = String(email).trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) throw new Error("Digite um e-mail válido.");
   if (state.members.some((m) => m.email.toLowerCase() === mail)) throw new Error("Essa pessoa já está no painel.");
-  const note = `Convite para o painel compartilhado "${activeWs.name}" do app Minhas Finanças. Código: ${activeWs.id} . No app, abra Perfil > Painéis compartilhados > Entrar com código.`;
+  const note = `Convite para o painel compartilhado "${activeWs.name}" do app Nexus Financy IA. Código: ${activeWs.id} . No app, abra Perfil > Painéis compartilhados > Entrar com código.`;
   await drive(`/files/${encodeURIComponent(activeWs.id)}/permissions?sendNotificationEmail=true&emailMessage=${encodeURIComponent(note)}&fields=id`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "user", role: "writer", emailAddress: mail }),
   });
@@ -3451,7 +3488,7 @@ function syncPhotos() {
         }
         const files = { [photoFile(rec.id)]: { content: await encryptPhoto(rec.blob) } };
         if (!state.photosGistId) {
-          const gist = await gh("/gists", sync.token, { method: "POST", body: JSON.stringify({ description: "Minhas Finanças: comprovantes criptografados (não apague)", public: true, files }) });
+          const gist = await gh("/gists", sync.token, { method: "POST", body: JSON.stringify({ description: "Nexus Financy IA: comprovantes criptografados (não apague)", public: true, files }) });
           state.photosGistId = gist.id; save();
         } else {
           await gh(`/gists/${state.photosGistId}`, sync.token, { method: "PATCH", body: JSON.stringify({ files }) });
@@ -3488,12 +3525,46 @@ function viewPhoto(blob) {
 }
 
 // ---------- Reports ----------
+// <tx-status>
+// A transaction is PAID, PENDING or REVIEW ("Em análise"). REVIEW counts as still open (like PENDING) in every total;
+// isOpen treats anything that is not PAID (including a value this version does not know) as open, so nothing is
+// counted as paid by mistake. normalizeStatus is for what a form sends: unknown input becomes PAID.
+const TX_STATUSES = ["PAID", "PENDING", "REVIEW"];
+const normalizeStatus = (v) => (TX_STATUSES.includes(v) ? v : "PAID");
+const isOpen = (t) => t.status !== "PAID";
+const statusLabel = (status, type) => (status === "REVIEW" ? "Em análise" : status === "PAID" ? (type === "INCOME" ? "Recebido" : "Pago") : "Pendente");
+// </tx-status>
+// <audit-rhythm>
+// Pure rules of the "Auditoria & Ritmo Mensal" card. Money stays in whole cents; percentages are whole numbers.
+const AUDIT_FILTERS = ["todos", "pago", "pendente", "analise"];
+const auditMatches = (t, f) => (f === "pago" ? t.status === "PAID" : f === "pendente" ? t.status === "PENDING" : f === "analise" ? t.status === "REVIEW" : true);
+function auditCounts(list) {
+  return { todos: list.length, pago: list.filter((t) => auditMatches(t, "pago")).length, pendente: list.filter((t) => auditMatches(t, "pendente")).length, analise: list.filter((t) => auditMatches(t, "analise")).length };
+}
+/** Whole percent (0-100) of `part` in `total`, rounded half up, with integer math only. */
+function wholePercent(partCents, totalCents) {
+  if (!(totalCents > 0) || !(partCents > 0)) return 0;
+  const twice = 2 * partCents * 100 + totalCents;
+  return Math.min(100, (twice - (twice % (2 * totalCents))) / (2 * totalCents));
+}
+const AUDIT_DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+/** The seven days (Monday to Sunday) of the week that holds `refISO`. */
+function weekStrip(refISO) {
+  const [y, m, d] = refISO.split("-").map(Number), base = Date.UTC(y, m - 1, d), dow = new Date(base).getUTCDay();
+  return Array.from({ length: 7 }, (_, i) => {
+    const day = new Date(base + (i - ((dow + 6) % 7)) * 86400000), iso = day.toISOString().slice(0, 10);
+    return { iso, label: AUDIT_DAYS[day.getUTCDay()], day: day.getUTCDate() };
+  });
+}
+/** Which day the strip is anchored on: today in the current month, otherwise the first of the shown month. */
+const auditAnchor = (month, today) => (today.slice(0, 7) === month ? today : `${month}-01`);
+// </audit-rhythm>
 function monthSummary(month) {
   const list = ofMonth(month), proj = projected(month);
-  const s = (type, status) => sum(list.filter((t) => t.type === type && t.status === status));
-  const incomePaid = s("INCOME", "PAID"), expensePaid = s("EXPENSE", "PAID");
-  const incomePending = s("INCOME", "PENDING") + sum(proj.filter((p) => p.type === "INCOME"));
-  const expensePending = s("EXPENSE", "PENDING") + sum(proj.filter((p) => p.type === "EXPENSE"));
+  const s = (type, open) => sum(list.filter((t) => t.type === type && isOpen(t) === open));
+  const incomePaid = s("INCOME", false), expensePaid = s("EXPENSE", false);
+  const incomePending = s("INCOME", true) + sum(proj.filter((p) => p.type === "INCOME"));
+  const expensePending = s("EXPENSE", true) + sum(proj.filter((p) => p.type === "EXPENSE"));
   return { incomePaid, incomePending, expensePaid, expensePending, income: incomePaid + incomePending, expense: expensePaid + expensePending, forecast: incomePaid + incomePending - expensePaid - expensePending };
 }
 function splitExpenses(month) {
@@ -3650,7 +3721,7 @@ function shell(r, content) {
   <button class="rail-toggle" data-act="rail-toggle" aria-label="${railLabel}" aria-expanded="${!isRailCollapsed()}" aria-controls="rail" title="${railLabel}"><span class="rail-disc">${icon("left")}</span></button>
   <aside class="rail" id="rail" aria-label="Menu" data-tour-step="5">
     <div>
-      <a class="brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="brand-text"><span class="brand-name">Minhas Finanças</span><br><span class="brand-sub">Fluxo de caixa pessoal</span></span></a>
+      <a class="brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="brand-text"><span class="brand-name">Nexus Financy <span class="brand-ia">IA</span></span><br><span class="brand-sub">Fluxo de caixa pessoal</span></span></a>
       <button class="btn btn-primary btn-new" data-act="new-tx" title="Novo gasto">${icon("plus")}<span class="lbl">Novo gasto</span></button>
       <nav class="nav" aria-label="Principal">${visibleRoutes(ROUTES, FEATURE_FLAGS).filter((x) => x.path !== "backup").map(navLink).join("")}</nav>
     </div>
@@ -3660,7 +3731,7 @@ function shell(r, content) {
   </aside>
   <div class="page">
     <header class="topbar"><div class="topbar-in">
-      <a class="mob-brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="brand-name">Minhas Finanças</span></a>
+      <a class="mob-brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="brand-name">Nexus Financy <span class="brand-ia">IA</span></span></a>
       <div class="trail"><span>Visão geral</span>${icon("right", 'style="width:14px;height:14px;color:var(--outline-var)"')}<b>${current.label}</b></div>
       <div class="top-actions">
         ${wsChip()}${syncBadge()}
@@ -3746,7 +3817,7 @@ const metric = ({ label, ic, chip, value, cents, prefix = "", valueCls = "", pil
   ${meter ? `<div class="meter"><div style="width:${clamp01(meter.r) * 100}%;background:${meter.color}"></div></div>` : ""}</div>`;
 };
 const pill = (style, ic, text) => `<span class="pill" style="${style}">${ic ? icon(ic) : ""}${text}</span>`;
-const statusBadge = (t) => t.status === "PENDING" ? `<span class="badge b-warning">Pendente</span>` : `<span class="badge b-success">${t.type === "INCOME" ? "Recebido" : "Pago"}</span>`;
+const statusBadge = (t) => `<span class="badge ${t.status === "REVIEW" ? "b-review" : t.status === "PAID" ? "b-success" : "b-warning"}">${statusLabel(t.status, t.type)}</span>`;
 const catChip = (c) => c ? `<span class="cat"><span class="dot" style="background:${esc(c.color)};width:6px;height:6px"></span><span class="truncate">${esc(c.name)}</span></span>` : `<span class="muted">—</span>`;
 
 function ledgerRow(t, { toggle = false, inTrip = false } = {}) {
@@ -3761,7 +3832,7 @@ function ledgerRow(t, { toggle = false, inTrip = false } = {}) {
       ${toggle ? "" : `<span class="row-icon" style="color:${esc(color)}">${icon(ic)}</span>`}
       <span style="flex:1;min-width:0">
         <span class="row-title truncate" style="display:block">${t.attachmentId ? `<span class="clip" title="Tem comprovante">${icon("paperclip")}<span class="sr-only">Com comprovante: </span></span>` : ""}${esc(t.description)}</span>
-        <span class="row-meta"><span>${sub}</span>${wsAuthorTag(t)}<span class="m-mob">· ${dayMonth(t.date)}</span>${t.status === "PENDING" ? `<span class="m-mob">${statusBadge(t)}</span>` : ""}</span>
+        <span class="row-meta"><span>${sub}</span>${wsAuthorTag(t)}<span class="m-mob">· ${dayMonth(t.date)}</span>${isOpen(t) ? `<span class="m-mob">${statusBadge(t)}</span>` : ""}</span>
       </span>
       <span class="row-cat">${catChip(c)}</span>
       <span class="row-date">${dayMonth(t.date)}</span>
@@ -3831,12 +3902,22 @@ const RECENT_FILTERS = { todas: { label: "Todas" }, receitas: { label: "Entradas
 const RECENT_NOUN = { todas: ["lançamento", "lançamentos"], receitas: ["entrada", "entradas"], despesas: ["saída", "saídas"], pendentes: ["pendente", "pendentes"] };
 const RECENT_EMPTY = { receitas: "Nenhuma entrada neste mês.", despesas: "Nenhuma saída neste mês.", pendentes: "Nada pendente neste mês." };
 let recentFilter = "todas";
-const byFilter = (list, f) => f === "receitas" ? list.filter((t) => t.type === "INCOME") : f === "despesas" ? list.filter((t) => t.type === "EXPENSE") : f === "pendentes" ? list.filter((t) => t.status === "PENDING") : list;
+let auditFilter = "todos", auditDay = "";
+const byFilter = (list, f) => f === "receitas" ? list.filter((t) => t.type === "INCOME") : f === "despesas" ? list.filter((t) => t.type === "EXPENSE") : f === "pendentes" ? list.filter(isOpen) : list;
 function recentBody(m) {
-  const all = ofMonth(m), list = byFilter(all, recentFilter).sort(byDateDesc), [one, many] = RECENT_NOUN[recentFilter];
+  const all = ofMonth(m), list = byFilter(all, recentFilter).filter((t) => auditMatches(t, auditFilter) && (!auditDay || t.date === auditDay)).sort(byDateDesc), [one, many] = RECENT_NOUN[recentFilter];
   const link = href("lancamentos", { mes: m, tipo: recentFilter === "receitas" || recentFilter === "despesas" ? recentFilter : "", status: recentFilter === "pendentes" ? "pendentes" : "" });
   return `${list.length ? `${listHead(false)}<ul class="ledger">${list.slice(0, 6).map((t) => ledgerRow(t)).join("")}</ul>` : `<div style="padding:20px"><p class="empty">${all.length ? RECENT_EMPTY[recentFilter] : "Nenhum lançamento neste mês."}</p></div>`}
+      ${auditFilter !== "todos" || auditDay ? `<div class="section-foot" style="justify-content:flex-start;gap:8px"><span class="muted">Filtro da auditoria ativo.</span><button class="btn btn-ghost btn-sm" data-act="audit-clear">Limpar</button></div>` : ""}
       <div class="section-foot"><span id="recent-count">Mostrando ${Math.min(6, list.length)} de ${list.length} ${list.length === 1 ? one : many}</span><a class="btn btn-secondary btn-sm" href="${link}">Ver extrato completo</a></div>`;
+}
+function setAudit({ filter = auditFilter, day = auditDay }) {
+  auditFilter = AUDIT_FILTERS.includes(filter) ? filter : "todos"; auditDay = day;
+  const bar = document.querySelector('[data-tabs="audit-filter"]');
+  selectTab(bar, bar?.querySelector(`[data-f="${auditFilter}"]`));
+  document.querySelectorAll(".week button").forEach((b) => { const on = b.dataset.day === auditDay; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+  document.getElementById("recent-body").innerHTML = recentBody(route().month);
+  document.getElementById("live").textContent = document.getElementById("recent-count").textContent;
 }
 function setRecentFilter(f) {
   recentFilter = RECENT_FILTERS[f] ? f : "todas";
@@ -3856,7 +3937,7 @@ function ledgerList(r) {
   let list = ofMonth(r.month);
   if (f.tipo === "despesas") list = list.filter((t) => t.type === "EXPENSE");
   if (f.tipo === "receitas") list = list.filter((t) => t.type === "INCOME");
-  if (f.status === "pendentes") list = list.filter((t) => t.status === "PENDING");
+  if (f.status === "pendentes") list = list.filter(isOpen);
   if (f.categoria) list = list.filter((t) => t.categoryId === f.categoria);
   if (f.busca.trim()) {
     const match = searchMatcher(f.busca), names = new Map(state.categories.map((c) => [c.id, c.name]));
@@ -3865,7 +3946,7 @@ function ledgerList(r) {
   return list.sort(byDateDesc);
 }
 function ledgerMetrics(list) {
-  const inc = sum(list.filter((t) => t.type === "INCOME")), exp = sum(list.filter((t) => t.type === "EXPENSE")), pen = sum(list.filter((t) => t.status === "PENDING"));
+  const inc = sum(list.filter((t) => t.type === "INCOME")), exp = sum(list.filter((t) => t.type === "EXPENSE")), pen = sum(list.filter(isOpen));
   return `${metric({ label: "Entradas", ic: "down", chip: "background:var(--success-c);color:var(--success)", cents: inc, valueCls: "t-income" })}
     ${metric({ label: "Saídas", ic: "up", chip: "background:var(--c-high);color:var(--primary)", cents: exp })}
     ${metric({ label: "Pendente", ic: "clock", chip: "background:var(--warning-c);color:var(--warning)", cents: pen, valueCls: pen ? "t-warning" : "", cls: "span2" })}`;
@@ -3915,6 +3996,39 @@ function onLedgerSearch(value) {
   }, 150);
 }
 
+// Greeting card of the Painel: who is signed in, where the data lives, a search that opens the ledger and a filters shortcut.
+const firstName = () => { const n = (isGoogle() && sync.name) || ""; return n && n !== sync.email ? n.split(/\s+/)[0] : ""; };
+function greetingCard(m) {
+  const who = firstName();
+  const where = !sync ? `<span class="badge b-neutral">Só neste aparelho</span>` : `<span class="badge b-success">${isGoogle() ? "Drive ativo" : "GitHub ativo"}</span>`;
+  return `<section class="card greeting" aria-label="Boas-vindas">
+    <div class="greeting-top">${sync ? accountAvatar() : `<span class="row-icon" style="color:var(--primary);width:44px;height:44px">${icon("user")}</span>`}
+      <div class="greeting-text"><span class="metric-label">Bem-vindo de volta</span><h2 class="h-card truncate">${who ? `Olá, ${esc(who)}` : "Olá"}</h2></div>${where}</div>
+    <form class="greeting-search" id="home-search" action="javascript:void 0" role="search">
+      <label class="search-field"><span class="sr-only">Buscar despesa, categoria ou data</span>${icon("search")}<input class="input" type="search" id="home-search-input" placeholder="Buscar despesa, categoria ou data…" enterkeyhint="search" autocomplete="off"></label>
+      <a class="btn btn-secondary" href="${href("lancamentos", { mes: m })}" aria-label="Abrir filtros do extrato">${icon("filter")} Filtros</a>
+    </form>
+  </section>`;
+}
+// "Auditoria & Ritmo Mensal": how much of the month is already paid, the safe margin, the top categories and the week.
+function auditCard(m, { list, s, dist, shares, margin }) {
+  const counts = auditCounts(list), paid = wholePercent(s.expensePaid, s.expense), safe = wholePercent(Math.max(0, margin.safeCents), s.income);
+  const last = new Date(Number(m.slice(0, 4)), Number(m.slice(5)), 0).getDate(), top = dist.slice(0, 3), short = monthShort(m);
+  const week = weekStrip(auditAnchor(m, todayISO()));
+  const items = [["todos", "Todos"], ["pago", "Pago"], ["pendente", "Pendente"], ["analise", "Em análise"]];
+  return `<section class="card audit" aria-labelledby="audit-title">
+    <div class="card-head"><h2 class="h-card" id="audit-title">Auditoria &amp; Ritmo Mensal</h2><span class="metric-label">${short[0].toUpperCase() + short.slice(1)} 1 a ${last}</span></div>
+    ${tabsHtml({ kind: "tabs", key: "audit-filter", label: "Filtrar por situação", panel: "recent-body", active: auditFilter, fill: true, items: items.map(([v, t]) => ({ value: v, label: `${t}${v === "todos" || counts[v] ? ` <span class="audit-count">${counts[v]}</span>` : ""}`, attrs: `data-act="audit-filter" data-f="${v}"` })) })}
+    <div class="audit-body">
+      <div class="ring" role="img" aria-label="${paid}% das saídas do mês já foram pagas" style="--p:${paid}"><div><b class="num">${paid}%</b><span>Pago</span></div></div>
+      <div class="audit-side">
+        <div><div class="audit-line"><span>Margem segura</span><b class="num t-income">${safe}%</b></div><div class="bar"><div style="width:${safe}%;background:var(--primary)"></div></div></div>
+        <div><span class="metric-label">Distribuição de gastos:</span>${top.length ? `<ul class="audit-dist">${top.map((c, i) => `<li><span class="dot" style="background:${esc(c.color)}"></span><span class="truncate">${esc(c.name)}</span> <b class="num">${shares[i] === 0 && c.total > 0 ? "&lt;1" : shares[i]}%</b></li>`).join("")}</ul>` : `<p class="muted" style="margin-top:4px">Sem despesas neste mês.</p>`}</div>
+      </div>
+    </div>
+    <ul class="week" aria-label="Dias da semana">${week.map((d) => `<li><button type="button" class="${auditDay === d.iso ? "on" : ""}" data-act="audit-day" data-day="${d.iso}" aria-pressed="${auditDay === d.iso}"><span>${d.label}</span><b class="num">${d.day}</b></button></li>`).join("")}</ul>
+  </section>`;
+}
 function viewPainel(r) {
   const m = r.month, s = monthSummary(m), split = splitExpenses(m), series = monthlySeries(m);
   const cats = expensesByCategory(m, true), totalCats = sum(cats, (c) => c.total);
@@ -3926,7 +4040,7 @@ function viewPainel(r) {
   const prev = series[series.length - 2], delta = prev && prev.income > 0 ? (series[series.length - 1].income - prev.income) / prev.income : null;
   const alerts = budgetStatus(m).filter((b) => b.ratio >= 0.8);
   const list = ofMonth(m).sort(byDateDesc), fixed = list.filter((t) => t.recurringId && t.type === "EXPENSE").sort((a, b) => (a.date < b.date ? -1 : 1));
-  const pending = list.filter((t) => t.status === "PENDING").length;
+  const pending = list.filter(isOpen).length;
   const net = s.income - s.expense;
   const isEmpty = state.transactions.length === 0 && state.recurrings.length === 0;
 
@@ -3935,7 +4049,7 @@ function viewPainel(r) {
       <div style="display:flex;gap:12px;align-items:flex-start">
         <span class="chip" style="background:var(--c-high);color:var(--primary);width:40px;height:40px">${icon("sparkles")}</span>
         <div style="flex:1;min-width:0">
-          <h2 class="h-card">Bem-vindo ao Minhas Finanças 👋</h2>
+          <h2 class="h-card">Bem-vindo ao Nexus Financy IA 👋</h2>
           <p class="muted" style="margin-top:4px">Comece cadastrando seu salário e seus gastos fixos (aluguel, contas, assinaturas). Você está usando <b>sem conta</b>: os dados ficam só neste navegador. Entre com o Google para salvar no seu Drive e usar em qualquer aparelho.</p>
           <div class="actions" style="margin-top:16px">
             <button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Lançar salário</button>
@@ -3958,6 +4072,7 @@ function viewPainel(r) {
       `${monthPicker("painel", m)}<span class="actions desk-only"><button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Nova entrada</button><button class="btn btn-secondary btn-sm" data-act="new-rec"><span class="t-primary" style="display:flex">${icon("calendar")}</span> Cadastrar fixo</button><button class="btn btn-primary btn-sm" data-act="new-tx">${icon("plusCircle")} Novo gasto</button></span>`)}
     ${welcome}
     ${inboxNotice()}
+    ${greetingCard(m)}
     <section class="grid-kpi" aria-label="Resumo do mês" data-tour-step="1">
       ${metric({ label: "Entradas no mês", ic: "down", chip: "background:var(--success-c);color:var(--success)", cents: s.income, valueCls: "t-income",
         pill: delta !== null ? pill("background:var(--success-c);color:var(--success)", delta >= 0 ? "trendUp" : "trendDown", `${delta >= 0 ? "+" : ""}${fmtPct(delta)} vs. anterior`) : s.incomePending ? pill("background:var(--c);color:var(--secondary)", "", `${amountHtml(s.incomePending, "a receber")} a receber`) : "",
@@ -4001,6 +4116,7 @@ function viewPainel(r) {
         ${s.income > 0 || s.expense > 0 ? `<div class="insight" style="margin-top:auto;margin-top:24px"><span class="t-primary" style="display:flex">${icon("bulb")}</span><p>${split.fixedCents > 0 && s.expense > 0 ? `Seus custos fixos representam <b class="t-primary">${fmtPct(percentTenths(split.fixedCents, s.expense) / 1000)}</b> das saídas. ` : ""}${reserveMessage(s.forecast, margin, m < currentMonth()).map((x) => typeof x === "string" ? x : `<b class="t-primary">${fmt(x.cents)}</b>`).join("")}</p></div>` : ""}
       </section>
     </div>
+    ${auditCard(m, { list, s, dist, shares, margin })}
     ${fixed.length ? `<section>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px"><h2 class="h-card" style="display:flex;align-items:center;gap:8px">Gastos fixos do mês <span class="badge nodot b-neutral">${fixed.length} ${fixed.length === 1 ? "item" : "itens"}</span></h2><a class="t-primary" style="display:flex;align-items:center;gap:4px;font-weight:600" href="${href("fixos")}">Ver todos ${icon("right", 'style="width:16px;height:16px"')}</a></div>
       <ul class="hscroll">${fixed.map((t) => `<li><button class="fixed-card" data-act="edit-tx" data-id="${t.id}"><span style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span class="chip" style="background:var(--c-low);color:var(--primary)">${icon("calendar")}</span>${statusBadge(t)}</span><span class="row-title truncate">${esc(t.description)}</span><span class="muted" style="font-size:12px">${t.status === "PENDING" ? "Vence" : "Venceu"} ${dayMonth(t.date)}</span><span class="num" style="font:700 18px/24px var(--display);margin-top:4px">${fmt(t.amountCents)}</span></button></li>`).join("")}</ul>
@@ -4518,7 +4634,7 @@ function renderPage() {
     if (tourState.el) endTour({ save: false });
     unmountAssistant();
     document.getElementById("app").innerHTML = viewAuth();
-    document.title = "Entrar · Minhas Finanças";
+    document.title = "Entrar · Nexus Financy IA";
     return;
   }
   document.getElementById("app").innerHTML = shell(r, VIEWS[r.path](r));
@@ -4529,7 +4645,7 @@ function renderPage() {
   maybeStartTour(r);
   if (drawerEl) setPageInert(true); // the redraw made new, interactive copies of what sits behind the drawer
   if (hasIncoming()) flushIncoming();
-  document.title = `${(ROUTES.find((x) => x.path === r.path) || extraRoute(r.path) || PROFILE_ROUTE).label} · Minhas Finanças`;
+  document.title = `${(ROUTES.find((x) => x.path === r.path) || extraRoute(r.path) || PROFILE_ROUTE).label} · Nexus Financy IA`;
 }
 
 // ---------- Modal & toast ----------
@@ -4670,7 +4786,7 @@ function txForm(tx, presetType, presetTrip) {
         ${field("Data", "date", input("date", d.date ?? tx?.date ?? defaultDate, 'type="date"'))}
         ${field("Categoria", "categoryId", catSelect(type, d.categoryId ?? tx?.categoryId))}
         ${state.trips.length && !tx?.recurringId ? field("Viagem", "tripId", `<select class="input" id="f-tripId" name="tripId"><option value="">Nenhuma (gestão do mês)</option>${[...state.trips].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)).map((x) => `<option value="${x.id}" ${(d.tripId ?? tx?.tripId ?? presetTrip) === x.id ? "selected" : ""}>✈ ${esc(x.name)}</option>`).join("")}</select>`, "full") : ""}
-        ${field("Situação", "status", `<select class="input" id="f-status" name="status"><option value="PAID" ${(d.status ?? tx?.status) !== "PENDING" ? "selected" : ""}>${type === "INCOME" ? "Recebido" : "Pago"}</option><option value="PENDING" ${(d.status ?? tx?.status) === "PENDING" ? "selected" : ""}>Pendente</option></select>`)}
+        ${field("Situação", "status", `<select class="input" id="f-status" name="status">${["PAID", "PENDING", "REVIEW"].map((v) => `<option value="${v}" ${normalizeStatus(d.status ?? tx?.status) === v ? "selected" : ""}>${statusLabel(v, type)}</option>`).join("")}</select>`)}
         ${field("Observações", "notes", `<textarea class="input" id="f-notes" name="notes" maxlength="500">${esc(d.notes ?? tx?.notes ?? "")}</textarea>`, "full")}
         <div class="field full"><span class="field-label">Comprovante (opcional)</span><div id="photo-slot"></div><input type="file" id="photo-input" accept="image/*" hidden></div>
       </div>`,
@@ -4688,7 +4804,7 @@ function txForm(tx, presetType, presetTrip) {
           catch { return toast("Este navegador não permitiu guardar a foto (modo privado?)."); }
         } else if (formPhoto.removed) attachmentId = null;
         if (formPhoto.existingId && attachmentId !== formPhoto.existingId) deletePhoto(formPhoto.existingId);
-        const data = { type, description: v.description.trim(), amountCents: amount, date: v.date, categoryId: v.categoryId || null, status: v.status === "PENDING" ? "PENDING" : "PAID", notes: v.notes.trim(), attachmentId, tripId: v.tripId || null };
+        const data = { type, description: v.description.trim(), amountCents: amount, date: v.date, categoryId: v.categoryId || null, status: normalizeStatus(v.status), notes: v.notes.trim(), attachmentId, tripId: v.tripId || null };
         if (tx) Object.assign(state.transactions.find((t) => t.id === tx.id), data);
         else state.transactions.push({ id: uid(), source: "MANUAL", recurringId: null, period: null, createdAt: Date.now(), ...data });
         save(); closeModal(); render(); toast(tx ? "Lançamento atualizado." : "Lançamento salvo.");
@@ -4884,7 +5000,7 @@ const SpeechRec = NATIVE
 const VOICE_OK_KEY = "mf-voice-ok";
 const VOICE_ERRORS = {
   "not-allowed": NATIVE
-    ? "O microfone está bloqueado. Libere em Configurações → Apps → Minhas Finanças → Permissões."
+    ? "O microfone está bloqueado. Libere em Configurações → Apps → Nexus Financy IA → Permissões."
     : "O microfone está bloqueado. Libere o acesso nas configurações do navegador.",
   "service-not-allowed": "O reconhecimento de voz está bloqueado neste navegador.",
   "audio-capture": "Nenhum microfone encontrado neste aparelho.",
@@ -5132,7 +5248,7 @@ function asstCardHtml(m, i) {
       <label>Valor<div class="money"><span>R$</span><input class="input" name="amount" inputmode="numeric" autocomplete="off" placeholder="0,00" data-money-mask="" value="${formatCentsInput(tx.amountCents)}"></div></label>
       <label>Categoria<select class="input" name="categoryId">${catOptions(tx.type, tx.categoryId)}</select></label>
       <label>Data<input class="input" name="date" type="date" value="${esc(tx.date)}"></label>
-      <label>Situação<select class="input" name="status"><option value="PAID" ${tx.status !== "PENDING" ? "selected" : ""}>${income ? "Recebido" : "Pago"}</option><option value="PENDING" ${tx.status === "PENDING" ? "selected" : ""}>Pendente</option></select></label>
+      <label>Situação<select class="input" name="status">${["PAID", "PENDING", "REVIEW"].map((v) => `<option value="${v}" ${normalizeStatus(tx.status) === v ? "selected" : ""}>${statusLabel(v, tx.type)}</option>`).join("")}</select></label>
       <div class="asst-card-actions"><button type="button" class="btn btn-secondary btn-sm" data-asst="edit-cancel" data-m="${i}">Cancelar</button><button type="submit" class="btn btn-primary btn-sm">${icon("check")} Salvar</button></div></form>`;
   }
   const cat = catById(tx.categoryId);
@@ -5146,7 +5262,7 @@ function asstCardHtml(m, i) {
       <div><dt>Valor</dt><dd class="asst-amt">${income ? "+" : "−"}${fmt(tx.amountCents)}</dd></div>
       <div><dt>Categoria</dt><dd>${esc(cat?.name || "Sem categoria")}</dd></div>
       <div><dt>Data</dt><dd>${formatDate(tx.date)}</dd></div>
-      <div><dt>Situação</dt><dd>${tx.status === "PENDING" ? "Pendente" : income ? "Recebido" : "Pago"}</dd></div>
+      <div><dt>Situação</dt><dd>${statusLabel(normalizeStatus(tx.status), tx.type)}</dd></div>
     </dl>
     <div class="asst-card-actions">${actions}</div></div>`;
 }
@@ -5235,7 +5351,7 @@ function asstSaveEdit(form) {
   if (!description) return toast("Informe uma descrição.");
   if (cents === null || cents <= 0 || cents > ASSISTANT_MAX_CENTS) return toast("Informe um valor maior que zero.");
   if (!isDate(date)) return toast("Data inválida.");
-  Object.assign(tx, { description: description.slice(0, 120), amountCents: cents, date, categoryId: catById(categoryId)?.type === tx.type ? categoryId : null, status: f.get("status") === "PENDING" ? "PENDING" : "PAID" });
+  Object.assign(tx, { description: description.slice(0, 120), amountCents: cents, date, categoryId: catById(categoryId)?.type === tx.type ? categoryId : null, status: normalizeStatus(f.get("status")) });
   save(); renderSoon(); msg.editing = false; paintChat();
 }
 
@@ -5586,7 +5702,7 @@ function viewAuth() {
   return `<main class="auth">
     <div class="auth-box">
       ${updateBanner()}
-      <div class="auth-brand"><span class="brand-logo">${icon("wallet")}</span><div><h1 class="brand-name" style="font-size:22px;line-height:28px">Minhas Finanças</h1><p class="muted">Controle financeiro pessoal</p></div></div>
+      <div class="auth-brand"><span class="brand-logo">${icon("wallet")}</span><div><h1 class="brand-name" style="font-size:22px;line-height:28px">Nexus Financy IA</h1><p class="muted">Controle financeiro pessoal</p></div></div>
       <div class="card auth-card">
         <h2 class="h-card" style="text-align:center">Entre para guardar seus dados</h2>
         <p class="muted" style="text-align:center;margin:6px 0 20px">Use sua conta do Google. Seus dados ficam guardados no seu Google Drive, numa pasta que só este app enxerga, e você acessa de qualquer aparelho.</p>
@@ -5912,7 +6028,7 @@ function askNotifications() {
         <li>O app passa a ler as notificações dos <b>bancos e carteiras que você marcar</b> (Pix, compras, depósitos), só as que têm valor em R$.</li>
         <li>As outras notificações são ignoradas e nunca guardadas.</li>
         <li>O texto lido fica neste celular até virar lançamento nos seus dados, que só você acessa.</li>
-        <li>Depois, o Android vai pedir para você ativar o <b>acesso às notificações</b> do Minhas Finanças.</li>
+        <li>Depois, o Android vai pedir para você ativar o <b>acesso às notificações</b> do Nexus Financy IA.</li>
       </ul>
       <div class="field"><span class="field-label">Quando chegar uma movimentação</span>
         ${tabsHtml({ kind: "radio", key: "notif-ask-mode", label: "Quando chegar uma movimentação", fill: true, active: auto ? "auto" : "review", items: [{ value: "review", label: "Revisar antes", attrs: 'data-act="notif-ask-mode" data-mode="review"' }, { value: "auto", label: "Lançar sozinho", attrs: 'data-act="notif-ask-mode" data-mode="auto"' }] })}
@@ -5938,7 +6054,7 @@ async function enableNotifications(auto) {
   await BankNotif().requestPermissions().catch(() => {}); // to show "movimentações do banco"
   await refreshNotifStatus();
   if (!notifStatus?.access) {
-    toast("Na próxima tela, ative “Minhas Finanças” na lista.");
+    toast("Na próxima tela, ative “Nexus Financy IA” na lista.");
     setTimeout(() => BankNotif().openAccessSettings(), 1200);
   } else toast("Leitura de notificações ligada.");
   render();
@@ -5968,7 +6084,7 @@ function notifAppCard() {
       <div class="actions" style="margin-top:16px"><button class="btn btn-primary btn-sm" data-act="notif-ask">${icon("bell")} Habilitar</button></div></section>`;
   }
   return `<section class="card" id="leitor" style="border-color:color-mix(in srgb,var(--primary) 35%,transparent)">${head}
-    ${s.access ? "" : `<p class="muted">Falta ativar o <b>acesso às notificações</b> do Minhas Finanças no Android.</p>
+    ${s.access ? "" : `<p class="muted">Falta ativar o <b>acesso às notificações</b> do Nexus Financy IA no Android.</p>
       <div class="actions" style="margin-top:8px"><button class="btn btn-primary btn-sm" data-act="notif-access">Dar acesso às notificações</button><button class="btn btn-ghost btn-sm" data-act="notif-app-details">Abrir informações do app</button></div>
       <p class="hint" style="margin-top:8px">Se a opção aparecer cinza, toque em “Abrir informações do app”, no menu ⋮ e em <b>Permitir configurações restritas</b>. Volte e tente de novo.</p>`}
     <div class="field" style="margin-top:16px"><span class="field-label">Quando chegar uma movimentação</span>
@@ -5977,7 +6093,7 @@ function notifAppCard() {
     </div>
     <div class="actions" style="margin-top:16px"><button class="btn btn-secondary btn-sm" data-act="notif-apps">Bancos e carteiras (${s.apps || 0})</button><button class="btn btn-ghost btn-sm" data-act="notif-off">Desligar</button></div>
     ${s.readerInstalled ? `<p class="hint" style="margin-top:12px">O <b>leitor de notificações</b> separado também está instalado. Com o app lendo, você pode desinstalá-lo para não receber cada movimentação duas vezes.</p>` : ""}
-    <p class="hint" style="margin-top:12px">Se as movimentações pararem de chegar, deixe o app como “sem restrições” em Configurações → Apps → Minhas Finanças → Bateria.</p>
+    <p class="hint" style="margin-top:12px">Se as movimentações pararem de chegar, deixe o app como “sem restrições” em Configurações → Apps → Nexus Financy IA → Bateria.</p>
   </section>`;
 }
 
@@ -6055,7 +6171,7 @@ document.addEventListener("click", (e) => {
       document.querySelector('[data-act="toggle-values"]')?.focus({ preventScroll: true });
       document.getElementById("live").textContent = hideValues ? "Valores ocultos" : "Valores visíveis";
     },
-    "recent-filter": () => setRecentFilter(el.dataset.f), "more-tx": showMoreLedger,
+    "recent-filter": () => setRecentFilter(el.dataset.f), "audit-filter": () => setAudit({ filter: el.dataset.f }), "audit-day": () => setAudit({ day: auditDay === el.dataset.day ? "" : el.dataset.day }), "audit-clear": () => setAudit({ filter: "todos", day: "" }), "more-tx": showMoreLedger,
     "google-sign-in": () => startGoogleSignIn(el),
     "google-reconnect": async () => {
       try { await reconnectGoogle(); setSyncStatus("saving"); await syncPhotos(); await pullIfNewer(); }
@@ -6161,6 +6277,7 @@ document.addEventListener("click", (e) => {
   if (actions[act]) { e.preventDefault(); actions[act](); }
 });
 document.addEventListener("submit", (e) => {
+  if (e.target.id === "home-search") { e.preventDefault(); const q = document.getElementById("home-search-input").value.trim(); location.hash = href("lancamentos", { mes: route().month, busca: q }); return; }
   if (e.target.id === "modal") { e.preventDefault(); modalSubmit?.(); }
 });
 document.addEventListener("keydown", (e) => {
@@ -6259,7 +6376,7 @@ function startTour() {
   window.visualViewport?.addEventListener("scroll", tourState.onLayout);
   const card = document.getElementById("tour-card");
   card.className = "tour-card center";
-  card.innerHTML = `<h2 class="h-card" id="tour-title">Bem-vindo ao Minhas Finanças 👋</h2>
+  card.innerHTML = `<h2 class="h-card" id="tour-title">Bem-vindo ao Nexus Financy IA 👋</h2>
     <p class="muted" id="tour-text" style="margin-top:8px">Vamos fazer um tour rápido de 1 minuto para você dominar suas finanças locais e inteligentes?</p>
     <div class="tour-actions"><button type="button" class="btn btn-primary" data-tour="start">Começar tour</button></div>
     <button type="button" class="btn btn-ghost tour-skip" data-tour="skip-all">Pular tutorial</button>`;
