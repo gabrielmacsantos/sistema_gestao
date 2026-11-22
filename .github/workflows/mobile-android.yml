@@ -112,6 +112,24 @@ jobs:
           gh release delete app-latest --cleanup-tag --yes 2> /dev/null || true
           gh release create app-latest --prerelease --target "$GITHUB_SHA" --title "App Minhas Finanças $version (build $build)" \
             --notes-file "$RUNNER_TEMP/notes.md" out/minhas-financas.apk out/minhas-financas.aab
+          # Deleting and re-creating the same tag can leave GitHub with an untagged DRAFT: invisible to everyone else, so the
+          # download link answers 404. Publish it if that happens, and fail the build instead of shipping a hidden release.
+          for attempt in 1 2 3 4 5; do
+            draft=$(gh release view app-latest --json isDraft -q .isDraft 2> /dev/null || echo true)
+            [ "$draft" = "false" ] && break
+            echo "app-latest está como rascunho (tentativa $attempt): publicando"
+            gh release edit app-latest --draft=false --prerelease --tag app-latest --target "$GITHUB_SHA" || true
+            sleep 5
+          done
+          if [ "$(gh release view app-latest --json isDraft -q .isDraft)" != "false" ]; then echo "::error::app-latest continua como rascunho"; exit 1; fi
+          # The public download link (what testers use) must answer; the edge cache can need a moment after publishing.
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/app-latest/minhas-financas.apk"
+          for attempt in $(seq 1 12); do
+            code=$(curl -sIL -o /dev/null -w '%{http_code}' "$url" || echo 000)
+            [ "$code" = "200" ] && break
+            sleep 10
+          done
+          [ "$code" = "200" ] || echo "::warning::o link de download respondeu $code"
 
       # Test build of the urban theme: a separate pre-release, so app-latest, releases/latest and the update notice stay as they are.
       - name: Publicar o release de teste do tema
