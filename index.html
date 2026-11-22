@@ -1833,6 +1833,12 @@ function scopeOf(sync) {
   return sync.login ? `gh:${sync.login}` : "unknown";
 }
 const storageKey = (scope) => `${SCOPE_PREFIX}:${scope}`;
+/** Another tab changed the stored session: only a different account (or none) is a reason to restart this tab.
+ *  A same-account change (a renewed token, the last-sync time) must not: every sync writes it, and two open tabs would reload each other forever. */
+function sessionAccountChanged(oldRaw, newRaw) {
+  const scope = (raw) => { try { return scopeOf(raw ? JSON.parse(raw) : null); } catch { return "invalid"; } };
+  return scope(oldRaw) !== scope(newRaw);
+}
 /** Photos kept before scopes existed live in the old database, which belongs to the scope that owned the old data. */
 const photoDbName = (scope, legacyOwner) => (scope === legacyOwner ? LEGACY_PHOTO_DB : `${LEGACY_PHOTO_DB}:${scope}`);
 /** Real records (the sample does not count). */
@@ -6758,7 +6764,12 @@ window.addEventListener("hashchange", () => {
 });
 window.addEventListener("storage", (e) => {
   // Another tab signed in or out: this tab's account is stale, so start over instead of writing into the wrong one.
-  if (e.key === SYNC_KEY) { location.reload(); return; }
+  if (e.key === SYNC_KEY) {
+    if (sessionAccountChanged(e.oldValue, e.newValue)) { location.reload(); return; }
+    // The same account: take the other tab's fresher token and sync time, without reloading.
+    try { if (e.newValue) { sync = JSON.parse(e.newValue); setSyncStatus(syncStatus); } } catch { /* keep this tab's copy */ }
+    return;
+  }
   if (e.key === storageKey(activeScope())) { replaceState(load()); render(); }
 });
 window.addEventListener("offline", () => { if (sync) setSyncStatus(syncStatus); });

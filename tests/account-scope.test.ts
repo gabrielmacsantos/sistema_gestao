@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const block = /\/\/ <account-scope>.*\r?\n([\s\S]*?)\/\/ <\/account-scope>/.exec(html)?.[1];
 if (!block) throw new Error("account-scope block not found in index.html");
-const { scopeOf, storageKey, photoDbName, hasRealData, decideLink, connectivityLabel, OFFLINE_LABEL } = new Function(
-  `${block}\nreturn { scopeOf, storageKey, photoDbName, hasRealData, decideLink, connectivityLabel, OFFLINE_LABEL };`,
+const { scopeOf, storageKey, photoDbName, hasRealData, decideLink, connectivityLabel, OFFLINE_LABEL, sessionAccountChanged } = new Function(
+  `${block}\nreturn { scopeOf, storageKey, photoDbName, hasRealData, decideLink, connectivityLabel, OFFLINE_LABEL, sessionAccountChanged };`,
 )() as {
   scopeOf: (s: unknown) => string;
   storageKey: (scope: string) => string;
@@ -15,6 +15,7 @@ const { scopeOf, storageKey, photoDbName, hasRealData, decideLink, connectivityL
   decideLink: (local: boolean, remote: boolean) => "none" | "ask" | "separate";
   connectivityLabel: (online: boolean, hasSession: boolean) => string | null;
   OFFLINE_LABEL: string;
+  sessionAccountChanged: (oldRaw: string | null, newRaw: string | null) => boolean;
 };
 
 // A tiny stand-in for localStorage plus the same read/write the app does per scope.
@@ -112,5 +113,22 @@ describe("connectivityLabel", () => {
   it("shows nothing when online or without a session", () => {
     expect(connectivityLabel(true, true)).toBeNull();
     expect(connectivityLabel(false, false)).toBeNull();
+  });
+});
+
+describe("another tab changing the stored session", () => {
+  const session = (extra: object = {}) => JSON.stringify({ provider: "google", sub: "111", email: "a@x.com", ...extra });
+  it("does not restart the tab for the same account (token or last-sync updates)", () => {
+    expect(sessionAccountChanged(session({ lastSync: 1 }), session({ lastSync: 2 }))).toBe(false);
+    expect(sessionAccountChanged(session({ token: { access: "a" } }), session({ token: { access: "b" } }))).toBe(false);
+  });
+  it("restarts it when someone signs in, signs out or switches account", () => {
+    expect(sessionAccountChanged(null, session())).toBe(true);
+    expect(sessionAccountChanged(session(), null)).toBe(true);
+    expect(sessionAccountChanged(session(), session({ sub: "222" }))).toBe(true);
+    expect(sessionAccountChanged(session(), JSON.stringify({ login: "maria" }))).toBe(true);
+  });
+  it("treats an unreadable value as a change instead of ignoring it", () => {
+    expect(sessionAccountChanged(session(), "{not json")).toBe(true);
   });
 });
