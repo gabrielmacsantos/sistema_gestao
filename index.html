@@ -4886,6 +4886,7 @@ async function renderPhotoSlot() {
 }
 
 const TX_DESCRIPTION_HINT = { EXPENSE: "Ex.: Mercado, Uber, Farmácia", INCOME: "Ex.: Salário, Freela, Bônus" };
+const VOICE_EXAMPLE_REC = { EXPENSE: "Ex.: “Aluguel 1200 todo dia 5”", INCOME: "Ex.: “Salário 5000 todo dia 5”" };
 const VOICE_EXAMPLE = { EXPENSE: "Ex.: “Gastei 52,30 no mercado ontem”", INCOME: "Ex.: “Recebi 2500,00 de salário hoje”" };
 function txForm(tx, presetType, presetTrip) {
   let type = tx?.type || presetType || "EXPENSE";
@@ -4948,7 +4949,7 @@ function txForm(tx, presetType, presetTrip) {
   };
   txForm.getType = () => type;
   stopVoice();
-  voiceUi = { mode: "idle", text: "" };
+  voiceUi = { mode: "idle", text: "" }; voiceForm = "tx";
   draw();
   renderPhotoSlot();
   renderVoiceSlot();
@@ -5129,6 +5130,7 @@ const VOICE_ERRORS = {
 };
 let voice = null; // { rec, text, error } while listening
 let voiceUi = { mode: "idle", text: "" }; // idle | consent | listening | done
+let voiceForm = "tx"; // which form owns #voice-slot: the transaction form or the fixed-expense form
 
 function renderVoiceSlot() {
   const slot = document.getElementById("voice-slot"); if (!slot) return;
@@ -5138,11 +5140,11 @@ function renderVoiceSlot() {
       <div class="actions"><button type="button" class="btn btn-secondary btn-sm" data-act="voice-cancel">Agora não</button><button type="button" class="btn btn-primary btn-sm" data-act="voice-accept">${icon("mic")} Entendi, falar</button></div></div>`;
     return;
   }
-  const income = txForm.getType?.() === "INCOME";
+  const fixed = voiceForm === "rec", income = (fixed ? recForm : txForm).getType?.() === "INCOME";
   paintVoiceCard(slot, {
     listening: mode === "listening", text, micAttr: 'data-act="voice"',
-    bubble: income ? "Qual receita você quer lançar?" : "Qual gasto você quer lançar?",
-    meta: mode === "done" ? "Confira os campos antes de salvar." : VOICE_EXAMPLE[income ? "INCOME" : "EXPENSE"],
+    bubble: fixed ? (income ? "Qual receita fixa você quer cadastrar?" : "Qual gasto fixo você quer cadastrar?") : income ? "Qual receita você quer lançar?" : "Qual gasto você quer lançar?",
+    meta: mode === "done" ? "Confira os campos antes de salvar." : (fixed ? VOICE_EXAMPLE_REC : VOICE_EXAMPLE)[income ? "INCOME" : "EXPENSE"],
     caption: mode === "listening" ? "Ouvindo… toque para parar" : mode === "done" ? "Toque para falar de novo" : "Toque para falar",
   });
 }
@@ -5248,12 +5250,22 @@ function finishVoice(session) {
   }
   const p = parseSpokenTransaction(session.text, state.categories, todayISO());
   voiceUi = { mode: "done", text: session.text };
-  if (p.type !== txForm.getType()) txForm.setType(p.type); else renderVoiceSlot();
   const fill = (name, value) => {
     const el = document.querySelector(`#modal [name="${name}"]`); if (!el || value == null) return;
     el.value = value; el.classList.add("voice-filled"); el.removeAttribute("aria-invalid");
     el.closest(".field")?.querySelector(".err")?.remove();
   };
+  if (voiceForm === "rec") {
+    // A fixed expense has no date: the spoken "dia 5" becomes the due day, and "todo mês" is not part of the name.
+    if (p.type !== recForm.getType()) recForm.setType(p.type); else renderVoiceSlot();
+    const day = /\bdia\s+(\d{1,2})\b/i.exec(session.text), n = day ? Number(day[1]) : 0;
+    fill("description", (p.description || "").replace(/\s+(todo|toda|todos|todas)(\s+(m[eê]s|dia))?$/i, "").trim() || null);
+    fill("amount", p.amountCents ? formatCentsInput(Math.min(p.amountCents, 99999999999)) : null);
+    fill("day", n >= 1 && n <= 31 ? n : null);
+    fill("categoryId", p.categoryId);
+    return;
+  }
+  if (p.type !== txForm.getType()) txForm.setType(p.type); else renderVoiceSlot();
   fill("description", p.description);
   fill("amount", p.amountCents ? formatCentsInput(Math.min(p.amountCents, 99999999999)) : null);
   fill("date", p.date);
@@ -5328,7 +5340,7 @@ function asstSet(view, { focus = true } = {}) {
     if (!asst.greeted) {
       asst.greeted = true;
       asst.msgs.push(asstBot("Oi! Diga ou escreva um lançamento, seja uma despesa (“Gastei 45,90 no almoço hoje”) ou uma receita (“Recebi 2.500 de salário”). Eu preencho Descrição, Valor, Categoria, Data e Situação. Se faltar algo, eu pergunto.", [
-        { label: "Registrar despesa", kind: "type-set", value: "EXPENSE" }, { label: "Registrar receita", kind: "type-set", value: "INCOME" },
+        ...asstOptionChips(),
       ]));
     }
     paintChat();
@@ -5343,7 +5355,17 @@ function asstSet(view, { focus = true } = {}) {
 }
 
 // ----- Chat -----
+/** The composer's hint follows what the chat is waiting for. */
+function asstPlaceholder() {
+  if (asst.awaiting === "amount") return "Ex.: 45,90";
+  if (asst.awaiting === "category") return "Toque numa categoria ou escreva o nome";
+  if (asst.preType === "EXPENSE") return "Ex.: gastei 45,90 no almoço hoje";
+  if (asst.preType === "INCOME") return "Ex.: recebi 2.500 de salário hoje";
+  return "Ex.: gastei 45,90 no almoço ou recebi 2500";
+}
+const asstOptionChips = () => [{ label: "Registrar despesa", kind: "type-set", value: "EXPENSE" }, { label: "Registrar receita", kind: "type-set", value: "INCOME" }];
 function paintChat() {
+  const field = asstEl()?.querySelector('input[name="text"]'); if (field) field.placeholder = asstPlaceholder();
   const log = asstEl()?.querySelector(".asst-log"); if (!log) return;
   log.innerHTML = asst.msgs.map((m, i) => m.from === "card" ? asstCardHtml(m, i)
     : `<div class="asst-msg ${m.from}"><p>${esc(m.text)}</p>${m.chips?.length ? `<div class="asst-chips">${m.chips.map((c, j) => `<button type="button" class="asst-chip ${c.muted ? "muted" : ""}" data-asst="chip" data-m="${i}" data-c="${j}">${esc(c.label)}</button>`).join("")}</div>` : ""}</div>`).join("");
@@ -5393,7 +5415,7 @@ function renderSoon() { clearTimeout(renderTimer); renderTimer = setTimeout(rend
 
 function asstCancel(text = "Tudo bem, cancelei. Quando quiser, é só falar de novo.") {
   asst.draft = null; asst.awaiting = null; asst.preType = null;
-  asst.msgs.push(asstBot(text)); paintChat();
+  asst.msgs.push(asstBot(text, asstOptionChips())); paintChat();
 }
 function asstSubmit(raw) {
   const text = String(raw).trim().slice(0, 200); if (!text) return;
@@ -5430,10 +5452,10 @@ function asstAdvance() {
   paintChat();
 }
 function asstAsk() {
-  const d = asst.draft, cancel = { label: "Cancelar", kind: "cancel", muted: true };
+  const d = asst.draft, cancel = { label: "Cancelar", kind: "cancel", muted: true }, back = { label: "Voltar ao início", kind: "restart", muted: true };
   if (assistantMissing(d) === "amount") {
     asst.awaiting = "amount";
-    asst.msgs.push(asstBot(`Valor: qual foi o valor${d.description ? ` de “${d.description}”` : ""}? Escreva ou diga, por exemplo, 45,90.`, [cancel]));
+    asst.msgs.push(asstBot(`Valor: qual foi o valor${d.description ? ` de “${d.description}”` : ""}? Escreva ou diga, por exemplo, 45,90.`, [back, cancel]));
   } else {
     asst.awaiting = "category";
     const cats = state.categories.filter((c) => c.type === d.type).sort((a, b) => a.name.localeCompare(b.name));
@@ -5443,7 +5465,7 @@ Descrição: ${d.description}` : ""}
 Valor: ${fmt(d.amountCents)}`, [
       ...cats.map((c) => ({ label: c.name, kind: "cat", value: c.id })),
       { label: income ? "É uma despesa" : "É uma receita", kind: "type", muted: true },
-      { label: "Sem categoria", kind: "cat", value: "", muted: true }, cancel,
+      { label: "Sem categoria", kind: "cat", value: "", muted: true }, back, cancel,
     ]));
   }
   paintChat();
@@ -5455,7 +5477,13 @@ function asstChip(m, c) {
   if (chip.kind === "type-set") {
     asst.preType = chip.value;
     asst.msgs.push({ from: "user", text: chip.label });
-    asst.msgs.push(asstBot(chip.value === "INCOME" ? "Receita: diga ou escreva, por exemplo, “Recebi 2.500 de salário hoje”." : "Despesa: diga ou escreva, por exemplo, “Gastei 45,90 no almoço hoje”."));
+    asst.msgs.push(asstBot(chip.value === "INCOME" ? "Receita: diga ou escreva, por exemplo, “Recebi 2.500 de salário hoje”." : "Despesa: diga ou escreva, por exemplo, “Gastei 45,90 no almoço hoje”.", [{ label: "Voltar e escolher outra opção", kind: "restart", muted: true }]));
+    return paintChat();
+  }
+  if (chip.kind === "restart") {
+    asst.preType = null; asst.draft = null; asst.awaiting = null;
+    asst.msgs.push({ from: "user", text: "Voltar" });
+    asst.msgs.push(asstBot("Sem problema. O que você quer registrar?", asstOptionChips()));
     return paintChat();
   }
   if (!asst.draft) return paintChat();
@@ -5597,6 +5625,7 @@ function recForm(rec) {
       sub: rec ? "As mudanças valem para os meses que ainda não foram gerados." : "Aluguel, contas, assinaturas, salário... Um lançamento pendente é criado todo mês.",
       body: `<div class="form-grid two">
         ${tabsHtml({ kind: "radio", key: "rec-type", label: "Tipo", fill: true, cls: "full", active: type, items: [{ value: "EXPENSE", label: "Despesa", tone: "exp", attrs: 'data-act="rec-type" data-type="EXPENSE"' }, { value: "INCOME", label: "Receita", tone: "inc", attrs: 'data-act="rec-type" data-type="INCOME"' }] })}
+        ${!rec && SpeechRec ? `<div class="full" id="voice-slot" aria-live="polite"></div>` : ""}
         ${field("Descrição", "description", input("description", d.description ?? rec?.description ?? "", 'placeholder="Ex.: Aluguel, Internet, Salário" maxlength="120" autofocus'), "full")}
         ${field("Valor mensal", "amount", moneyInput("amount", d.amount ? parseMoneyToCents(d.amount) : rec?.amountCents))}
         ${field("Dia do vencimento", "day", input("day", d.day ?? rec?.dayOfMonth ?? 5, 'type="number" min="1" max="31" inputmode="numeric"'))}
@@ -5628,8 +5657,13 @@ function recForm(rec) {
     selectTab(typeBar, typeBar?.querySelector(`[data-type="${type}"]`));
     const cat = document.getElementById("f-categoryId");
     if (cat) cat.innerHTML = catOptions(type, cat.value);
+    renderVoiceSlot();
   };
+  recForm.getType = () => type;
+  stopVoice();
+  voiceUi = { mode: "idle", text: "" }; voiceForm = "rec";
   draw();
+  renderVoiceSlot();
 }
 
 function catForm(cat, type) {
@@ -6249,14 +6283,17 @@ function loadDemo() {
   save(); location.hash = href("painel"); render(); toast("Dados de exemplo carregados.");
 }
 /** Leaves the sample: removes only the records marked as sample, for good, and never offers it again. */
-function exitDemo() {
-  replaceState(withoutDemo(state)); save(); location.hash = href("painel"); render();
+function exitDemo(opts) {
+  // From the banner (on the Painel) it stays there; from a "new entry" button it must keep the current screen, or the
+  // form opens over a different page than the one the person was on.
+  const stay = opts && opts.stay === true;
+  replaceState(withoutDemo(state)); save(); if (!stay) location.hash = href("painel"); render();
   toast("Exemplo removido. Sua gestão começa do zero.");
 }
 /** Real data must not mix with the sample: ask to leave it first, then continue. */
 function leaveDemoThen(proceed) {
   if (!state.demo) return proceed();
-  confirmDialog("Sair do exemplo?", "Você está vendo dados de exemplo. Para lançar dados reais, saia do exemplo primeiro: os dados fictícios serão removidos.", "Sair do exemplo e continuar", () => { exitDemo(); proceed(); });
+  confirmDialog("Sair do exemplo?", "Você está vendo dados de exemplo. Para lançar dados reais, saia do exemplo primeiro: os dados fictícios serão removidos.", "Sair do exemplo e continuar", () => { exitDemo({ stay: true }); setTimeout(proceed, 0); }); // confirmDialog closes its window right after this runs: the next form must open after that
 }
 
 // ---------- Events ----------
@@ -6314,7 +6351,7 @@ document.addEventListener("click", (e) => {
       save(); toast("Lançamento excluído."); }); },
     "new-rec": () => leaveDemoThen(() => recForm(null)),
     "edit-rec": () => recForm(state.recurrings.find((x) => x.id === id)),
-    "rec-type": () => recForm.setType(el.dataset.type),
+    "rec-type": () => { stopVoice(); recForm.setType(el.dataset.type); },
     "del-rec": () => confirmDialog("Excluir gasto fixo?", "Os lançamentos já gerados continuam no histórico; os pendentes deste modelo serão removidos.", "Excluir", () => {
       state.recurrings = state.recurrings.filter((x) => x.id !== id);
       state.transactions = state.transactions.filter((t) => t.recurringId !== id || t.status === "PAID");
