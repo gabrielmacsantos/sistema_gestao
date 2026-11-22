@@ -1,4 +1,4 @@
-import { expect, fitsWidth, startLocal, test } from "./support";
+import { expect, isDesktop, isPhone, fitsWidth, startLocal, test } from "./support";
 
 const ROUTES = [
   ["painel", "Painel"],
@@ -30,7 +30,7 @@ test("an unknown address falls back to the Painel", async ({ page }) => {
 
 test("Importar is hidden from the menus and its address shows the coming-soon screen", async ({ page }, testInfo) => {
   await startLocal(page);
-  if (testInfo.project.name === "site-desktop") {
+  if (isDesktop(testInfo)) {
     await expect(page.locator("#rail").getByRole("link", { name: "Importar" })).toHaveCount(0);
   } else {
     await page.locator('[data-act="menu"]').click();
@@ -46,7 +46,7 @@ test("Importar is hidden from the menus and its address shows the coming-soon sc
 });
 
 test("desktop: the side menu lists the sections and collapses to icons", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "site-desktop", "The side menu is a desktop control.");
+  test.skip(!isDesktop(testInfo), "The side menu is a desktop control.");
   await startLocal(page);
   const rail = page.locator("#rail");
   await expect(rail.getByRole("link", { name: "Lançamentos" })).toBeVisible();
@@ -70,7 +70,7 @@ test("desktop: the side menu lists the sections and collapses to icons", async (
 });
 
 test("phone: the bottom bar navigates and the menu button swaps hamburger and close", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "site-mobile", "The bottom bar is a phone control.");
+  test.skip(!isPhone(testInfo), "The bottom bar is a phone control.");
   await startLocal(page);
   const bottom = page.getByRole("navigation", { name: "Principal" }).last();
   await bottom.getByRole("link", { name: "Lançamentos" }).click();

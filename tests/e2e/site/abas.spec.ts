@@ -1,5 +1,5 @@
 import type { Locator, Page } from "@playwright/test";
-import { expect, fitsWidth, openNewTransaction, startLocal, test } from "./support";
+import { expect, isPhone, fitsWidth, openNewTransaction, startLocal, test } from "./support";
 
 // Tabs sliding: every tab, radio and link choice of the site is one `.t-tabs` bar whose indicator glides to the chosen option.
 
@@ -204,7 +204,7 @@ test("reduced motion: the indicator jumps, with no transition", async ({ page })
 test("narrow screens: the bar scrolls by itself, the page does not, and every option is a 44px target", async ({ page }, testInfo) => {
   await startWithExample(page);
   const bar = page.getByRole("tablist", { name: "Filtrar extrato" });
-  if (testInfo.project.name === "site-mobile") {
+  if (isPhone(testInfo)) {
     for (const tab of await bar.getByRole("tab").all()) expect((await tab.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   }
   // Squeeze the bar so the last option falls outside: it must scroll horizontally, and the page must not.

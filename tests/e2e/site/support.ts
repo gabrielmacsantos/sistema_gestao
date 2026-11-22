@@ -58,3 +58,7 @@ export async function typeAmount(page: Page, digits: string) {
 /** True when the page does not scroll sideways (a classic mobile layout bug). */
 export const fitsWidth = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+
+/** The phone projects (Android Chrome and iPhone Safari) and the desktop ones (Chrome and Safari). */
+export const isPhone = (testInfo: { project: { name: string } }) => /mobile|iphone/.test(testInfo.project.name);
+export const isDesktop = (testInfo: { project: { name: string } }) => !isPhone(testInfo);

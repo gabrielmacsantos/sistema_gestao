@@ -11,7 +11,12 @@ test("elementos interativos não têm o realce azul nativo do toque", async ({ p
     }),
   );
   expect(colors.length).toBeGreaterThan(0);
-  for (const color of colors) expect(color).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+  // Desktop WebKit neither reports this iOS/Android property in the computed style ("") nor keeps it in the CSSOM: there the CSS source is read.
+  const declared = await page.evaluate(() => [...document.querySelectorAll("style")].some((el) => /-webkit-tap-highlight-color:\s*transparent/.test(el.textContent || "")));
+  for (const color of colors) {
+    if (color === "") expect(declared, "the stylesheet sets the tap highlight to transparent").toBe(true);
+    else expect(color).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+  }
 });
 
 test("pressionar um botão encolhe e volta ao soltar", async ({ page }) => {

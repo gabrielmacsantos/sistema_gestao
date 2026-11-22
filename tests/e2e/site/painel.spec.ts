@@ -1,4 +1,4 @@
-import { expect, fitsWidth, startLocal, test } from "./support";
+import { expect, isPhone, fitsWidth, startLocal, test } from "./support";
 
 test("the example data fills the Painel and it fits the screen", async ({ page }) => {
   await startLocal(page);
@@ -39,7 +39,7 @@ test("'Ocultar valores' masks the amounts and 'Tema escuro' switches the theme",
 
   const html = page.locator("html");
   const before = await html.getAttribute("data-theme");
-  if (testInfo.project.name === "site-mobile") {
+  if (isPhone(testInfo)) {
     // Below 768px the theme control lives in the menu drawer, not in the header.
     await page.locator('[data-act="menu"]').click();
     await page.locator(".drawer-theme").click();

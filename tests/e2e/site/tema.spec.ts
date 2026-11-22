@@ -1,4 +1,4 @@
-import { expect, startLocal, test } from "./support";
+import { expect, isPhone, startLocal, test } from "./support";
 
 const bg = (page: import("@playwright/test").Page) => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 
@@ -10,7 +10,7 @@ test("a first visit opens in the dark urban theme", async ({ page }) => {
 
 test("switching to light uses the light tokens and the choice survives a reload", async ({ page }, testInfo) => {
   await startLocal(page);
-  if (testInfo.project.name === "site-mobile") {
+  if (isPhone(testInfo)) {
     await page.locator('[data-act="menu"]').click();
     await page.getByRole("dialog", { name: "Menu" }).getByRole("button", { name: "Tema claro" }).click();
   } else {
