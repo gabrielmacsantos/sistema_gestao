@@ -450,6 +450,22 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 @media (prefers-reduced-motion: reduce) { .week button, .week button:active { transition: none; transform: none; } }
 @media (min-width: 1024px) { .audit-body { gap: 28px; } .ring { width: 124px; height: 124px; } .ring > div { width: 96px; height: 96px; } }
 .fab { width: 56px; height: 56px; }
+.row-titleline { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-width: 0; }
+.row-titleline .row-title { min-width: 0; max-width: 100%; }
+.row-titleline .badge { flex: none; }
+@media (min-width: 768px) { .row-titleline .m-mob { display: none; } }
+.row-more { width: 44px; height: 44px; margin-right: -8px; display: grid; place-items: center; flex: none; border: 0; border-radius: 999px; background: none; color: var(--secondary); transition: background .15s, color .15s; }
+.row-more:hover { background: var(--c); color: var(--on); }
+.row-more:focus-visible { outline: 2px solid var(--primary); outline-offset: 0; }
+.menu-list { display: flex; flex-direction: column; }
+.menu-item { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 4px; border: 0; border-bottom: 1px solid var(--c-low); background: none; text-align: left; font-weight: 600; }
+.menu-item:last-child { border-bottom: 0; }
+.menu-item:hover { color: var(--primary); }
+.menu-item.danger { color: var(--danger); }
+.mob-brand-text { display: flex; flex-direction: column; min-width: 0; }
+.brand-line { display: flex; align-items: center; gap: 6px; font-size: 10px; line-height: 14px; font-weight: 500; color: var(--secondary); white-space: nowrap; }
+.brand-line::before { content: ""; width: 6px; height: 6px; border-radius: 99px; background: var(--success); flex: none; }
+
 
 .hscroll { display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scroll-snap-type: x mandatory; list-style: none; }
 .hscroll > li { flex: none; width: 168px; scroll-snap-align: start; }
@@ -892,6 +908,7 @@ const ICONS = {
   camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
   settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
   search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  more: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
   filter: '<path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/>',
   bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
@@ -2076,6 +2093,8 @@ const ownGist = (list) => list.find((g) => g.files && g.files[GIST_FILE] && g.pu
 
 function setSyncStatus(status) {
   syncStatus = status;
+  const line = document.getElementById("brand-line");
+  if (line) line.textContent = brandLine();
   const el = document.querySelector(".sync");
   if (el) el.outerHTML = syncBadge();
   const row = document.querySelector(".drawer-sync");
@@ -2103,6 +2122,8 @@ const syncFixView = () => (offlineLabel() ? null : ({
 }[syncStatus] || null));
 const syncFixAct = () => (syncStatus === "reauth" ? "google-reconnect" : "sync-fix");
 const syncView = () => offlineLabel() ? ["", "cloud", offlineLabel()] : ({ ok: ["ok", "checkCircle", `Salvo no ${providerName()}`], saving: ["", "cloud", "Salvando…"], error: ["err", "alert", "Erro ao salvar"] }[syncStatus] || ["ok", "checkCircle", `Salvo no ${providerName()}`]);
+// The short sync line under the app name in the mobile header ("Sincronizado • Drive"); the full status lives in the drawer.
+const brandLine = () => { if (!sync) return "Só neste aparelho"; const fix = syncFixView(); return fix ? fix[0] : syncView()[2]; };
 function syncBadge() {
   if (!sync) return "";
   const fix = syncFixView();
@@ -3731,7 +3752,7 @@ function shell(r, content) {
   </aside>
   <div class="page">
     <header class="topbar"><div class="topbar-in">
-      <a class="mob-brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="brand-name">Nexus Financy <span class="brand-ia">IA</span></span></a>
+      <a class="mob-brand" href="${href("painel")}"><span class="brand-logo">${icon("wallet")}</span><span class="mob-brand-text"><span class="brand-name">Nexus Financy <span class="brand-ia">IA</span></span><span class="brand-line" id="brand-line">${esc(brandLine())}</span></span></a>
       <div class="trail"><span>Visão geral</span>${icon("right", 'style="width:14px;height:14px;color:var(--outline-var)"')}<b>${current.label}</b></div>
       <div class="top-actions">
         ${wsChip()}${syncBadge()}
@@ -3820,6 +3841,15 @@ const pill = (style, ic, text) => `<span class="pill" style="${style}">${ic ? ic
 const statusBadge = (t) => `<span class="badge ${t.status === "REVIEW" ? "b-review" : t.status === "PAID" ? "b-success" : "b-warning"}">${statusLabel(t.status, t.type)}</span>`;
 const catChip = (c) => c ? `<span class="cat"><span class="dot" style="background:${esc(c.color)};width:6px;height:6px"></span><span class="truncate">${esc(c.name)}</span></span>` : `<span class="muted">—</span>`;
 
+// The ⋮ menu of a row: edit, change the situation (including "Em análise") and delete, in one place.
+function rowMenu(id) {
+  const t = state.transactions.find((x) => x.id === id);
+  if (!t) return;
+  const item = (act, ic, label, extra = "") => `<button type="button" class="menu-item${act === "del-tx" ? " danger" : ""}" data-act="${act}" data-id="${t.id}" ${extra}>${icon(ic)}<span>${label}</span></button>`;
+  const to = (status, ic) => (t.status === status ? "" : item("row-status", ic, status === "PAID" ? `Marcar como ${statusLabel("PAID", t.type).toLowerCase()}` : status === "PENDING" ? "Marcar como pendente" : "Marcar como em análise", `data-status="${status}"`));
+  openModal({ title: esc(t.description), sub: `${t.type === "INCOME" ? "+ " : "− "}${fmt(t.amountCents)} · ${statusLabel(normalizeStatus(t.status), t.type)}`,
+    body: `<div class="menu-list">${item("edit-tx", "edit", "Editar")}${to("PAID", "check")}${to("PENDING", "clock")}${to("REVIEW", "search")}${item("del-tx", "trash", "Excluir")}</div>` });
+}
 function ledgerRow(t, { toggle = false, inTrip = false } = {}) {
   const c = catById(t.categoryId);
   const ic = t.type === "INCOME" ? "banknote" : t.recurringId ? "calendar" : t.source === "BANK_IMPORT" ? "file" : t.source === "NOTIFICATION" ? "bell" : "bag";
@@ -3831,17 +3861,18 @@ function ledgerRow(t, { toggle = false, inTrip = false } = {}) {
     <button class="row-main" data-act="edit-tx" data-id="${t.id}">
       ${toggle ? "" : `<span class="row-icon" style="color:${esc(color)}">${icon(ic)}</span>`}
       <span style="flex:1;min-width:0">
-        <span class="row-title truncate" style="display:block">${t.attachmentId ? `<span class="clip" title="Tem comprovante">${icon("paperclip")}<span class="sr-only">Com comprovante: </span></span>` : ""}${esc(t.description)}</span>
-        <span class="row-meta"><span>${sub}</span>${wsAuthorTag(t)}<span class="m-mob">· ${dayMonth(t.date)}</span>${isOpen(t) ? `<span class="m-mob">${statusBadge(t)}</span>` : ""}</span>
+        <span class="row-titleline"><span class="row-title truncate">${t.attachmentId ? `<span class="clip" title="Tem comprovante">${icon("paperclip")}<span class="sr-only">Com comprovante: </span></span>` : ""}${esc(t.description)}</span><span class="m-mob">${statusBadge(t)}</span></span>
+        <span class="row-meta"><span>${sub}</span>${wsAuthorTag(t)}<span class="m-mob">· ${dayMonth(t.date)}</span></span>
       </span>
       <span class="row-cat">${catChip(c)}</span>
       <span class="row-date">${dayMonth(t.date)}</span>
       <span class="row-status">${statusBadge(t)}</span>
       <span class="row-amount ${t.type === "INCOME" ? "t-income" : ""}">${t.type === "INCOME" ? "+ " : "− "}${fmt(t.amountCents)}${c ? `<small>${esc(c.name)}</small>` : ""}</span>
     </button>
+    <button type="button" class="row-more" data-act="row-menu" data-id="${t.id}" aria-haspopup="dialog" aria-label="Mais ações: ${esc(t.description)}">${icon("more")}</button>
   </li>`;
 }
-const listHead = (toggle) => `<div class="list-head">${toggle ? '<span style="width:28px"></span>' : ""}<span style="flex:1">Descrição</span><span style="width:180px">Categoria</span><span style="width:72px">Data</span><span style="width:96px">Status</span><span style="width:130px;text-align:right">Valor</span></div>`;
+const listHead = (toggle) => `<div class="list-head">${toggle ? '<span style="width:28px"></span>' : ""}<span style="flex:1">Descrição</span><span style="width:180px">Categoria</span><span style="width:72px">Data</span><span style="width:96px">Status</span><span style="width:130px;text-align:right">Valor</span><span style="width:36px"></span></div>`;
 
 // ---------- Views ----------
 // ---------- Cash flow chart ----------
@@ -6180,6 +6211,8 @@ document.addEventListener("click", (e) => {
     "new-tx": () => leaveDemoThen(() => txForm(null, el.dataset.type)),
     "exit-demo": exitDemo, "replay-tour": replayTour,
     "edit-tx": () => txForm(state.transactions.find((t) => t.id === id)),
+    "row-menu": () => rowMenu(id),
+    "row-status": () => { const t = state.transactions.find((x) => x.id === id); if (!t) return; t.status = normalizeStatus(el.dataset.status); save(); closeModal(); render(); toast(`Marcado como ${statusLabel(t.status, t.type).toLowerCase()}.`); },
     "tx-type": () => { stopVoice(); txForm.setType(el.dataset.type); },
     "voice": voiceButton,
     "voice-accept": () => { try { localStorage.setItem(VOICE_OK_KEY, "1"); } catch {} startVoice(); },
