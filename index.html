@@ -1820,7 +1820,7 @@ function deletionPlan(sync, legacyPhotoOwner) {
   const id = sync.provider === "google" ? sync.sub : sync.login;
   return {
     scope,
-    localStorageKeys: [storageKey(scope), `goals-celebrated:${id}`, `notices-read:${id}`],
+    localStorageKeys: [storageKey(scope), `goals-celebrated:${id}`, `notices-read:${id}`, `mf-tour-done:${scope}`],
     photoDatabases: [photoDbName(scope, legacyPhotoOwner)],
     clearPhotoOwner: legacyPhotoOwner === scope,
   };
@@ -3382,6 +3382,8 @@ async function startGoogleSignIn(btn) {
     const from = activeScope(); // "local": where the data made without an account lives
     const carried = link ? withoutDemo(state) : null;
     storeSync(settings); wsForcePersonal(); setLocalMode(false); syncStatus = "ok";
+    // A brand-new account (nothing in the cloud yet) always gets the first-access tour, even if this device saw it for the same Google login before.
+    if (!useRemote) { try { localStorage.removeItem(tourKey(scopeOf(sync))); } catch {} }
     if (useRemote) { await clearPhotos(); replaceState(data); persist(); if (repack) await pushNow(); }
     else {
       replaceState(carried || load());

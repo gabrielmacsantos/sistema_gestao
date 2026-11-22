@@ -39,7 +39,7 @@ describe("deletionPlan", () => {
   it("lists only the signed-in account's own keys and photo database", () => {
     const plan = api.deletionPlan(userA, null)!;
     expect(plan.scope).toBe("g:111");
-    expect(plan.localStorageKeys.sort()).toEqual([api.storageKey("g:111"), "goals-celebrated:111", "notices-read:111"].sort());
+    expect(plan.localStorageKeys.sort()).toEqual([api.storageKey("g:111"), "goals-celebrated:111", "notices-read:111", "mf-tour-done:g:111"].sort());
     expect(plan.photoDatabases).toEqual(["minhas-financas:g:111"]);
     expect(plan.clearPhotoOwner).toBe(false);
   });
