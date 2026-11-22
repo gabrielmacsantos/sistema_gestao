@@ -17,7 +17,7 @@ test("abre sozinho no primeiro acesso e percorre os passos", async ({ page }) =>
   await card.getByRole("button", { name: "Começar tour" }).click();
   await expect(card).toContainText(/Passo 1 de \d/);
   await expect(page.locator(".tour-ring").first()).toBeVisible();
-  await card.getByRole("button", { name: "Pular etapa" }).click();
+  await card.getByRole("button", { name: "Próximo", exact: true }).click();
   await expect(card).toContainText(/Passo 2 de \d/);
   const box = await card.boundingBox();
   const vp = page.viewportSize();
@@ -46,51 +46,72 @@ test("Esc encerra o tour e o Perfil permite refazer", async ({ page }) => {
   await expect(page.locator("#tour-card")).toBeVisible();
 });
 
-test("percorre todos os passos até Concluir, com o anel sobre o alvo e o card na tela", async ({ page }) => {
+test("percorre todos os passos, de tela em tela, até Concluir", async ({ page }) => {
+  test.setTimeout(240_000);
   await openFresh(page);
   const card = page.locator("#tour-card");
   await card.getByRole("button", { name: "Começar tour" }).click();
   const vp = page.viewportSize();
   if (!vp) throw new Error("no viewport");
-  const titles = ["Seu saldo e a privacidade", "Novo lançamento", "Filtros rápidos do extrato", "Gráficos e alertas", "Menu e uso offline"];
-  const targets = ["1", "2", "3", "4", "5"];
-  for (let n = 0; n < titles.length; n++) {
-    await expect(card).toContainText(`Passo ${n + 1} de 5`);
-    await expect(card.getByRole("heading", { name: titles[n] })).toBeVisible();
-    // Wait for the smooth scroll to settle, then compare the first ring with the visible target.
-    const ring = page.locator(".tour-ring").first();
-    await expect(ring).toBeVisible();
-    await expect.poll(async () => {
-      const [r, t] = await Promise.all([
-        ring.boundingBox(),
-        page.locator(`[data-tour-step="${targets[n]}"]:visible`).first().boundingBox(),
-      ]);
-      if (!r || !t) return false;
-      return Math.abs(r.x - (t.x - 8)) < 3 && Math.abs(r.y - (t.y - 8)) < 3 && r.width >= t.width - 1 && r.width <= t.width + 20;
-    }, { timeout: 5000 }).toBe(true).catch(async (e) => {
-      // A target taller than the screen is clamped to it: then the ring only has to stay inside the viewport.
-      const r = await ring.boundingBox();
-      if (!r || r.y < -1 || r.y + r.height > vp.height + 1) throw e;
-    });
+  const seenPaths = new Set<string>();
+  let steps = 0;
+  for (let guard = 0; guard < 60; guard++) {
+    await expect(card).toContainText(/Passo \d+ de \d+/);
+    const label = (await card.locator(".metric-label").textContent()) ?? "";
+    const [n, total] = (label.match(/\d+/g) ?? []).map(Number);
+    expect(total).toBeGreaterThanOrEqual(20);
+    steps++;
+    seenPaths.add(new URL(page.url()).hash.split("?")[0]);
+    // Let the smooth scroll settle, then the card must be fully on the screen with 44px buttons.
+    let last = "";
+    await expect.poll(async () => { const now = JSON.stringify(await card.boundingBox()); const still = now === last; last = now; return still; }, { timeout: 6000, intervals: [150] }).toBe(true);
     const box = await card.boundingBox();
     if (!box) throw new Error("no card");
-    expect(box.x).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
-    expect(box.y).toBeGreaterThanOrEqual(0);
-    expect(box.y + box.height).toBeLessThanOrEqual(vp.height);
-    for (const name of ["Pular tutorial", "Próximo", "Concluir"]) {
-      const b = card.getByRole("button", { name });
-      if (await b.count()) expect((await b.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(box.x, `step ${n}`).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, `step ${n}`).toBeLessThanOrEqual(vp.width);
+    expect(box.y, `step ${n}`).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height, `step ${n}`).toBeLessThanOrEqual(vp.height + 1);
+    for (const name of ["Pular tutorial", "Voltar", "Próximo", "Concluir"]) {
+      const b = card.getByRole("button", { name, exact: true });
+      if (await b.count()) expect((await b.boundingBox())?.height ?? 0, `${name} @${n}`).toBeGreaterThanOrEqual(44);
     }
-    if (n < titles.length - 1) await card.getByRole("button", { name: "Próximo" }).click();
+    if (n === total) break;
+    await card.getByRole("button", { name: "Próximo", exact: true }).click();
+    await expect(card).not.toContainText(new RegExp(`Passo ${n} de`));
   }
-  await expect(card.getByRole("button", { name: "Pular etapa" })).toHaveCount(0);
+  expect(steps).toBeGreaterThanOrEqual(20);
+  for (const h of ["#/painel", "#/lancamentos", "#/fixos", "#/orcamentos", "#/viagens", "#/categorias", "#/configuracoes", "#/backup", "#/perfil"]) expect(seenPaths, h).toContain(h);
   await card.getByRole("button", { name: "Concluir" }).click();
   await expect(page.locator("#tour")).toHaveCount(0);
+  await expect(page).toHaveURL(/#\/painel/);
   expect(await page.evaluate(() => document.getElementById("app")?.inert)).toBe(false);
   await page.reload();
   await page.waitForTimeout(1000);
   await expect(page.locator("#tour")).toHaveCount(0);
+});
+
+test("o botão Voltar retorna ao passo anterior, mesmo em outra tela", async ({ page }) => {
+  await openFresh(page);
+  const card = page.locator("#tour-card");
+  await card.getByRole("button", { name: "Começar tour" }).click();
+  await expect(card.getByRole("button", { name: "Voltar" })).toHaveCount(0);
+  await card.getByRole("button", { name: "Próximo", exact: true }).click();
+  await expect(card).toContainText("Passo 2 de");
+  await card.getByRole("button", { name: "Voltar" }).click();
+  await expect(card).toContainText("Passo 1 de");
+});
+
+test("se uma janela estiver na frente, o tour espera e abre quando ela fecha", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Usar sem conta/ }).click();
+  await expect(page).toHaveURL(/#\/painel/);
+  // Whatever happened first (the tour or not), a dialog now takes the screen.
+  await page.locator('.bottomnav .fab:visible, .topbar [data-act="new-tx"]:visible').first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.waitForTimeout(1500);
+  await expect(page.locator("#tour")).toHaveCount(0);
+  await page.getByRole("dialog").getByRole("button", { name: "Fechar" }).click();
+  await expect(page.locator("#tour-card")).toBeVisible({ timeout: 8000 });
 });
 
 test("em 360×640 o card nunca cobre o que está destacado", async ({ page }) => {
@@ -98,8 +119,8 @@ test("em 360×640 o card nunca cobre o que está destacado", async ({ page }) =>
   await openFresh(page);
   const card = page.locator("#tour-card");
   await card.getByRole("button", { name: "Começar tour" }).click();
-  for (let n = 0; n < 5; n++) {
-    await expect(card).toContainText(`Passo ${n + 1} de 5`);
+  for (let n = 0; n < 8; n++) {
+    await expect(card).toContainText(`Passo ${n + 1} de`);
     // The target may be docked and scrolled under the header: wait until the ring and the card stop moving.
     let last = "";
     await expect.poll(async () => {
@@ -112,6 +133,6 @@ test("em 360×640 o card nunca cobre o que está destacado", async ({ page }) =>
     if (!ring || !box) throw new Error("no layout");
     const overlap = Math.min(ring.y + ring.height, box.y + box.height) - Math.max(ring.y, box.y);
     expect(overlap, `step ${n + 1}: the card covers the highlighted area`).toBeLessThanOrEqual(1);
-    if (n < 4) await card.getByRole("button", { name: "Próximo" }).click();
+    if (n < 7) await card.getByRole("button", { name: "Próximo", exact: true }).click();
   }
 });

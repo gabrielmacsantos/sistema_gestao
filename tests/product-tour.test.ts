@@ -7,10 +7,12 @@ const block = /\/\/ <product-tour>.*\r?\n([\s\S]*?)\/\/ <\/product-tour>/.exec(h
 if (!block) throw new Error("product-tour block not found in index.html");
 
 type Rect = { left: number; top: number; width: number; height: number };
-const { TOUR_STEPS, tourKey, shouldStartTour, resolveTourStep, spotlightRect, placePopover } = new Function(
-  `${block}\nreturn { TOUR_STEPS, tourKey, shouldStartTour, resolveTourStep, spotlightRect, placePopover };`,
+const { TOUR_STEPS, tourKey, shouldStartTour, resolveTourStep, resolveTourStepBack, tourPlan, spotlightRect, placePopover } = new Function(
+  `${block}\nreturn { TOUR_STEPS, tourKey, shouldStartTour, resolveTourStep, resolveTourStepBack, tourPlan, spotlightRect, placePopover };`,
 )() as {
-  TOUR_STEPS: { id: string; target: string; also: string[]; title: string; text: string; example: string }[];
+  TOUR_STEPS: { id: string; path: string; sel: string | null; also: string[]; title: string; text: string; example: string }[];
+  resolveTourStepBack: (from: number, isVisible: (i: number) => boolean) => number;
+  tourPlan: (steps: { path: string; sel: string | null }[], here: string, hasTarget: (s: { path: string; sel: string | null }) => boolean) => { path: string; sel: string | null }[];
   tourKey: (scope: string) => string;
   shouldStartTour: (x: { done: boolean; hasAccess: boolean; path: string; busy: boolean }) => boolean;
   resolveTourStep: (total: number, from: number, isVisible: (i: number) => boolean) => number;
@@ -26,9 +28,25 @@ const { TOUR_STEPS, tourKey, shouldStartTour, resolveTourStep, spotlightRect, pl
 const insets = { top: 0, bottom: 0 };
 
 describe("product tour (index.html)", () => {
-  it("has the five planned steps, each with a title, an explanation and an example", () => {
-    expect(TOUR_STEPS.map((s) => s.target)).toEqual(["1", "2", "3", "4", "5"]);
-    for (const s of TOUR_STEPS) for (const k of ["title", "text", "example"] as const) expect(s[k].length).toBeGreaterThan(10);
+  it("covers every screen with many steps, each with a title, an explanation and an example", () => {
+    expect(TOUR_STEPS.length).toBeGreaterThanOrEqual(25);
+    const paths = new Set(TOUR_STEPS.map((s) => s.path));
+    for (const p of ["painel", "lancamentos", "fixos", "orcamentos", "viagens", "categorias", "configuracoes", "backup", "perfil"]) expect(paths.has(p)).toBe(true);
+    expect(new Set(TOUR_STEPS.map((s) => s.id)).size).toBe(TOUR_STEPS.length);
+    for (const s of TOUR_STEPS) for (const k of ["title", "text", "example"] as const) expect(s[k].length).toBeGreaterThan(k === "title" ? 5 : 10);
+    expect(TOUR_STEPS[0].path).toBe("painel");
+    expect(TOUR_STEPS.at(-1)!.sel).toBeNull(); // the closing card has no target
+  });
+
+  it("plans the run: steps of the current page need a target, steps of other pages are assumed", () => {
+    const steps = [{ path: "painel", sel: "#a" }, { path: "painel", sel: "#missing" }, { path: "fixos", sel: "#never-checked" }, { path: "fixos", sel: null }];
+    const plan = tourPlan(steps, "painel", (s) => s.sel === "#a");
+    expect(plan.map((s) => s.sel)).toEqual(["#a", "#never-checked", null]);
+  });
+
+  it("walks backwards over unusable steps", () => {
+    expect(resolveTourStepBack(3, (i) => i !== 3 && i !== 2)).toBe(1);
+    expect(resolveTourStepBack(0, () => false)).toBe(-1);
   });
 
   it("keeps the done flag per account", () => {

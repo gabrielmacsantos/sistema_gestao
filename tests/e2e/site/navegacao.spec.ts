@@ -109,8 +109,11 @@ test("phone: the bottom bar navigates and the menu button swaps hamburger and cl
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(menu).toHaveAccessibleName("Mais opções");
 
-  // The header keeps at most three actions and the full brand name.
-  const brand = page.locator(".mob-brand .brand-name");
-  expect(await brand.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  // The header keeps at most three actions and the whole logo (an image, not the name as text).
+  const brand = page.locator(".mob-brand .logo-full");
+  await expect(brand).toBeVisible();
+  await expect(brand).toHaveAccessibleName("Nexus Financy IA");
+  const [logo, actions] = await Promise.all([brand.boundingBox(), page.locator(".top-actions").boundingBox()]);
+  expect(logo!.x + logo!.width).toBeLessThanOrEqual(actions!.x);
   await expect(page.locator(".top-actions > [data-act='theme']")).toBeHidden();
 });
