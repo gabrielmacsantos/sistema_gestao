@@ -535,6 +535,7 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 @media (min-width: 640px) { .input { font-size: 14px; } }
 
 /* Modal + toast */
+.overlay.swap { animation: none; } /* one dialog replacing another: the backdrop must not fade out and in again (it blinked) */
 .overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: var(--scrim); backdrop-filter: blur(2px); animation: fade .15s; padding-top: env(safe-area-inset-top); }
 @media (min-width: 640px) { .overlay { align-items: center; padding: 16px; } }
 /* Phone menu drawer: drops down from behind the header (the header and its hamburger/X stay on top and close it). Same layer as .overlay. */
@@ -4774,7 +4775,8 @@ function openModal({ title, sub = "", body, foot, wide = false, onSubmit }) {
   if (tourState.el) endTour({ save: false }); // a dialog took the screen: the tour can come back later
   teardownDrawer();
   modalSubmit = onSubmit || null;
-  document.getElementById("layer").innerHTML = `<div class="overlay" data-act="close-overlay"><form class="modal ${wide ? "wide" : ""}" role="dialog" aria-modal="true" aria-labelledby="mtitle" id="modal" novalidate>
+  const replacing = !!document.querySelector("#layer .overlay");
+  document.getElementById("layer").innerHTML = `<div class="overlay${replacing ? " swap" : ""}" data-act="close-overlay"><form class="modal ${wide ? "wide" : ""}" role="dialog" aria-modal="true" aria-labelledby="mtitle" id="modal" novalidate>
     <div class="modal-head"><div><h3 class="h-card" id="mtitle">${title}</h3>${sub ? `<p class="sub">${sub}</p>` : ""}</div><button type="button" class="icon-btn" data-act="close" aria-label="Fechar">${icon("x")}</button></div>
     <div class="modal-body">${body}</div>${foot ? `<div class="modal-foot">${foot}</div>` : ""}</form></div>`;
   paintTabs(document.getElementById("modal"), { fresh: true });
@@ -6293,7 +6295,13 @@ function exitDemo(opts) {
 /** Real data must not mix with the sample: ask to leave it first, then continue. */
 function leaveDemoThen(proceed) {
   if (!state.demo) return proceed();
-  confirmDialog("Sair do exemplo?", "Você está vendo dados de exemplo. Para lançar dados reais, saia do exemplo primeiro: os dados fictícios serão removidos.", "Sair do exemplo e continuar", () => { exitDemo({ stay: true }); setTimeout(proceed, 0); }); // confirmDialog closes its window right after this runs: the next form must open after that
+  // The next form replaces this dialog in place (no close, no second backdrop), so the screen behind never blinks.
+  openModal({
+    title: "Sair do exemplo?",
+    body: `<p class="muted">Você está vendo dados de exemplo. Para lançar dados reais, saia do exemplo primeiro: os dados fictícios serão removidos.</p>`,
+    foot: `<button type="button" class="btn btn-secondary btn-sm" data-act="close">Cancelar</button><button type="submit" class="btn btn-danger btn-sm">Sair do exemplo e continuar</button>`,
+    onSubmit: () => { exitDemo({ stay: true }); proceed(); },
+  });
 }
 
 // ---------- Events ----------
