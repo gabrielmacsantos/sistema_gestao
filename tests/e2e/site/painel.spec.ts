@@ -19,7 +19,7 @@ test("the month arrows change the month in the address and the page title keeps 
   await group.getByRole("link", { name: /^Mês anterior/ }).click();
   await expect(page).toHaveURL(/mes=\d{4}-\d{2}/);
   await expect(group.getByRole("button")).not.toHaveText(before!);
-  await expect(page).toHaveTitle(/Painel · Minhas Finanças/);
+  await expect(page).toHaveTitle(/Painel · Nexus Financy IA/);
   // The chosen month travels to the other tabs.
   await page.getByRole("link", { name: /Lançamentos/ }).first().click();
   await expect(page).toHaveURL(/#\/lancamentos\?mes=\d{4}-\d{2}/);

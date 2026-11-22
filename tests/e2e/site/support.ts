@@ -39,7 +39,7 @@ export async function startLocal(page: Page) {
   await expect(page.getByRole("heading", { name: "Entre para guardar seus dados" })).toBeVisible();
   await page.getByRole("button", { name: /Usar sem conta/ }).click();
   await expect(page).toHaveURL(/#\/painel/);
-  await expect(page.getByRole("heading", { name: /Bem-vindo ao Minhas Finanças/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Bem-vindo ao Nexus Financy IA/ })).toBeVisible();
 }
 
 /** Clicks whichever "new transaction" control the layout shows (top bar or rail on desktop, + on the phone). */

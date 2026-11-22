@@ -16,15 +16,15 @@ const dark = cssBlock(':root[data-theme="dark"]');
 
 const LIGHT: Record<string, string> = {
   "--bg-primary": "#f8fafc", "--bg-card": "#ffffff", "--bg-elevated": "#f1f5f9", "--border-subtle": "#e2e8f0",
-  "--brand-primary": "#059669", "--brand-primary-alt": "#0d9488", "--brand-secondary": "#4f46e5", "--brand-accent": "#0284c7",
+  "--brand-primary": "#0f766e", "--brand-primary-alt": "#0d9488", "--brand-secondary": "#4f46e5", "--brand-accent": "#0284c7",
   "--text-primary": "#0f172a", "--text-secondary": "#475569", "--text-muted": "#94a3b8",
-  "--semantic-income": "#16a34a", "--semantic-expense": "#e11d48", "--semantic-warning": "#d97706",
+  "--semantic-income": "#059669", "--semantic-expense": "#e11d48", "--semantic-warning": "#d97706",
 };
 const DARK: Record<string, string> = {
-  "--bg-primary": "#090d16", "--bg-card": "#111827", "--bg-elevated": "#1e293b", "--border-subtle": "#1f2937",
-  "--brand-primary": "#10b981", "--brand-primary-alt": "#2dd4bf", "--brand-secondary": "#6366f1", "--brand-accent": "#38bdf8",
+  "--bg-primary": "#0b111e", "--bg-card": "#111a2e", "--bg-elevated": "#17233b", "--border-subtle": "#1c2842",
+  "--brand-primary": "#14b8a6", "--brand-primary-alt": "#4fdbc8", "--brand-secondary": "#6366f1", "--brand-accent": "#38bdf8",
   "--text-primary": "#f8fafc", "--text-secondary": "#94a3b8", "--text-muted": "#475569",
-  "--semantic-income": "#22c55e", "--semantic-expense": "#f43f5e", "--semantic-warning": "#f59e0b",
+  "--semantic-income": "#34d399", "--semantic-expense": "#f43f5e", "--semantic-warning": "#fbbf24",
 };
 
 const luminance = (hex: string) => {
