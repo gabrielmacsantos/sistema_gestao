@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POC Painel Compartilhado</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 760px; margin: 0 auto; padding: 16px; }
+  fieldset { margin: 16px 0; border: 1px solid #bbb; border-radius: 8px; }
+  button { padding: 10px 14px; margin: 4px 4px 4px 0; min-height: 44px; }
+  input { padding: 10px; min-height: 44px; box-sizing: border-box; width: 100%; margin: 4px 0; }
+  pre { background: #111; color: #9f9; padding: 12px; border-radius: 8px; white-space: pre-wrap; max-height: 420px; overflow: auto; }
+  small { color: #555; }
+</style>
+</head>
+<body>
+<h1>POC: arquivo compartilhado no Drive com <code>drive.file</code></h1>
+<p><small>Descartável. Não faz parte do app. Mostra se duas contas Google conseguem ler e gravar o mesmo arquivo sem servidor.</small></p>
+
+<fieldset>
+  <legend>0. Login (use uma conta por aba/janela anônima)</legend>
+  <button id="login">Entrar com o Google (drive.file)</button>
+  <div id="who"><small>Sem login.</small></div>
+</fieldset>
+
+<fieldset>
+  <legend>A. Administrador</legend>
+  <button id="create">A1. Criar painel-poc.json no meu Drive</button>
+  <input id="email" type="email" placeholder="E-mail Google do convidado">
+  <button id="share">A2. Compartilhar com o e-mail (writer)</button>
+  <button id="adminWrite">A3. Gravar um lançamento (R$ 85,50 = 8550)</button>
+  <button id="revoke">A4. Revogar o acesso do convidado</button>
+  <div><small>fileId atual:</small> <code id="fid">-</code></div>
+</fieldset>
+
+<fieldset>
+  <legend>B. Convidado</legend>
+  <input id="fileId" placeholder="fileId (copie do administrador)">
+  <button id="getDirect">B1. Ler direto pelo fileId (sem Picker)</button>
+  <button id="listShared">B2. Listar "compartilhados comigo" pelo app</button>
+  <hr>
+  <input id="apiKey" placeholder="API key do projeto (só para o Picker)">
+  <button id="picker">B3. Abrir Google Picker e escolher o arquivo</button>
+  <button id="memberWrite">B4. Gravar um lançamento (R$ 12,34 = 1234)</button>
+  <button id="memberRead">B5. Ler de novo (checa revogação)</button>
+</fieldset>
+
+<pre id="log"></pre>
+
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script src="https://apis.google.com/js/api.js" async></script>
+<script>
+const CLIENT_ID = "404240084515-tgo3q5ptt6tvfujkkkl6psu2gh208u37.apps.googleusercontent.com";
+const PROJECT_NUMBER = "404240084515";
+const SCOPE = "openid email profile https://www.googleapis.com/auth/drive.file";
+const $ = (id) => document.getElementById(id);
+let token = null, me = null, permissionId = null;
+
+const log = (...a) => { $("log").textContent += a.map((x) => typeof x === "string" ? x : JSON.stringify(x, null, 2)).join(" ") + "\n"; };
+const fileId = () => ($("fileId").value.trim() || $("fid").textContent.trim());
+const setFid = (id) => { $("fid").textContent = id; $("fileId").value = id; };
+
+async function api(url, opts = {}) {
+  const r = await fetch(url, { ...opts, headers: { Authorization: `Bearer ${token}`, ...(opts.headers || {}) } });
+  const text = await r.text();
+  let body; try { body = JSON.parse(text); } catch { body = text; }
+  return { status: r.status, ok: r.ok, body };
+}
+
+$("login").onclick = () => {
+  google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID, scope: SCOPE, prompt: "select_account",
+    callback: async (res) => {
+      if (res.error) return log("ERRO login:", res);
+      token = res.access_token;
+      const u = await api("https://openidconnect.googleapis.com/v1/userinfo");
+      me = u.body;
+      $("who").innerHTML = `<b>${me.email}</b> <small>(escopos: ${res.scope})</small>`;
+      log("Login ok:", me.email);
+    },
+  }).requestAccessToken();
+};
+
+function multipart(meta, content) {
+  const b = "poc" + Math.random().toString(36).slice(2);
+  return { type: `multipart/related; boundary=${b}`, body:
+    `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n` +
+    `--${b}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${b}--` };
+}
+
+const seed = () => JSON.stringify({ format: "ws-poc", rev: 1, members: [{ email: me.email, role: "ADMIN" }], transactions: [] });
+
+$("create").onclick = async () => {
+  const m = multipart({ name: "painel-poc.json", mimeType: "application/json" }, seed());
+  const r = await api("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,owners,capabilities", { method: "POST", headers: { "Content-Type": m.type }, body: m.body });
+  log("A1 criar:", r.status, r.body);
+  if (r.ok) setFid(r.body.id);
+};
+
+$("share").onclick = async () => {
+  const r = await api(`https://www.googleapis.com/drive/v3/files/${fileId()}/permissions?sendNotificationEmail=true&fields=id,role,emailAddress`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "user", role: "writer", emailAddress: $("email").value.trim() }),
+  });
+  log("A2 compartilhar:", r.status, r.body);
+  if (r.ok) permissionId = r.body.id;
+};
+
+async function appendTx(cents, who) {
+  const get = await api(`https://www.googleapis.com/drive/v3/files/${fileId()}?alt=media`);
+  log(`${who} leitura antes de gravar:`, get.status, typeof get.body === "string" ? get.body.slice(0, 200) : get.body);
+  if (!get.ok) return;
+  const doc = get.body;
+  doc.rev = (doc.rev || 0) + 1;
+  doc.transactions.push({ id: crypto.randomUUID(), amountCents: cents, authorEmail: me.email, updatedAt: new Date().toISOString() });
+  const put = await api(`https://www.googleapis.com/upload/drive/v3/files/${fileId()}?uploadType=media&fields=id,modifiedTime,headRevisionId,version`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(doc),
+  });
+  log(`${who} gravação:`, put.status, put.body);
+}
+$("adminWrite").onclick = () => appendTx(8550, "ADMIN");
+$("memberWrite").onclick = () => appendTx(1234, "CONVIDADO");
+
+$("revoke").onclick = async () => {
+  const list = await api(`https://www.googleapis.com/drive/v3/files/${fileId()}/permissions?fields=permissions(id,role,emailAddress)`);
+  log("A4 permissões:", list.status, list.body);
+  const target = (list.body.permissions || []).find((p) => p.emailAddress?.toLowerCase() === $("email").value.trim().toLowerCase());
+  if (!target) return log("A4: convidado não encontrado nas permissões");
+  const r = await api(`https://www.googleapis.com/drive/v3/files/${fileId()}/permissions/${target.id}`, { method: "DELETE" });
+  log("A4 revogar:", r.status, r.body || "(sem corpo = removido)");
+};
+
+$("getDirect").onclick = async () => {
+  const meta = await api(`https://www.googleapis.com/drive/v3/files/${fileId()}?fields=id,name,owners(emailAddress),capabilities(canEdit),modifiedTime,headRevisionId`);
+  log("B1 metadados:", meta.status, meta.body);
+  const media = await api(`https://www.googleapis.com/drive/v3/files/${fileId()}?alt=media`);
+  log("B1 conteúdo:", media.status, media.body);
+};
+
+$("listShared").onclick = async () => {
+  const q = encodeURIComponent("sharedWithMe = true and name = 'painel-poc.json'");
+  const r = await api(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,owners(emailAddress))`);
+  log("B2 compartilhados comigo:", r.status, r.body);
+};
+
+$("picker").onclick = () => {
+  const key = $("apiKey").value.trim();
+  if (!key) return log("B3: informe a API key (Picker API ativada no projeto)");
+  gapi.load("picker", () => {
+    const view = new google.picker.DocsView().setMimeTypes("application/json").setIncludeFolders(false);
+    new google.picker.PickerBuilder()
+      .addView(view).setOAuthToken(token).setDeveloperKey(key).setAppId(PROJECT_NUMBER)
+      .setCallback((d) => {
+        if (d.action === google.picker.Action.PICKED) { setFid(d.docs[0].id); log("B3 Picker escolheu:", d.docs[0].id, d.docs[0].name); }
+        else if (d.action === google.picker.Action.CANCEL) log("B3 Picker cancelado");
+      }).build().setVisible(true);
+  });
+};
+
+$("memberRead").onclick = $("getDirect").onclick;
+</script>
+</body>
+</html>
