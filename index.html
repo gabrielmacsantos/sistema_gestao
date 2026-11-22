@@ -428,6 +428,20 @@ main { width: 100%; max-width: 1280px; margin: 0 auto; flex: 1; padding: 24px 16
 .audit { display: flex; flex-direction: column; gap: 16px; }
 .audit .card-head { margin-bottom: 0; }
 .audit-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px; border-radius: 999px; background: color-mix(in srgb, currentColor 18%, transparent); font-size: 10px; line-height: 14px; font-weight: 700; }
+.audit-hint { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; line-height: 16px; }
+.audit-active { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--primary); background: color-mix(in srgb, var(--primary) 12%, var(--card)); color: var(--on); font-size: 12px; line-height: 16px; }
+.audit-active .btn-ghost { color: var(--on); text-decoration: underline; }
+.audit-active-label { flex: 1 1 100%; }
+.fchips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.fchip { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 10px; border-radius: 999px; border: 1px solid currentColor; background: var(--card); color: var(--on); font: inherit; font-size: 12px; cursor: pointer; position: relative; transition: transform var(--tap-dur) var(--tap-ease); }
+.fchip::after { content: ""; position: absolute; inset: -6px 0; }
+.fchip:active { transform: scale(var(--tap-scale)); }
+.fchip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.audit-active-n { margin-left: auto; font-weight: 600; }
+.audit-active-actions { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; }
+.audit-active-actions .btn { min-height: 44px; }
+@media (min-width: 768px) { .audit-active-label { flex: none; } .audit-active-actions { flex: none; } }
+@media (prefers-reduced-motion: reduce) { .fchip, .fchip:active { transition: none; transform: none; } }
 .audit-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: center; }
 .ring { --p: 0; width: 104px; height: 104px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--primary) calc(var(--p) * 1%), var(--c-high) 0); }
 .ring > div { width: 80px; height: 80px; border-radius: 50%; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -3935,11 +3949,20 @@ const RECENT_EMPTY = { receitas: "Nenhuma entrada neste mês.", despesas: "Nenhu
 let recentFilter = "todas";
 let auditFilter = "todos", auditDay = "";
 const byFilter = (list, f) => f === "receitas" ? list.filter((t) => t.type === "INCOME") : f === "despesas" ? list.filter((t) => t.type === "EXPENSE") : f === "pendentes" ? list.filter(isOpen) : list;
+const AUDIT_LABELS = { pago: "Pago", pendente: "Pendente", analise: "Em análise" };
+const recentList = (m) => byFilter(ofMonth(m), recentFilter).filter((t) => auditMatches(t, auditFilter) && (!auditDay || t.date === auditDay)).sort(byDateDesc);
+/** Tells, next to the audit controls, what is filtering "Últimos lançamentos" and how many entries match. */
+function auditActive(m) {
+  const n = recentList(m).length, on = auditFilter !== "todos" || !!auditDay;
+  if (!on) return `<p class="muted audit-hint">${icon("filter", 'style="width:14px;height:14px"')} Toque numa situação ou num dia para filtrar <b>Últimos lançamentos</b>, mais abaixo.</p>`;
+  const chips = [auditFilter !== "todos" ? `<button type="button" class="fchip" data-act="audit-clear-status" aria-label="Remover filtro de situação: ${AUDIT_LABELS[auditFilter]}">Situação: <b>${AUDIT_LABELS[auditFilter]}</b>${icon("x", 'style="width:14px;height:14px"')}</button>` : "", auditDay ? `<button type="button" class="fchip" data-act="audit-clear-day" aria-label="Remover filtro de dia: ${dayMonth(auditDay)}">Dia: <b>${dayMonth(auditDay)}</b>${icon("x", 'style="width:14px;height:14px"')}</button>` : ""].join("");
+  return `<div class="audit-active"><span class="audit-active-label">Filtrando <b>Últimos lançamentos</b>:</span><span class="fchips">${chips}</span><span class="audit-active-n"><b class="num">${n}</b> ${n === 1 ? "lançamento" : "lançamentos"}</span><span class="audit-active-actions"><button type="button" class="btn btn-secondary btn-sm" data-act="audit-goto">Ver lista ${icon("down", 'style="width:14px;height:14px"')}</button><button type="button" class="btn btn-ghost btn-sm" data-act="audit-clear">Limpar filtros</button></span></div>`;
+}
 function recentBody(m) {
-  const all = ofMonth(m), list = byFilter(all, recentFilter).filter((t) => auditMatches(t, auditFilter) && (!auditDay || t.date === auditDay)).sort(byDateDesc), [one, many] = RECENT_NOUN[recentFilter];
+  const all = ofMonth(m), list = recentList(m), [one, many] = RECENT_NOUN[recentFilter], auditOn = auditFilter !== "todos" || !!auditDay;
   const link = href("lancamentos", { mes: m, tipo: recentFilter === "receitas" || recentFilter === "despesas" ? recentFilter : "", status: recentFilter === "pendentes" ? "pendentes" : "" });
-  return `${list.length ? `${listHead(false)}<ul class="ledger">${list.slice(0, 6).map((t) => ledgerRow(t)).join("")}</ul>` : `<div style="padding:20px"><p class="empty">${all.length ? RECENT_EMPTY[recentFilter] : "Nenhum lançamento neste mês."}</p></div>`}
-      ${auditFilter !== "todos" || auditDay ? `<div class="section-foot" style="justify-content:flex-start;gap:8px"><span class="muted">Filtro da auditoria ativo.</span><button class="btn btn-ghost btn-sm" data-act="audit-clear">Limpar</button></div>` : ""}
+  return `${list.length ? `${listHead(false)}<ul class="ledger">${list.slice(0, 6).map((t) => ledgerRow(t)).join("")}</ul>` : `<div style="padding:20px"><p class="empty">${!all.length ? "Nenhum lançamento neste mês." : auditOn ? "Nenhum lançamento com estes filtros." : RECENT_EMPTY[recentFilter]}</p></div>`}
+      ${auditFilter !== "todos" || auditDay ? `<div class="section-foot" style="justify-content:flex-start;gap:8px"><span class="muted">Filtro da auditoria ativo (${[auditFilter !== "todos" ? AUDIT_LABELS[auditFilter] : "", auditDay ? dayMonth(auditDay) : ""].filter(Boolean).join(" · ")}).</span><button class="btn btn-ghost btn-sm" data-act="audit-clear">Limpar filtros</button></div>` : ""}
       <div class="section-foot"><span id="recent-count">Mostrando ${Math.min(6, list.length)} de ${list.length} ${list.length === 1 ? one : many}</span><a class="btn btn-secondary btn-sm" href="${link}">Ver extrato completo</a></div>`;
 }
 function setAudit({ filter = auditFilter, day = auditDay }) {
@@ -3948,13 +3971,19 @@ function setAudit({ filter = auditFilter, day = auditDay }) {
   selectTab(bar, bar?.querySelector(`[data-f="${auditFilter}"]`));
   document.querySelectorAll(".week button").forEach((b) => { const on = b.dataset.day === auditDay; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
   document.getElementById("recent-body").innerHTML = recentBody(route().month);
-  document.getElementById("live").textContent = document.getElementById("recent-count").textContent;
+  const act = document.getElementById("audit-active"); if (act) act.innerHTML = auditActive(route().month);
+  document.getElementById("live").textContent = `${auditFilter === "todos" && !auditDay ? "Filtros removidos" : "Filtrando Últimos lançamentos"}: ${document.getElementById("recent-count").textContent}`;
+}
+function gotoRecent() {
+  const el = document.getElementById("recent-body")?.closest("section"); if (!el) return;
+  el.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
 }
 function setRecentFilter(f) {
   recentFilter = RECENT_FILTERS[f] ? f : "todas";
   const recentBar = document.querySelector('[data-tabs="recent-filter"]');
   selectTab(recentBar, recentBar?.querySelector(`[data-f="${recentFilter}"]`));
   document.getElementById("recent-body").innerHTML = recentBody(route().month);
+  const act = document.getElementById("audit-active"); if (act) act.innerHTML = auditActive(route().month);
   document.getElementById("live").textContent = document.getElementById("recent-count").textContent;
 }
 
@@ -4046,10 +4075,12 @@ function auditCard(m, { list, s, dist, shares, margin }) {
   const counts = auditCounts(list), paid = wholePercent(s.expensePaid, s.expense), safe = wholePercent(Math.max(0, margin.safeCents), s.income);
   const last = new Date(Number(m.slice(0, 4)), Number(m.slice(5)), 0).getDate(), top = dist.slice(0, 3), short = monthShort(m);
   const week = weekStrip(auditAnchor(m, todayISO()));
+  if (auditDay && !week.some((d) => d.iso === auditDay)) auditDay = ""; // a day from another month/week would filter with no visible cue
   const items = [["todos", "Todos"], ["pago", "Pago"], ["pendente", "Pendente"], ["analise", "Em análise"]];
   return `<section class="card audit" aria-labelledby="audit-title">
     <div class="card-head"><h2 class="h-card" id="audit-title">Auditoria &amp; Ritmo Mensal</h2><span class="metric-label">${short[0].toUpperCase() + short.slice(1)} 1 a ${last}</span></div>
     ${tabsHtml({ kind: "tabs", key: "audit-filter", label: "Filtrar por situação", panel: "recent-body", active: auditFilter, fill: true, items: items.map(([v, t]) => ({ value: v, label: `${t}${v === "todos" || counts[v] ? ` <span class="audit-count">${counts[v]}</span>` : ""}`, attrs: `data-act="audit-filter" data-f="${v}"` })) })}
+    <div id="audit-active" role="group" aria-label="Filtros da auditoria">${auditActive(m)}</div>
     <div class="audit-body">
       <div class="ring" role="img" aria-label="${paid}% das saídas do mês já foram pagas" style="--p:${paid}"><div><b class="num">${paid}%</b><span>Pago</span></div></div>
       <div class="audit-side">
@@ -6202,7 +6233,7 @@ document.addEventListener("click", (e) => {
       document.querySelector('[data-act="toggle-values"]')?.focus({ preventScroll: true });
       document.getElementById("live").textContent = hideValues ? "Valores ocultos" : "Valores visíveis";
     },
-    "recent-filter": () => setRecentFilter(el.dataset.f), "audit-filter": () => setAudit({ filter: el.dataset.f }), "audit-day": () => setAudit({ day: auditDay === el.dataset.day ? "" : el.dataset.day }), "audit-clear": () => setAudit({ filter: "todos", day: "" }), "more-tx": showMoreLedger,
+    "recent-filter": () => setRecentFilter(el.dataset.f), "audit-filter": () => setAudit({ filter: el.dataset.f }), "audit-day": () => setAudit({ day: auditDay === el.dataset.day ? "" : el.dataset.day }), "audit-clear": () => setAudit({ filter: "todos", day: "" }), "audit-clear-status": () => setAudit({ filter: "todos" }), "audit-clear-day": () => setAudit({ day: "" }), "audit-goto": gotoRecent, "more-tx": showMoreLedger,
     "google-sign-in": () => startGoogleSignIn(el),
     "google-reconnect": async () => {
       try { await reconnectGoogle(); setSyncStatus("saving"); await syncPhotos(); await pullIfNewer(); }

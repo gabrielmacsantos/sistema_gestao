@@ -82,7 +82,7 @@ test("marks as paid, searches without accents and deletes a transaction", async 
   await page.getByPlaceholder("Buscar no extrato…").fill("");
 
   // Edit opens the form with the data; delete asks first.
-  await page.locator("#tx-ledger li", { hasText: "Cinema E2E" }).getByRole("button", { name: /Cinema E2E/ }).click();
+  await page.locator("#tx-ledger li", { hasText: "Cinema E2E" }).locator(".row-main").click();
   const edit = page.getByRole("dialog", { name: "Editar lançamento" });
   await expect(edit.getByLabel("Descrição")).toHaveValue("Cinema E2E");
   await edit.getByRole("button", { name: /Excluir/ }).click();

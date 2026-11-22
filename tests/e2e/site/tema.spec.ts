@@ -5,7 +5,7 @@ const bg = (page: import("@playwright/test").Page) => page.evaluate(() => getCom
 test("a first visit opens in the dark urban theme", async ({ page }) => {
   await startLocal(page);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  expect(await bg(page)).toBe("rgb(9, 13, 22)"); // #090d16
+  expect(await bg(page)).toBe("rgb(11, 17, 30)"); // #0b111e (Sovereign Financial)
 });
 
 test("switching to light uses the light tokens and the choice survives a reload", async ({ page }, testInfo) => {
