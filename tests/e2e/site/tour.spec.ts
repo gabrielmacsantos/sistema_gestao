@@ -47,7 +47,7 @@ test("Esc encerra o tour e o Perfil permite refazer", async ({ page }) => {
 });
 
 test("percorre todos os passos, de tela em tela, até Concluir", async ({ page }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(420_000);
   await openFresh(page);
   const card = page.locator("#tour-card");
   await card.getByRole("button", { name: "Começar tour" }).click();

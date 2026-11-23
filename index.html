@@ -119,6 +119,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .mob-brand .logo-full { height: 30px; }
 .auth-brand { flex-direction: column; text-align: center; gap: 6px; }
 .auth-brand h1 { margin: 0; }
+.google-error { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--danger); background: var(--danger-c); color: var(--on); font-size: 13px; line-height: 18px; text-align: left; overflow-wrap: anywhere; }
 .auth-brand .logo-full { height: 72px; margin-inline: auto; }
 .nav { display: flex; flex-direction: column; gap: 4px; margin-top: 24px; }
 .nav a { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px; border-radius: 8px; color: var(--secondary); font-weight: 600; transition: background .15s, color .15s, transform var(--tap-dur) var(--tap-ease), opacity var(--tap-dur) var(--tap-ease); }
@@ -150,7 +151,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .t-icon-swap[data-state="a"] .t-icon[data-icon="a"], .t-icon-swap[data-state="b"] .t-icon[data-icon="b"] { opacity: 1; filter: blur(0); transform: scale(1); }
 .t-icon-swap[data-state="a"] .t-icon[data-icon="b"], .t-icon-swap[data-state="b"] .t-icon[data-icon="a"] { opacity: 0; filter: blur(var(--icon-swap-blur)); transform: scale(var(--icon-swap-start-scale)); }
 @media (prefers-reduced-motion: reduce) { .t-icon-swap .t-icon, .rail, .page, .rail-toggle, .rail-toggle svg.i, .nav a, .brand, .btn-new, .account, .brand-text, .nav .lbl { transition: none !important; } }
-.topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--card) 82%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--hairline); padding-top: env(safe-area-inset-top); }
+.topbar { position: relative; z-index: 20; background: color-mix(in srgb, var(--card) 82%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--hairline); padding-top: env(safe-area-inset-top); }
 .topbar-in { max-width: 1280px; margin: 0 auto; height: 64px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .trail { display: none; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--secondary); }
 .trail b { color: var(--primary); font-weight: 600; }
@@ -537,18 +538,16 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 @media (min-width: 640px) { .input { font-size: 14px; } }
 
 /* Modal + toast */
-/* Beta notice: fixed at the top of every screen (sign-in included). --beta-h is its measured height; the fixed/sticky parts start below it. */
+/* Beta notice: the first row of every screen (sign-in included); it scrolls away with the page, like the header. --beta-h is its measured height. */
 :root { --beta-h: 0px; }
-.beta-banner { position: fixed; inset: 0 0 auto 0; z-index: 50; display: flex; align-items: center; justify-content: center; gap: 8px; padding: env(safe-area-inset-top) 12px 0; min-height: calc(env(safe-area-inset-top) + 36px); background: var(--warning-c); color: var(--on); border-bottom: 1px solid color-mix(in srgb, var(--warning) 45%, transparent); font-size: 12px; line-height: 16px; font-weight: 500; text-align: center; }
+.beta-banner { position: relative; z-index: 50; display: flex; align-items: center; justify-content: center; gap: 8px; padding: env(safe-area-inset-top) 12px 0; min-height: calc(env(safe-area-inset-top) + 36px); background: var(--warning-c); color: var(--on); border-bottom: 1px solid color-mix(in srgb, var(--warning) 45%, transparent); font-size: 12px; line-height: 16px; font-weight: 500; text-align: center; }
 .beta-banner[hidden] { display: none; }
 .beta-banner > span { padding: 6px 0; }
 .beta-pill { flex: none; padding: 1px 8px; border-radius: 999px; background: var(--warning); color: var(--bg); font-size: 10px; line-height: 16px; font-weight: 700; letter-spacing: .06em; }
+/* The fixed side menu is beside the notice, not over it. */
+@media (min-width: 768px) { body:has(.rail) .beta-banner { padding-left: 80px; } }
 @media (min-width: 1024px) { body:has(.rail) .beta-banner { padding-left: var(--rail-w); transition: padding-left var(--rail-dur) var(--rail-ease); } }
-:root[data-beta] body { padding-top: var(--beta-h); }
-:root[data-beta] .topbar { top: var(--beta-h); padding-top: 0; }
-:root[data-beta] .rail { top: var(--beta-h); }
-:root[data-beta] .rail-toggle { top: calc(18px + var(--beta-h)); }
-:root[data-beta] { --drawer-top: calc(var(--beta-h) + 65px); }
+:root[data-beta] .topbar { padding-top: 0; } /* the notice above already covers the safe area */
 :root[data-beta] main.auth { min-height: calc(100dvh - var(--beta-h)); padding-top: 32px; }
 .expired .auth-card { max-width: 460px; text-align: center; }
 .expired .auth-card .logo-full { margin: 0 auto 16px; height: 64px; }
@@ -2966,7 +2965,9 @@ function nativeGoogleError(e) {
   const text = String((e && e.message) || e);
   if (/cancel/i.test(text)) return googleError("popup_closed");
   if (/no credential|no account/i.test(text)) return new Error("Adicione uma conta Google ao celular (Configurações › Contas) e tente de novo.");
-  return googleError("other");
+  // Anything else: the generic text for the person, plus what the plugin said (code and message), so the cause can be found.
+  const code = e && e.code ? `${e.code}: ` : "";
+  return Object.assign(googleError("other"), { detail: `${code}${text}`.slice(0, 240) });
 }
 // The app asks for the file scope only when shared panels need it: adding it to the first login broke reading the account.
 let wantFileScope = false;
@@ -3383,10 +3384,18 @@ setInterval(() => { if (activeWs && sync && document.visibilityState === "visibl
 
 /** Sign-in and sign-up are the same tap: Google says who it is, the app folder says if data exists. */
 async function googleSignIn() {
-  const { profile, ...token } = await requestGoogleToken("select_account");
-  const me = await googleProfile(token.access, profile);
-  const fileId = await findDriveFile(DRIVE_FILE, token.access);
-  const remoteText = fileId ? await drive(`/files/${fileId}?alt=media`, { as: "text" }, token.access) : null;
+  let stage = "conta do Google";
+  try {
+    const { profile, ...token } = await requestGoogleToken("select_account");
+    stage = "perfil";
+    const me = await googleProfile(token.access, profile);
+    stage = "Google Drive";
+    const fileId = await findDriveFile(DRIVE_FILE, token.access);
+    const remoteText = fileId ? await drive(`/files/${fileId}?alt=media`, { as: "text" }, token.access) : null;
+    return googleSettings({ me, token, fileId, remoteText });
+  } catch (e) { if (e && typeof e === "object" && !e.stage) e.stage = stage; throw e; }
+}
+function googleSettings({ me, token, fileId, remoteText }) {
   return { settings: { provider: "google", sub: me.sub, email: me.email, name: me.name, picture: me.picture, fileId, token, fileScope: !!token.fileScope }, remoteText };
 }
 /** After the access ran out: one tap renews it, for the same Google account only. */
@@ -3402,8 +3411,17 @@ async function startGoogleSignIn(btn) {
   btn.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>Conectando ao Google…</span>`;
   const reset = () => { if (btn.isConnected) { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.innerHTML = label; } };
   let result;
+  const errorBox = document.getElementById("google-error"); if (errorBox) errorBox.hidden = true;
   try { result = await googleSignIn(); }
-  catch (e) { reset(); return toast(e.message); }
+  catch (e) {
+    reset(); toast(e.message);
+    if (errorBox && !e.cancelled) {
+      const more = [e.stage ? `etapa: ${e.stage}` : "", e.detail || ""].filter(Boolean).join(" · ");
+      errorBox.innerHTML = `<b>${esc(e.message)}</b>${more ? `<br><span class="hint">Detalhe técnico (${esc(more)})</span>` : ""}<br><span class="hint">Se continuar, envie esta mensagem para ${SUPPORT_EMAIL}.</span>`;
+      errorBox.hidden = false;
+    }
+    return;
+  }
   let { settings } = result, data = null, repack = false;
   // What the account already holds: an older plain file is read as is (and encrypted at the first sync);
   // an encrypted one needs the password, asked here, before anything on this device is touched.
@@ -5813,6 +5831,9 @@ function menuSheet() {
   const layer = document.getElementById("layer");
   layer.innerHTML = drawerHtml();
   drawerEl = document.getElementById("drawer-root");
+  // The header scrolls with the page: the menu drops from wherever its bottom edge is (never above the top of the screen).
+  const headerBottom = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 65;
+  drawerEl.style.setProperty("--drawer-top", `${Math.max(0, Math.round(headerBottom))}px`);
   setPageInert(true);
   drawerPrevScroll = document.body.style.overflow; document.body.style.overflow = "hidden";
   setMenuOpen(true);
@@ -5908,7 +5929,7 @@ function viewAuth() {
       <div class="card auth-card">
         <h2 class="h-card" style="text-align:center">Entre para guardar seus dados</h2>
         <p class="muted" style="text-align:center;margin:6px 0 20px">Use sua conta do Google. Seus dados ficam guardados no seu Google Drive, numa pasta que só este app enxerga, e você acessa de qualquer aparelho.</p>
-        ${googleReady() ? `<div class="auth-google">${googleButton("Continuar com o Google")}</div>` : `<p class="muted" style="text-align:center">O login com o Google não está disponível agora. Você pode usar o app sem conta.</p>`}
+        ${googleReady() ? `<div class="auth-google">${googleButton("Continuar com o Google")}<p id="google-error" class="google-error" role="alert" hidden></p></div>` : `<p class="muted" style="text-align:center">O login com o Google não está disponível agora. Você pode usar o app sem conta.</p>`}
         ${hasLocal ? `<p class="hint" style="margin-top:12px;text-align:center">Os dados que você já lançou neste navegador vão para a sua conta.</p>` : ""}
       </div>
       <div class="auth-foot">
@@ -6708,7 +6729,7 @@ function trackTour() {
     still = key === last ? still + 1 : 0; last = key;
     if (still >= 5 && !tourState.adjusted && document.getElementById("tour-card").dataset.side === "dock" && r) {
       tourState.adjusted = true;
-      const header = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 0;
+      const header = Math.max(0, document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 0);
       const delta = r.top - (header + 12 + 8);
       if (Math.abs(delta) > 2) { window.scrollBy({ top: delta, behavior: tourReduced() ? "auto" : "smooth" }); still = 0; }
     }

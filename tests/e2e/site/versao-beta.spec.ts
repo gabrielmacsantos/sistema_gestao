@@ -22,7 +22,7 @@ test("the notice sits on top of the sign-in screen with the days left", async ({
   expect(card.y).toBeGreaterThanOrEqual(box.y + box.height);
 });
 
-test("the notice stays on every screen of the app and pushes the header down, not under it", async ({ page }, testInfo) => {
+test("the notice stays on every screen of the app, above the header and beside the side menu", async ({ page }, testInfo) => {
   await page.clock.setFixedTime(at("2026-11-22T12:00:00-03:00"));
   await startLocal(page);
   for (const screen of ["painel", "lancamentos", "fixos", "orcamentos", "configuracoes", "perfil"]) {
@@ -32,11 +32,30 @@ test("the notice stays on every screen of the app and pushes the header down, no
     const header = (await page.locator(".topbar").boundingBox())!;
     expect(header.y, `${screen}: header starts below the notice`).toBeGreaterThanOrEqual(b.y + b.height - 1);
     if (!isPhone(testInfo)) {
+      // The fixed side menu sits beside the notice: the text starts after it, so nothing is covered.
       const rail = (await page.locator(".rail").boundingBox())!;
-      expect(rail.y, `${screen}: side menu starts below the notice`).toBeGreaterThanOrEqual(b.y + b.height - 1);
+      const text = (await banner(page).locator("span").last().boundingBox())!;
+      expect(text.x, `${screen}: notice text is not under the side menu`).toBeGreaterThanOrEqual(rail.x + rail.width - 1);
     }
     expect(await fitsWidth(page), `${screen}: sideways scroll`).toBe(true);
   }
+});
+
+test("the notice and the header scroll away with the page; the bottom bar and the side menu stay", async ({ page }, testInfo) => {
+  await page.clock.setFixedTime(at("2026-11-22T12:00:00-03:00"));
+  await startLocal(page);
+  await page.getByRole("button", { name: /Ver com dados de exemplo/ }).click();
+  await page.goto("/#/lancamentos");
+  await expect(page.locator("#tx-ledger li").first()).toBeVisible();
+  const before = { b: (await banner(page).boundingBox())!, h: (await page.locator(".topbar").boundingBox())! };
+  expect(before.b.y).toBe(0);
+  await page.evaluate(() => window.scrollTo(0, 700));
+  await expect.poll(async () => (await page.locator(".topbar").boundingBox())!.y).toBeLessThan(0); // gone from the screen
+  expect((await banner(page).boundingBox())!.y).toBeLessThan(0);
+  if (isPhone(testInfo)) expect((await page.locator(".bottomnav").boundingBox())!.y).toBeGreaterThan(0); // still there
+  else expect((await page.locator(".rail").boundingBox())!.y).toBe(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(async () => Math.round((await page.locator(".topbar").boundingBox())!.y)).toBe(Math.round(before.h.y));
 });
 
 test("phone: the menu drops from right under the header, below the notice", async ({ page }, testInfo) => {
@@ -51,6 +70,20 @@ test("phone: the menu drops from right under the header, below the notice", asyn
   // The header (hamburger) stays reachable above the open menu, and the notice above it.
   await expect(page.locator('[data-act="menu"]')).toBeVisible();
   await expect(banner(page)).toBeVisible();
+});
+
+test("phone: scrolled a little, the menu still drops from the bottom edge of the header", async ({ page }, testInfo) => {
+  test.skip(!isPhone(testInfo), "Phone-only menu.");
+  await page.clock.setFixedTime(at("2026-11-22T12:00:00-03:00"));
+  await startLocal(page);
+  await page.getByRole("button", { name: /Ver com dados de exemplo/ }).click();
+  await page.evaluate(() => window.scrollTo(0, 30));
+  await page.locator('[data-act="menu"]').click();
+  const drawer = page.getByRole("dialog", { name: "Menu" });
+  await expect(drawer).toBeVisible();
+  const header = (await page.locator(".topbar").boundingBox())!;
+  await expect.poll(async () => Math.round((await drawer.boundingBox())!.y)).toBeGreaterThanOrEqual(Math.round(header.y + header.height) - 1);
+  await expect.poll(async () => Math.round((await drawer.boundingBox())!.y)).toBeLessThanOrEqual(Math.round(header.y + header.height) + 2);
 });
 
 test("the count goes down day by day, with the singular and the last day", async ({ page }) => {
