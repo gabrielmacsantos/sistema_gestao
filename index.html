@@ -4234,7 +4234,7 @@ function viewPainel(r) {
         <span class="chip" style="background:var(--c-high);color:var(--primary);width:40px;height:40px">${icon("sparkles")}</span>
         <div style="flex:1;min-width:0">
           <h2 class="h-card">Bem-vindo ao Nexus Financy IA 👋</h2>
-          <p class="muted" style="margin-top:4px">Comece cadastrando seu salário e seus gastos fixos (aluguel, contas, assinaturas). Você está usando <b>sem conta</b>: os dados ficam só neste navegador. Entre com o Google para salvar no seu Drive e usar em qualquer aparelho.</p>
+          <p class="muted" style="margin-top:4px">Comece cadastrando seu salário e seus gastos fixos (aluguel, contas, assinaturas). ${sync ? "Seus dados são salvos no seu Google Drive e ficam disponíveis em qualquer aparelho em que você entrar com a mesma conta." : "Você está usando <b>sem conta</b>: os dados ficam só neste navegador. Entre com o Google para salvar no seu Drive e usar em qualquer aparelho."}</p>
           <div class="actions" style="margin-top:16px">
             <button class="btn btn-income btn-sm" data-act="new-tx" data-type="INCOME">${icon("down")} Lançar salário</button>
             <button class="btn btn-secondary btn-sm" data-act="new-rec">${icon("calendar")} Cadastrar gasto fixo</button>
