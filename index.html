@@ -4185,7 +4185,7 @@ function greetingCard(m) {
   const where = !sync ? `<span class="badge b-neutral">Só neste aparelho</span>` : `<span class="badge b-success">${isGoogle() ? "Drive ativo" : "GitHub ativo"}</span>`;
   return `<section class="card greeting" aria-label="Boas-vindas">
     <div class="greeting-top">${sync ? accountAvatar() : `<span class="row-icon" style="color:var(--primary);width:44px;height:44px">${icon("user")}</span>`}
-      <div class="greeting-text"><span class="metric-label">Bem-vindo de volta</span><h2 class="h-card truncate">${who ? `Olá, ${esc(who)}` : "Olá"}</h2></div>${where}</div>
+      <div class="greeting-text"><span class="metric-label">Bem-vindo de volta</span><h2 class="h-card truncate">${who ? `Olá, ${esc(who)}!` : "Olá!"}</h2></div>${where}</div>
     <form class="greeting-search" id="home-search" action="javascript:void 0" role="search">
       <label class="search-field"><span class="sr-only">Buscar despesa, categoria ou data</span>${icon("search")}<input class="input" type="search" id="home-search-input" placeholder="Buscar despesa, categoria ou data…" enterkeyhint="search" autocomplete="off"></label>
       <a class="btn btn-secondary" href="${href("lancamentos", { mes: m })}" aria-label="Abrir filtros do extrato">${icon("filter")} Filtros</a>
