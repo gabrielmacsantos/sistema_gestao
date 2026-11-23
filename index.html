@@ -103,7 +103,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .t-income { color: var(--success); } .t-danger { color: var(--danger); } .t-warning { color: var(--warning); } .t-primary { color: var(--primary); } .t-tertiary { color: var(--tertiary); }
 
 /* ===== Shell ===== */
-.rail { display: none; position: fixed; inset: 0 auto 0 0; width: 80px; z-index: 30; background: var(--card); border-right: 1px solid var(--hairline); padding: 16px; flex-direction: column; justify-content: space-between; overflow-y: auto; overflow-x: hidden; transition: width var(--rail-dur) var(--rail-ease); }
+.rail { display: none; position: fixed; inset: 0 auto 0 0; width: 80px; z-index: 51; background: var(--card); border-right: 1px solid var(--hairline); padding: 16px; flex-direction: column; justify-content: space-between; overflow-y: auto; overflow-x: hidden; transition: width var(--rail-dur) var(--rail-ease); }
 .brand { display: flex; align-items: center; gap: 12px; justify-content: center; }
 .brand-logo { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--primary-c); color: var(--on-primary-c); flex: none; box-shadow: var(--shadow); }
 .brand-text { display: none; min-width: 0; }
@@ -136,7 +136,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
    or truncates while the rail narrows. */
 :root { --rail-dur: 300ms; --rail-ease: cubic-bezier(.22,1,.36,1); --rail-w: var(--rail); }
 :root[data-rail="collapsed"] { --rail-w: 80px; }
-.rail-toggle { display: none; position: fixed; top: 18px; left: calc(var(--rail-w) - 22px); z-index: 31; width: 44px; height: 44px; padding: 0; border: 0; background: none; place-items: center; color: var(--secondary); transition: left var(--rail-dur) var(--rail-ease); }
+.rail-toggle { display: none; position: fixed; top: 18px; left: calc(var(--rail-w) - 22px); z-index: 52; width: 44px; height: 44px; padding: 0; border: 0; background: none; place-items: center; color: var(--secondary); transition: left var(--rail-dur) var(--rail-ease); }
 .rail-toggle .rail-disc { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--hairline); background: var(--card); box-shadow: var(--shadow); transition: color .15s, transform var(--tap-dur) var(--tap-ease), opacity var(--tap-dur) var(--tap-ease); }
 .rail-toggle:hover { color: var(--on); }
 .rail-toggle:focus-visible { outline: none; }
