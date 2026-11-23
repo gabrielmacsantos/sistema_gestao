@@ -545,8 +545,8 @@ textarea.input { height: auto; min-height: 80px; padding: 10px 14px; resize: ver
 .beta-banner > span { padding: 6px 0; }
 .beta-pill { flex: none; padding: 1px 8px; border-radius: 999px; background: var(--warning); color: var(--bg); font-size: 10px; line-height: 16px; font-weight: 700; letter-spacing: .06em; }
 /* The fixed side menu is beside the notice, not over it. */
-@media (min-width: 768px) { body:has(.rail) .beta-banner { padding-left: 80px; } }
-@media (min-width: 1024px) { body:has(.rail) .beta-banner { padding-left: var(--rail-w); transition: padding-left var(--rail-dur) var(--rail-ease); } }
+@media (min-width: 768px) { body:has(.rail) .beta-banner { margin-left: 80px; } }
+@media (min-width: 1024px) { body:has(.rail) .beta-banner { margin-left: var(--rail-w); transition: margin-left var(--rail-dur) var(--rail-ease); } }
 :root[data-beta] .topbar { padding-top: 0; } /* the notice above already covers the safe area */
 :root[data-beta] main.auth { min-height: calc(100dvh - var(--beta-h)); padding-top: 32px; }
 .expired .auth-card { max-width: 460px; text-align: center; }
