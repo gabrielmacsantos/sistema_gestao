@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright show-report",
+    "docs:screenshots": "node scripts/capture-screenshots.mjs",
     "test:e2e:next": "playwright test -c playwright.next.config.ts",
     "test:evidence": "node scripts/test-evidence.mjs",
     "db:migrate": "prisma migrate dev",
