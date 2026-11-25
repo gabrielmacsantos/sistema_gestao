@@ -135,11 +135,11 @@ test("a new expense starts with no due date and stays off the calendar until one
 test("due date and alert sit side by side, level with each other, on every screen", async ({ page }) => {
   await startLocal(page);
   await openNewTransaction(page);
-  const a = (await page.getByLabel("Vencimento (opcional)").boundingBox())!;
-  const b = (await page.getByLabel("Avisar quando estiver perto de vencer").boundingBox())!;
-  expect(Math.abs(a.y - b.y)).toBeLessThan(1);
-  expect(Math.abs(a.height - b.height)).toBeLessThan(1);
-  expect(b.x).toBeGreaterThan(a.x + a.width - 1);
+  // Both boxes are read in one go: the dialog may scroll between two separate measurements.
+  const [x, y] = await page.evaluate(() => ["f-dueDate", "f-alertDays"].map((id) => { const r = document.getElementById(id)!.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; }));
+  expect(Math.abs(x.y - y.y)).toBeLessThan(1);
+  expect(Math.abs(x.height - y.height)).toBeLessThan(1);
+  expect(y.x).toBeGreaterThan(x.x + x.width - 1);
   expect(await fitsWidth(page)).toBe(true);
 });
 
