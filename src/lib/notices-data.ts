@@ -4,6 +4,12 @@ import type { AppNotice } from "./notifications";
 // Keep `actionUrl` empty until the store listings exist.
 export const NOTICES: AppNotice[] = [
   {
+    id: "2026-11-24-due-calendar",
+    title: "Calendário e avisos de vencimento",
+    body: "Agora você pode informar o vencimento de cada gasto e escolher ser avisado antes dele (no dia, 1, 3 ou 7 dias antes). As contas perto de vencer aparecem aqui no sino, e a nova aba Calendário mostra os vencimentos do mês: toque em um dia para ver as contas, dar baixa ou adicionar um gasto. No app, o aviso também chega como lembrete no celular.",
+    date: "2026-11-24",
+  },
+  {
     id: "2026-11-18-shared-panel",
     title: "Painel compartilhado",
     body: "Crie um painel e convide quem mora com você pelo e-mail Google: todos veem e lançam no mesmo lugar, e cada lançamento mostra quem o fez. Abra em Perfil › Painéis compartilhados.",

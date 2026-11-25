@@ -172,6 +172,31 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 /* Notification badge (transitions.dev): pops in with a small overshoot and unblurs. */
 :root { --badge-dur: 300ms; --badge-scale-from: .4; --badge-scale-peak: 1.15; --badge-blur: 2px; --badge-ease: cubic-bezier(.22,1,.36,1); }
 .bell-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center; border-radius: 9px; background: var(--danger); color: #fff; font-size: 11px; line-height: 1; font-weight: 700; box-shadow: 0 0 0 2px var(--card); pointer-events: none; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-h { text-align: center; font-size: 11px; font-weight: 700; color: var(--secondary); padding: 4px 0; }
+.cal-d { min-height: 48px; border-radius: 10px; border: 2px solid transparent; background: transparent; color: var(--on); font: inherit; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 4px 0; cursor: pointer; }
+.cal-d.empty { cursor: default; }
+.cal-d:not(.empty):hover { background: var(--c-low); }
+.cal-d.today { background: var(--c-low); }
+.cal-d[aria-pressed="true"] { border-color: var(--primary); }
+.cal-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.cal-dot.overdue { background: var(--danger); }
+.cal-dot.soon { background: var(--warning); }
+.cal-dot.pending { background: var(--secondary); }
+.cal-dot.paid { background: var(--success); }
+.cal-legend { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--secondary); }
+.cal-legend li { display: flex; align-items: center; gap: 6px; }
+.cal-item { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--c-low); }
+.cal-item:last-child { border-bottom: 0; }
+.cal-item .actions { margin-top: 6px; justify-content: flex-end; }
+.due-box { border: 1px solid var(--hairline); border-radius: 12px; padding: 12px 14px 14px; background: var(--c-low); }
+.due-box[hidden] { display: none; }
+.due-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: end; }
+.due-grid .field label { min-height: 32px; display: flex; align-items: flex-end; }
+.due-grid .input { min-width: 0; height: 44px; -webkit-appearance: none; appearance: none; text-align: left; }
+.due-grid input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+.due-title { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-size: 13px; font-weight: 700; color: var(--on); }
+.due-item .due-late { color: var(--danger); font-weight: 700; }
 .bell-badge.t-badge { animation: t-badge-in var(--badge-dur) var(--badge-ease) both; }
 @keyframes t-badge-in { 0% { opacity: 0; transform: scale(var(--badge-scale-from)); filter: blur(var(--badge-blur)); } 60% { opacity: 1; transform: scale(var(--badge-scale-peak)); filter: blur(0); } 100% { opacity: 1; transform: scale(1); filter: blur(0); } }
 @media (prefers-reduced-motion: reduce) { .bell-badge.t-badge { animation: none !important; } }
@@ -184,6 +209,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .t-reel-digit { height: var(--reel-cell); display: flex; align-items: center; justify-content: center; }
 @media (prefers-reduced-motion: reduce) { .t-reel-strip { transition: none !important; } }
 .notice-list { list-style: none; margin: 0; padding: 0; }
+.notice-group { margin: 12px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--secondary); }
 .notice-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--c-low); }
 .notice-item:last-child { border-bottom: 0; }
 .notice-dot { flex: none; width: 8px; height: 8px; margin-top: 8px; border-radius: 50%; background: transparent; }
@@ -915,6 +941,7 @@ main.auth { max-width: none; margin: 0; min-height: 100dvh; display: grid; place
 const ICONS = {
   dashboard: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
   receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/>',
+  calendarDays: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/>',
   calendar: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m14 14-2 2-2-2"/><path d="M12 16v-4"/>',
   piggy: '<path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/>',
   tag: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
@@ -1048,6 +1075,8 @@ const TOUR_STEPS = [
   // ---- Gastos fixos ----
   { id: "rec-intro", path: "fixos", sel: "main .page-head", also: [], title: "Gastos e receitas fixos", text: "Cadastre aqui o que se repete todo mês, como aluguel, salário e assinaturas. Cada item gera sozinho um lançamento pendente por mês, então você não precisa digitar de novo.", example: "Ex.: “Internet”, todo dia 10, R$ 99,90." },
   { id: "rec-totals", path: "fixos", sel: "main .grid-3", also: [], title: "Quanto pesam os fixos", text: "Mostra o total mensal de despesas fixas e de receitas fixas. É o seu custo de vida garantido, antes de qualquer gasto extra.", example: "Ex.: se os fixos passam da metade da renda, vale revisar assinaturas." },
+  // ---- Calendário ----
+  { id: "calendar", path: "calendario", sel: "main .cal-wrap > :nth-child(1)", also: [], title: "Calendário de vencimentos", text: "Cada ponto marca um dia com contas a vencer: vermelho vencida, amarelo perto de vencer, cinza pendente e verde paga. Toque em um dia para ver as contas dele, dar baixa ou adicionar um gasto. Só entra aqui o que tem vencimento preenchido.", example: "Ex.: preencha o vencimento “26/11” em “Conta de luz” e o dia 26 ganha um ponto." },
   // ---- Orçamentos e metas ----
   { id: "bud-budget", path: "orcamentos", sel: "main .grid-2 > :nth-child(1)", also: [], title: "Orçamento do mês", text: "Defina um limite de gasto por categoria. A barra enche conforme você gasta, muda de cor a partir de 80% e avisa quando o limite estoura.", example: "Ex.: limite de R$ 800 para Alimentação." },
   { id: "bud-goals", path: "orcamentos", sel: "main .grid-2 > :nth-child(2)", also: [], title: "Metas de economia", text: "Crie uma meta com um valor-alvo e vá guardando aos poucos. Ao fechar uma meta, o app comemora com confetes.", example: "Ex.: meta “Viagem” de R$ 3.000, com aportes de R$ 250 por mês." },
@@ -1387,6 +1416,65 @@ function monthLabel(month) { const [y, m] = month.split("-").map(Number); const 
 const monthShort = (month) => MONTHS[Number(month.slice(5, 7)) - 1].slice(0, 3);
 const dayMonth = (date) => `${date.slice(8, 10)} ${monthShort(date.slice(0, 7))}`;
 const formatDate = (date) => `${date.slice(8, 10)}/${date.slice(5, 7)}/${date.slice(0, 4)}`;
+
+// <due-alerts> Self-contained: tests/due-alerts.test.ts loads this block from the file.
+// A bill's due date is `dueDate` (variable expenses) or, for a fixed item's occurrence, its own date.
+// `alertDays` (0, 1, 3 or 7 days ahead; null = no alert) lives on the transaction or, for occurrences, on the fixed item.
+const ALERT_CHOICES = [{ value: 0, label: "No dia do vencimento" }, { value: 1, label: "1 dia antes" }, { value: 3, label: "3 dias antes" }, { value: 7, label: "7 dias antes" }];
+const parseAlertDays = (v) => { if (v === "" || v === null || v === undefined || v === false) return null; const n = Number(v); return [0, 1, 3, 7].includes(n) ? n : null; };
+const dayNumber = (iso) => { const [y, m, d] = iso.split("-").map(Number); return Math.round(Date.UTC(y, m - 1, d) / 86400000); };
+/** Whole days from `today` to `iso` (negative once it has passed). */
+const daysUntil = (iso, today) => dayNumber(iso) - dayNumber(today);
+const dueDateOf = (t) => t.dueDate || (t.recurringId ? t.date : null);
+const alertDaysOf = (t, recurrings) => {
+  if (t.alertDays !== undefined) return parseAlertDays(t.alertDays);
+  const r = t.recurringId && recurrings.find((x) => x.id === t.recurringId);
+  return r ? parseAlertDays(r.alertDays) : null;
+};
+const isBillOpen = (t) => t.type === "EXPENSE" && t.status !== "PAID" && t.status !== "SKIPPED";
+/** Bills inside their alert window (or already overdue), soonest first. A paid bill leaves the list. */
+function dueAlerts(txs, recurrings, today) {
+  const out = [];
+  for (const t of txs) {
+    if (!isBillOpen(t)) continue;
+    const a = alertDaysOf(t, recurrings), due = dueDateOf(t);
+    if (a === null || !due) continue;
+    const left = daysUntil(due, today);
+    if (left <= a) out.push({ tx: t, due, left, overdue: left < 0, key: `due:${t.id}:${due}` });
+  }
+  return out.sort((x, y) => (x.due < y.due ? -1 : x.due > y.due ? 1 : x.tx.description.localeCompare(y.tx.description)));
+}
+const dueText = (left) => (left < -1 ? `venceu há ${-left} dias` : left === -1 ? "venceu ontem" : left === 0 ? "vence hoje" : left === 1 ? "vence amanhã" : `vence em ${left} dias`);
+/** Expenses placed on a calendar day by their due date only; a bill without one is not on the calendar. */
+const billDay = (t) => dueDateOf(t);
+function calendarDays(txs, month) {
+  const days = new Map();
+  for (const t of txs) {
+    if (t.type !== "EXPENSE" || t.status === "SKIPPED") continue;
+    const d = billDay(t); if (!d || d.slice(0, 7) !== month) continue;
+    if (!days.has(d)) days.set(d, []);
+    days.get(d).push(t);
+  }
+  return days;
+}
+/** One tone per day: overdue, soon (inside its alert window or within 3 days), pending or paid. */
+function dayTone(items, day, today, recurrings) {
+  const open = items.filter(isBillOpen);
+  if (!open.length) return "paid";
+  if (day < today) return "overdue";
+  const left = daysUntil(day, today);
+  return open.some((t) => { const a = alertDaysOf(t, recurrings); return left <= (a === null ? 3 : Math.max(a, 3)); }) ? "soon" : "pending";
+}
+/** Weeks (Sunday first) of a month; cells outside the month are null. */
+function monthGrid(month) {
+  const [y, m] = month.split("-").map(Number), first = new Date(y, m - 1, 1).getDay(), n = new Date(y, m, 0).getDate();
+  const cells = Array(first).fill(null);
+  for (let d = 1; d <= n; d++) cells.push(`${month}-${String(d).padStart(2, "0")}`);
+  while (cells.length % 7) cells.push(null);
+  const weeks = []; for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
+}
+// </due-alerts>
 
 // <voice-parser> Self-contained: tests/voice-parser.test.ts loads this block from the file.
 /**
@@ -3837,6 +3925,7 @@ const ROUTES = [
   { path: "painel", label: "Painel", icon: "dashboard" },
   { path: "lancamentos", label: "Lançamentos", icon: "receipt" },
   { path: "fixos", label: "Gastos fixos", icon: "calendar" },
+  { path: "calendario", label: "Calendário", icon: "calendarDays" },
   { path: "orcamentos", label: "Orçamentos", icon: "piggy" },
   { path: "viagens", label: "Viagens", icon: "plane" },
   { path: "categorias", label: "Categorias", icon: "tag" },
@@ -4351,6 +4440,48 @@ function viewFixos() {
   : `<p class="empty">Nenhum gasto fixo cadastrado. Comece pelo aluguel, contas e assinaturas.</p>`}`;
 }
 
+// ---------- Calendar ----------
+let calDay = ""; // the selected day (YYYY-MM-DD), kept while the same month stays open
+/** Everything the calendar shows for a month: stored expenses plus the fixed items still to be generated (future months). */
+function calendarSource(month) {
+  const txs = state.transactions.filter(inMain);
+  return month > currentMonth() ? txs.concat(projected(month).filter((x) => x.type === "EXPENSE").map((x) => ({ ...x, id: "proj-" + x.recurringId, status: "PENDING", projected: true }))) : txs;
+}
+function calendarRow(t) {
+  const c = catById(t.categoryId), fixed = !!t.recurringId, paid = t.status === "PAID";
+  const badge = t.projected ? `<span class="badge b-warning">Previsto</span>` : `<span class="badge ${paid ? "b-success" : "b-warning"}">${statusLabel(t.status === "REVIEW" ? "PENDING" : t.status, t.type)}</span>`;
+  const buttons = t.projected ? "" : `<div class="actions"><button class="btn ${paid ? "btn-secondary" : "btn-primary"} btn-sm" data-act="cal-toggle" data-id="${t.id}">${paid ? "Reabrir" : icon("check") + " Dar baixa"}</button><button class="btn btn-ghost btn-sm" data-act="edit-tx" data-id="${t.id}" aria-label="Editar ${esc(t.description)}">${icon("edit")}</button></div>`;
+  return `<li class="cal-item"><div style="flex:1;min-width:0"><span class="row-title truncate" style="display:block">${esc(t.description)}</span>
+    <span class="row-meta">${c ? catChip(c) : ""}<span>${fixed || t.projected ? "Fixo" : "Variável"}</span>${badge}</span></div>
+    <div style="text-align:right"><span class="row-amount">${fmt(t.amountCents)}</span>${buttons}</div></li>`;
+}
+function calendarDetail(days, day) {
+  const items = day ? days.get(day) || [] : [];
+  const weekday = day ? new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`)) : "";
+  return `<div class="card-head"><h2 class="h-card" id="cal-detail-title">${day ? weekday[0].toUpperCase() + weekday.slice(1) : "Escolha um dia"}</h2>${day ? `<button class="btn btn-secondary btn-sm" data-act="cal-add" data-day="${day}">${icon("plus")} Adicionar gasto</button>` : ""}</div>
+  ${!day ? `<p class="empty">Toque em um dia para ver as contas dele.</p>` : items.length ? `<ul class="ledger">${items.sort((a, b) => a.description.localeCompare(b.description)).map(calendarRow).join("")}</ul>` : `<p class="empty">Nenhuma conta neste dia.</p>`}`;
+}
+function viewCalendario(r) {
+  const m = r.month, today = todayISO(), days = calendarDays(calendarSource(m), m), want = r.params.get("dia");
+  if (isDate(want) && want.slice(0, 7) === m) calDay = want;
+  else if (!(calDay && calDay.slice(0, 7) === m)) calDay = today.slice(0, 7) === m ? today : "";
+  const toneLabel = { overdue: "vencida", soon: "perto de vencer", pending: "pendente", paid: "paga" };
+  const cell = (iso) => {
+    if (!iso) return `<span class="cal-d empty" aria-hidden="true"></span>`;
+    const items = days.get(iso) || [], tone = items.length ? dayTone(items, iso, today, state.recurrings) : "";
+    const label = `${Number(iso.slice(8))} de ${MONTHS[Number(iso.slice(5, 7)) - 1]}${items.length ? `, ${items.length} ${items.length === 1 ? "conta" : "contas"}, ${toneLabel[tone]}` : ", sem contas"}`;
+    return `<button type="button" class="cal-d ${iso === today ? "today" : ""}" data-act="cal-day" data-day="${iso}" aria-pressed="${iso === calDay}" aria-label="${label}"><span>${Number(iso.slice(8))}</span>${tone ? `<span class="cal-dot ${tone}" data-tone="${tone}" aria-hidden="true"></span>` : ""}</button>`;
+  };
+  return `${pageHead("Calendário", "Veja os vencimentos do mês e dê baixa nas contas direto pelo dia.", monthPicker("calendario", m))}
+  <div class="grid-2 cal-wrap">
+    <section class="card" aria-label="Calendário de ${monthLabel(m)}">
+      <div class="cal" role="group" aria-label="${monthLabel(m)}">${["dom", "seg", "ter", "qua", "qui", "sex", "sáb"].map((x) => `<span class="cal-h" aria-hidden="true">${x}</span>`).join("")}${monthGrid(m).flat().map(cell).join("")}</div>
+      <ul class="cal-legend" aria-label="Legenda">${Object.keys(toneLabel).map((k) => `<li><span class="cal-dot ${k}" aria-hidden="true"></span>${toneLabel[k][0].toUpperCase() + toneLabel[k].slice(1)}</li>`).join("")}</ul>
+    </section>
+    <section class="card" id="cal-detail" aria-live="polite">${calendarDetail(days, calDay)}</section>
+  </div>`;
+}
+
 function viewOrcamentos(r) {
   const m = r.month, budgets = budgetStatus(m);
   return `${pageHead("Orçamentos e metas", "Defina um limite mensal por categoria (alerta a partir de 80%) e acompanhe suas metas de economia.")}
@@ -4790,7 +4921,7 @@ function deleteTripDialog(trip) {
   document.getElementById("trip-keep")?.addEventListener("click", () => finish(true));
 }
 
-const VIEWS = { membros: viewMembros, painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, orcamentos: viewOrcamentos, viagens: viewViagens, categorias: viewCategorias, importar: viewImportar, configuracoes: viewConfiguracoes, backup: viewBackup, perfil: viewPerfil };
+const VIEWS = { membros: viewMembros, painel: viewPainel, lancamentos: viewLancamentos, fixos: viewFixos, calendario: viewCalendario, orcamentos: viewOrcamentos, viagens: viewViagens, categorias: viewCategorias, importar: viewImportar, configuracoes: viewConfiguracoes, backup: viewBackup, perfil: viewPerfil };
 // A failed render must never leave a blank screen: show a way out instead (nothing is erased).
 function render() {
   try { renderPage(); } catch (err) {
@@ -4828,6 +4959,7 @@ function renderPage() {
   paintTabs(document.getElementById("app"));
   mountAssistant();
   maybeStartTour(r);
+  scheduleReminders();
   if (drawerEl) setPageInert(true); // the redraw made new, interactive copies of what sits behind the drawer
   if (hasIncoming()) flushIncoming();
   document.title = `${(ROUTES.find((x) => x.path === r.path) || extraRoute(r.path) || PROFILE_ROUTE).label} · Nexus Financy IA`;
@@ -4954,10 +5086,12 @@ async function renderPhotoSlot() {
 const TX_DESCRIPTION_HINT = { EXPENSE: "Ex.: Mercado, Uber, Farmácia", INCOME: "Ex.: Salário, Freela, Bônus" };
 const VOICE_EXAMPLE_REC = { EXPENSE: "Ex.: “Aluguel 1200 todo dia 5”", INCOME: "Ex.: “Salário 5000 todo dia 5”" };
 const VOICE_EXAMPLE = { EXPENSE: "Ex.: “Gastei 52,30 no mercado ontem”", INCOME: "Ex.: “Recebi 2500,00 de salário hoje”" };
-function txForm(tx, presetType, presetTrip) {
+function txForm(tx, presetType, presetTrip, presetDate) {
   let type = tx?.type || presetType || "EXPENSE";
   const preTrip = presetTrip && tripById(presetTrip);
-  const defaultDate = preTrip && !(todayISO() >= preTrip.startDate && todayISO() <= preTrip.endDate) ? preTrip.startDate : todayISO();
+  const defaultDate = presetDate || (preTrip && !(todayISO() >= preTrip.startDate && todayISO() <= preTrip.endDate) ? preTrip.startDate : todayISO());
+  const dateLabel = () => (type === "INCOME" ? "Data da entrada" : "Data da despesa");
+  const dueApplies = () => type === "EXPENSE" && !tx?.recurringId; // a fixed occurrence is due on its own date; the alert is set on the fixed item
   formPhoto = { blob: null, removed: false, existingId: tx?.attachmentId || null };
   const title = () => tx ? "Editar lançamento" : preTrip ? `Gasto da viagem: ${esc(preTrip.name)}` : type === "INCOME" ? "Nova entrada" : "Novo gasto";
   const draw = () => {
@@ -4970,10 +5104,14 @@ function txForm(tx, presetType, presetTrip) {
         ${!tx && SpeechRec ? `<div class="full" id="voice-slot" aria-live="polite"></div>` : ""}
         ${field("Descrição", "description", input("description", d.description ?? tx?.description ?? "", `placeholder="${TX_DESCRIPTION_HINT[type]}" maxlength="120" autofocus`), "full")}
         ${field("Valor", "amount", moneyInput("amount", d.amount ? parseMoneyToCents(d.amount) : tx?.amountCents))}
-        ${field("Data", "date", input("date", d.date ?? tx?.date ?? defaultDate, 'type="date"'))}
+        ${field(dateLabel(), "date", input("date", d.date ?? tx?.date ?? defaultDate, 'type="date"'))}
         ${field("Categoria", "categoryId", catSelect(type, d.categoryId ?? tx?.categoryId))}
+        <div class="full due-box" id="due-slot" role="group" aria-labelledby="due-title" ${dueApplies() ? "" : "hidden"}><h3 class="due-title" id="due-title">${icon("bell", 'style="width:16px;height:16px"')} Vencimento e aviso</h3><div class="due-grid">
+          ${field("Vencimento (opcional)", "dueDate", input("dueDate", d.dueDate ?? tx?.dueDate ?? "", 'type="date"'))}
+          ${field("Avisar quando estiver perto de vencer", "alertDays", `<select class="input" id="f-alertDays" name="alertDays"><option value="">Não avisar</option>${ALERT_CHOICES.map((c) => `<option value="${c.value}" ${String(d.alertDays ?? tx?.alertDays ?? "") === String(c.value) ? "selected" : ""}>${c.label}</option>`).join("")}</select>`)}
+        </div></div>
         ${state.trips.length && !tx?.recurringId ? field("Viagem", "tripId", `<select class="input" id="f-tripId" name="tripId"><option value="">Nenhuma (gestão do mês)</option>${[...state.trips].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)).map((x) => `<option value="${x.id}" ${(d.tripId ?? tx?.tripId ?? presetTrip) === x.id ? "selected" : ""}>✈ ${esc(x.name)}</option>`).join("")}</select>`, "full") : ""}
-        ${field("Situação", "status", `<select class="input" id="f-status" name="status">${["PAID", "PENDING", "REVIEW"].map((v) => `<option value="${v}" ${normalizeStatus(d.status ?? tx?.status) === v ? "selected" : ""}>${statusLabel(v, type)}</option>`).join("")}</select>`)}
+        ${field("Situação", "status", `<select class="input" id="f-status" name="status">${["PAID", "PENDING", "REVIEW"].map((v) => `<option value="${v}" ${normalizeStatus(d.status ?? (tx?.status || (presetDate && presetDate > todayISO() ? "PENDING" : undefined))) === v ? "selected" : ""}>${statusLabel(v, type)}</option>`).join("")}</select>`)}
         ${field("Observações", "notes", `<textarea class="input" id="f-notes" name="notes" maxlength="500">${esc(d.notes ?? tx?.notes ?? "")}</textarea>`, "full")}
         <div class="field full"><span class="field-label">Comprovante (opcional)</span><div id="photo-slot"></div><input type="file" id="photo-input" accept="image/*" hidden></div>
       </div>`,
@@ -4983,6 +5121,9 @@ function txForm(tx, presetType, presetTrip) {
         if (!v.description.trim()) errors.description = "Informe uma descrição.";
         if (amount === null || amount <= 0) errors.amount = "Informe um valor maior que zero.";
         if (!isDate(v.date)) errors.date = "Data inválida.";
+        const applies = dueApplies(), dueDate = applies && v.dueDate ? v.dueDate : null, alertDays = applies ? parseAlertDays(v.alertDays) : null;
+        if (applies && v.dueDate && !isDate(v.dueDate)) errors.dueDate = "Data de vencimento inválida.";
+        if (alertDays !== null && !dueDate) errors.dueDate = "Informe o vencimento para receber o aviso.";
         if (Object.keys(errors).length) return showErrors(errors);
         let attachmentId = formPhoto.existingId;
         if (formPhoto.blob) {
@@ -4992,6 +5133,8 @@ function txForm(tx, presetType, presetTrip) {
         } else if (formPhoto.removed) attachmentId = null;
         if (formPhoto.existingId && attachmentId !== formPhoto.existingId) deletePhoto(formPhoto.existingId);
         const data = { type, description: v.description.trim(), amountCents: amount, date: v.date, categoryId: v.categoryId || null, status: normalizeStatus(v.status), notes: v.notes.trim(), attachmentId, tripId: v.tripId || null };
+        if (applies || tx?.dueDate !== undefined) { data.dueDate = dueDate; data.alertDays = alertDays; }
+        if (alertDays !== null) askReminderPermission();
         if (tx) Object.assign(state.transactions.find((t) => t.id === tx.id), data);
         else state.transactions.push({ id: uid(), source: "MANUAL", recurringId: null, period: null, createdAt: Date.now(), ...data });
         save(); closeModal(); render(); toast(tx ? "Lançamento atualizado." : "Lançamento salvo.");
@@ -5011,6 +5154,8 @@ function txForm(tx, presetType, presetTrip) {
     const paid = document.querySelector('#f-status option[value="PAID"]');
     if (paid) paid.textContent = type === "INCOME" ? "Recebido" : "Pago";
     document.getElementById("f-description")?.setAttribute("placeholder", TX_DESCRIPTION_HINT[type]);
+    const due = document.getElementById("due-slot"); if (due) due.hidden = !dueApplies();
+    const dl = document.querySelector('#modal label[for="f-date"]'); if (dl) dl.textContent = dateLabel();
     renderVoiceSlot();
   };
   txForm.getType = () => type;
@@ -5053,9 +5198,46 @@ if (NATIVE) {
   const shipped = new Set((cap.PluginHeaders || []).map((h) => h.name));
   // BankNotifications is only registered with the flag on: without it BankNotif() is undefined, so nothing below
   // (status, queue, the "enable" prompt, the listener) ever reaches the native side or asks for access.
-  for (const name of ["App", ...(ENABLE_BANK_NOTIFICATIONS ? ["BankNotifications"] : []), "Browser", "Filesystem", "Share", "SocialLogin", "SpeechRecognition", "StatusBar"]) {
+  for (const name of ["App", ...(ENABLE_BANK_NOTIFICATIONS ? ["BankNotifications"] : []), "Browser", "Filesystem", "LocalNotifications", "Share", "SocialLogin", "SpeechRecognition", "StatusBar"]) {
     if (register && shipped.has(name)) NativePlugins[name] = register(name);
   }
+}
+
+// ---------- Bill reminders (app) ----------
+// In the app each bill with an alert becomes a local notification at 09:00 on the alert day, so it rings with the app
+// closed. The web has no background timer: there the bell is the alert. Nothing leaves the device.
+const REMIND_HOUR = 9, REMIND_AHEAD_DAYS = 60;
+function localNotif() { try { return NativePlugins.LocalNotifications; } catch { return undefined; } }
+const reminderId = (key) => { let h = 0; for (const c of key) h = (h * 31 + c.charCodeAt(0)) | 0; return (h & 0x3fffffff) || 1; };
+let reminderSig = "";
+/** Asked only when the person saves a bill with an alert, never at startup. */
+async function askReminderPermission() {
+  const P = localNotif(); if (!P) return;
+  try { const cur = await P.checkPermissions(); if (cur.display !== "granted") await P.requestPermissions(); } catch {}
+  reminderSig = ""; scheduleReminders();
+}
+async function scheduleReminders() {
+  const P = localNotif(); if (!P) return;
+  try {
+    if ((await P.checkPermissions()).display !== "granted") return;
+    const today = todayISO(), nextMonth = projected(addMonths(currentMonth(), 1)).filter((x) => x.type === "EXPENSE").map((x) => ({ ...x, id: "proj-" + x.recurringId, status: "PENDING" }));
+    const items = [];
+    for (const t of state.transactions.filter(inMain).concat(nextMonth)) {
+      if (!isBillOpen(t)) continue;
+      const a = alertDaysOf(t, state.recurrings), due = dueDateOf(t);
+      if (a === null || !due || daysUntil(due, today) > REMIND_AHEAD_DAYS) continue;
+      const [y, m, d] = due.split("-").map(Number), at = new Date(y, m - 1, d - a, REMIND_HOUR, 0, 0);
+      if (at.getTime() <= Date.now()) continue;
+      const when = a === 0 ? "vence hoje" : a === 1 ? "vence amanhã" : `vence em ${a} dias`;
+      items.push({ id: reminderId(`${t.id}:${due}`), title: "Conta perto de vencer", body: `${t.description} (${brl.format(t.amountCents / 100)}) ${when}, ${formatDate(due)}.`, schedule: { at } });
+    }
+    const sig = JSON.stringify(items.map((i) => [i.id, i.schedule.at.getTime(), i.body]));
+    if (sig === reminderSig) return;
+    reminderSig = sig;
+    const pending = await P.getPending();
+    if (pending.notifications.length) await P.cancel({ notifications: pending.notifications.map((n) => ({ id: n.id })) });
+    if (items.length) await P.schedule({ notifications: items });
+  } catch { reminderSig = ""; }
 }
 
 // The app's WebView has no SpeechRecognition, so the native plugin stands in with the same small interface.
@@ -5696,6 +5878,7 @@ function recForm(rec) {
         ${field("Valor mensal", "amount", moneyInput("amount", d.amount ? parseMoneyToCents(d.amount) : rec?.amountCents))}
         ${field("Dia do vencimento", "day", input("day", d.day ?? rec?.dayOfMonth ?? 5, 'type="number" min="1" max="31" inputmode="numeric"'))}
         ${field("Categoria", "categoryId", catSelect(type, d.categoryId ?? rec?.categoryId))}
+        <div class="full" id="rec-alert-slot" ${type === "EXPENSE" ? "" : "hidden"}>${field("Avisar quando estiver perto de vencer", "alertDays", `<select class="input" id="f-alertDays" name="alertDays"><option value="">Não avisar</option>${ALERT_CHOICES.map((c) => `<option value="${c.value}" ${String(d.alertDays ?? rec?.alertDays ?? "") === String(c.value) ? "selected" : ""}>${c.label}</option>`).join("")}</select>`, "", "O aviso aparece no sino e, no app, vira um lembrete no celular.")}</div>
         ${field("Começa em", "startMonth", input("startMonth", d.startMonth ?? rec?.startMonth ?? currentMonth(), 'type="month"'))}
         ${field("Termina em (opcional)", "endMonth", input("endMonth", d.endMonth ?? rec?.endMonth ?? "", 'type="month"'), "full", "Deixe vazio para não ter fim.")}
       </div>`,
@@ -5708,7 +5891,8 @@ function recForm(rec) {
         if (!isMonth(v.startMonth)) errors.startMonth = "Escolha o mês de início.";
         if (v.endMonth && (!isMonth(v.endMonth) || v.endMonth < v.startMonth)) errors.endMonth = "O fim deve ser depois do início.";
         if (Object.keys(errors).length) return showErrors(errors);
-        const data = { type, description: v.description.trim(), amountCents: amount, dayOfMonth: day, categoryId: v.categoryId || null, startMonth: v.startMonth, endMonth: v.endMonth || null };
+        const data = { type, description: v.description.trim(), amountCents: amount, dayOfMonth: day, categoryId: v.categoryId || null, startMonth: v.startMonth, endMonth: v.endMonth || null, alertDays: type === "EXPENSE" ? parseAlertDays(v.alertDays) : null };
+        if (data.alertDays !== null) askReminderPermission();
         if (rec) Object.assign(state.recurrings.find((x) => x.id === rec.id), data);
         else state.recurrings.push({ id: uid(), ...data });
         needsOccurrences = true;
@@ -5723,6 +5907,7 @@ function recForm(rec) {
     selectTab(typeBar, typeBar?.querySelector(`[data-type="${type}"]`));
     const cat = document.getElementById("f-categoryId");
     if (cat) cat.innerHTML = catOptions(type, cat.value);
+    const al = document.getElementById("rec-alert-slot"); if (al) al.hidden = type !== "EXPENSE";
     renderVoiceSlot();
   };
   recForm.getType = () => type;
@@ -5872,14 +6057,15 @@ document.addEventListener("keydown", (e) => {
 // Same catalog as src/lib/notices-data.ts. `actionUrl` is reserved for the store links at launch and is
 // not rendered while the app is in testing. The read state is per account and stays on this device.
 const NOTICES = [
+  { id: "2026-11-24-due-calendar", title: "Calendário e avisos de vencimento", body: "Agora você pode informar o vencimento de cada gasto e escolher ser avisado antes dele (no dia, 1, 3 ou 7 dias antes). As contas perto de vencer aparecem aqui no sino, e a nova aba Calendário mostra os vencimentos do mês: toque em um dia para ver as contas, dar baixa ou adicionar um gasto. No app, o aviso também chega como lembrete no celular.", date: "2026-11-24" },
   { id: "2026-11-18-shared-panel", title: "Painel compartilhado", body: "Crie um painel e convide quem mora com você pelo e-mail Google: todos veem e lançam no mesmo lugar, e cada lançamento mostra quem o fez. Abra em Perfil › Painéis compartilhados.", date: "2026-11-18" },
   { id: "2026-11-15-google-login", title: "Entrar com o Google", body: "Agora você entra com a sua conta Google, sem criar token nem senha extra.", date: "2026-11-15" },
   { id: "2026-11-15-quick-assistant", title: "Atalhos rápidos", body: "O balão no canto da tela abre o chat de lançamentos (fale ou escreva) e uma calculadora que funciona sem internet.", date: "2026-11-15" },
   { id: "2026-11-14-voice-assistant", title: "Assistente de voz", body: "Fale o lançamento no formulário e o app preenche valor, categoria e data para você revisar.", date: "2026-11-14" },
   { id: "2026-11-10-hide-values", title: "Ocultar valores", body: "Toque no olho do cabeçalho para esconder os valores da tela quando houver alguém por perto.", date: "2026-11-10" },
 ];
-const sortedNotices = () => NOTICES.map((n, i) => ({ n, i })).sort((a, b) => b.n.date.localeCompare(a.n.date) || a.i - b.i).map((x) => x.n);
-const noticesKey = () => `notices-read:${isGoogle() ? sync.sub : sync.login}`;
+const sortedNotices = () => !sync ? [] : NOTICES.map((n, i) => ({ n, i })).sort((a, b) => b.n.date.localeCompare(a.n.date) || a.i - b.i).map((x) => x.n);
+const noticesKey = () => `notices-read:${!sync ? "local" : isGoogle() ? sync.sub : sync.login}`;
 const noticesMemory = {};
 function readNoticeIds() {
   let raw = null;
@@ -5893,23 +6079,34 @@ function writeNoticeIds(ids) {
   try { localStorage.setItem(noticesKey(), raw); } catch {}
 }
 const unreadNotices = () => { const read = new Set(readNoticeIds()); return sortedNotices().filter((n) => !read.has(n.id)); };
+const activeDueAlerts = () => dueAlerts(state.transactions.filter(inMain), state.recurrings, todayISO());
+const unreadDueAlerts = () => { const read = new Set(readNoticeIds()); return activeDueAlerts().filter((a) => !read.has(a.key)); };
 const noticeDate = (d) => new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Sao_Paulo" }).format(new Date(`${d}T12:00:00-03:00`));
 let lastBellCount = null;
 /** Only for signed-in accounts. The badge animates only when the number changes, not on every redraw. */
 function bellButton() {
-  if (!sync) return "";
-  const n = unreadNotices().length, pop = n !== lastBellCount;
+  // Without an account the bell appears only while a bill is inside its alert window.
+  if (!sync && !activeDueAlerts().length) return "";
+  const n = unreadNotices().length + unreadDueAlerts().length, pop = n !== lastBellCount;
   lastBellCount = n;
   return `<button class="icon-btn" data-act="notices" aria-label="${n ? `Notificações, ${n} ${n === 1 ? "não lida" : "não lidas"}` : "Notificações"}" aria-haspopup="dialog">${icon("bell")}${n ? `<span class="bell-badge ${pop ? "t-badge" : ""}" aria-hidden="true">${n > 9 ? "9+" : n}</span>` : ""}</button>`;
 }
+function dueBody() {
+  const alerts = activeDueAlerts(), unread = new Set(unreadDueAlerts().map((a) => a.key));
+  if (!alerts.length) return "";
+  return `<h3 class="notice-group">Contas perto de vencer</h3><ul class="notice-list">${alerts.map((a) => `<li class="notice-item due-item ${unread.has(a.key) ? "unread" : ""}"><span class="notice-dot" aria-hidden="true"></span><div style="min-width:0;flex:1">
+    <div class="notice-top"><h4>${esc(a.tx.description)}${unread.has(a.key) ? '<span class="sr-only"> (não lida)</span>' : ""}</h4><b>${fmt(a.tx.amountCents)}</b></div>
+    <p><span class="${a.overdue ? "due-late" : ""}">${dueText(a.left)}</span> · <time datetime="${a.due}">${formatDate(a.due)}</time></p>
+    <div class="actions" style="justify-content:flex-start;margin-top:6px"><button type="button" class="btn btn-primary btn-sm" data-act="due-pay" data-id="${a.tx.id}">${icon("check")} Marcar como pago</button>${unread.has(a.key) ? `<button type="button" class="link-btn" data-act="notice-read" data-id="${esc(a.key)}">Marcar como lida</button>` : ""}</div></div></li>`).join("")}</ul>`;
+}
 function noticesBody() {
-  const unread = new Set(unreadNotices().map((n) => n.id));
+  const unread = new Set(unreadNotices().map((n) => n.id)), due = dueBody(), anyUnread = unread.size + unreadDueAlerts().length;
   const list = sortedNotices().map((n) => `<li class="notice-item ${unread.has(n.id) ? "unread" : ""}"><span class="notice-dot" aria-hidden="true"></span><div style="min-width:0;flex:1">
     <div class="notice-top"><h4>${esc(n.title)}${unread.has(n.id) ? '<span class="sr-only"> (não lida)</span>' : ""}</h4><time datetime="${n.date}">${noticeDate(n.date)}</time></div>
     <p>${esc(n.body)}</p>${unread.has(n.id) ? `<button type="button" class="link-btn" data-act="notice-read" data-id="${n.id}">${icon("check")} Marcar como lida</button>` : ""}</div></li>`).join("");
-  return `${unread.size ? `<button type="button" class="btn btn-secondary btn-sm" data-act="notices-read-all" style="margin-bottom:8px">${icon("check")} Marcar todas como lidas</button>` : ""}${list ? `<ul class="notice-list">${list}</ul>` : '<p class="hint">Nenhum aviso por enquanto.</p>'}`;
+  return `${anyUnread ? `<button type="button" class="btn btn-secondary btn-sm" data-act="notices-read-all" style="margin-bottom:8px">${icon("check")} Marcar todas como lidas</button>` : ""}${due}${list ? `${due ? '<h3 class="notice-group">Novidades</h3>' : ""}<ul class="notice-list">${list}</ul>` : '<p class="hint">Nenhum aviso por enquanto.</p>'}`;
 }
-function noticesSheet() { openModal({ title: "Novidades", body: noticesBody() }); }
+function noticesSheet() { openModal({ title: "Avisos e novidades", body: noticesBody() }); }
 /** Redraws the badge behind the sheet and the list inside it, without reopening the sheet. */
 function refreshNotices() {
   render();
@@ -6393,8 +6590,12 @@ document.addEventListener("click", (e) => {
       el.setAttribute("aria-label", label); el.setAttribute("title", label); el.setAttribute("aria-expanded", String(!collapsed));
       document.getElementById("live").textContent = collapsed ? "Menu recolhido" : "Menu expandido";
     },
+    "due-pay": () => { const t = state.transactions.find((x) => x.id === id); if (!t) return; t.status = "PAID"; save(); refreshNotices(); toast("Conta marcada como paga."); },
+    "cal-day": () => { calDay = el.dataset.day; history.replaceState(null, "", href("calendario", { ...(route().month !== currentMonth() ? { mes: route().month } : {}), dia: calDay })); render(); document.querySelector(`[data-act="cal-day"][data-day="${calDay}"]`)?.focus({ preventScroll: true }); },
+    "cal-toggle": () => { const t = state.transactions.find((x) => x.id === id); if (!t) return; t.status = t.status === "PAID" ? "PENDING" : "PAID"; save(); render(); toast(t.status === "PAID" ? "Conta marcada como paga." : "Conta reaberta."); },
+    "cal-add": () => leaveDemoThen(() => txForm(null, "EXPENSE", null, el.dataset.day)),
     "notice-read": () => { writeNoticeIds([...readNoticeIds(), id]); refreshNotices(); },
-    "notices-read-all": () => { writeNoticeIds([...readNoticeIds(), ...NOTICES.map((n) => n.id)]); refreshNotices(); }, "pick-month": monthSheet, "reload": () => location.reload(),
+    "notices-read-all": () => { writeNoticeIds([...readNoticeIds(), ...NOTICES.map((n) => n.id), ...activeDueAlerts().map((a) => a.key)]); refreshNotices(); }, "pick-month": monthSheet, "reload": () => location.reload(),
     "flow-view": () => setFlowView(el.dataset.view), "flow-col": () => selectFlowColumn(el),
     "toggle-values": () => {
       hideValues = !hideValues;
